@@ -1,0 +1,145 @@
+.dashboard-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f7f8fb;
+  color: #0f172a;
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.dashboard-sidebar {
+  width: 250px;
+  background: #ffffff;
+  border-right: 1px solid #e6e8ef;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link .nav-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: grid;
+  place-items: center;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.sidebar-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.sidebar-link.active {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.sidebar-link.active .nav-icon {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 1.5rem 2.5rem 0;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e6e8ef;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #1f2937;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.user-plan {
+  color: #64748b;
+}
+
+.dashboard-content {
+  padding: 1.5rem 2.5rem 3rem;
+  max-width: 1200px;
+}
