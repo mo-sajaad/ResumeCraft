@@ -1,0 +1,8 @@
+export default function ErrorPage() {
+  return (
+    <div style={{ padding: "2rem", textAlign: "center" }}>
+      <h1>Oops! Something went wrong.</h1>
+      <p>Try refreshing the page or come back later.</p>
+    </div>
+  );
+}
