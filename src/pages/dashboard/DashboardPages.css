@@ -22,6 +22,8 @@
 }
 
 .btn {
+  display: flex;
+  align-items: center;
   border: 1px solid transparent;
   padding: 0.6rem 1.25rem;
   border-radius: 12px;
@@ -92,6 +94,7 @@
   margin-top: 1.75rem;
 }
 
+/* Default quick-card styles */
 .quick-card {
   border: 2px dashed #e2e8f0;
   border-radius: 18px;
@@ -100,8 +103,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer; /* Change cursor to pointer by default */
 }
 
+/* Icon styles inside quick-card */
 .quick-card .icon {
   width: 44px;
   height: 44px;
@@ -111,6 +117,22 @@
   place-items: center;
   font-size: 1.2rem;
 }
+
+/* Hover effect for quick-card */
+.quick-card:hover {
+  background-color: #f3f4f6; /* Light background color on hover */
+  border-color: #cbd5e1; /* Lighten the border color on hover */
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1); /* Subtle shadow for hover */
+  transform: translateY(-2px); /* Slightly lift the card */
+  cursor: pointer; /* Ensure cursor is pointer on hover */
+}
+
+/* Hover effect for icon in quick-card */
+.quick-card:hover .icon {
+  background: #e2e8f0; /* Keeping the icon background unchanged or you can adjust the color */
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.08); /* Add shadow on icon hover */
+}
+
 
 .section-title {
   display: flex;
@@ -170,10 +192,27 @@
   font-size: 0.85rem;
 }
 
+/* Default edit-link styling */
 .edit-link {
   color: #0f172a;
   font-weight: 600;
+  text-decoration: none;  /* Remove underline */
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;   /* Rounded corners */
+  transition: all 0.3s ease; /* Smooth transition for hover effect */
 }
+
+/* Hover effect for edit-link */
+.edit-link:hover {
+  background-color: #e6e8ef; /* Light background on hover */
+  border-radius: 10px;        /* Maintain rounded corners */
+  border-color: #64748b;     /* Border color on hover */
+  transform: translateY(-2px); /* Lift the link slightly */
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08); /* Shadow effect for hover */
+  cursor: pointer;           /* Change cursor to pointer */
+  color: #1e293b;             /* Darker color on hover to enhance contrast */
+}
+
 
 .form-grid {
   display: grid;
@@ -185,6 +224,14 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.full-name {
+  margin-bottom: 0.75rem;
+}
+
+.description-input {
+  margin-top: 0.75rem;
 }
 
 .input-group {
@@ -332,4 +379,23 @@
   padding: 1rem;
   text-align: center;
   color: #475569;
+}
+
+/* Styling for the date picker input */
+.input-date-picker {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 1rem;
+}
+
+/* Lighter placeholder text */
+input::placeholder, textarea::placeholder {
+  color: #9ca3af; /* Light grey */
+}
+
+input, textarea {
+  color: #0f172a; /* Ensure input text color is normal */
 }

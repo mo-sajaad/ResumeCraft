@@ -112,6 +112,13 @@
   border: 1px solid #e6e8ef;
 }
 
+
+.user-chip:hover {
+  background-color: #e6e8ef;
+  cursor: pointer;
+}
+
+
 .user-avatar {
   width: 34px;
   height: 34px;
@@ -142,4 +149,102 @@
 .dashboard-content {
   padding: 1.5rem 2.5rem 3rem;
   max-width: 1200px;
+}
+
+/* Layout */
+.dashboard-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f6f7fb;
+}
+
+/* Sidebar */
+.dashboard-sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #ececf2;
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brand */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 32px;
+}
+
+.brand-icon {
+  font-size: 22px;
+  color: #6366f1;
+}
+
+/* Navigation */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: #6b7280;
+  text-decoration: none;
+  border-radius: 14px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-link .nav-icon {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* Hover */
+.sidebar-link:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* Active (NavLink adds .active automatically) */
+.sidebar-link.active {
+  background: linear-gradient(135deg, #0f0f1a, #1f1f3a);
+  color: #ffffff;
+}
+
+.sidebar-link.active .nav-icon {
+  opacity: 1;
+}
+
+/* Footer */
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1.4;
+  padding-top: 20px;
+  border-top: 1px solid #f1f2f6;
+}
+
+/* Main area (optional polish) */
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-topbar {
+  height: 64px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 24px;
 }

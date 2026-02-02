@@ -1,33 +1,40 @@
 import { NavLink, Outlet } from "react-router-dom";
 import "./DashboardLayout.css";
 
+import { FaRegAddressCard } from 'react-icons/fa'; // For Resume icon
+import { FaRegEnvelope } from 'react-icons/fa';    // For Cover Letter icon
+import { FaGem } from 'react-icons/fa';            // For Premium icon
+import { FaCog } from 'react-icons/fa';            // For Settings icon
+import { FaTh } from 'react-icons/fa';             // For Dashboard icon
+
+
 export default function DashboardLayout() {
   return (
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
           <div className="brand-icon">✦</div>
-          ResumeAI
+          ResumeCraft
         </div>
         <nav className="sidebar-nav">
           <NavLink to="/dashboard" end className="sidebar-link">
-            <span className="nav-icon">▢</span>
+            <span className="nav-icon"><FaTh /></span>
             Dashboard
           </NavLink>
           <NavLink to="/dashboard/resume/new" className="sidebar-link">
-            <span className="nav-icon">📝</span>
+            <span className="nav-icon"><FaRegAddressCard /></span>
             Create Resume
           </NavLink>
           <NavLink to="/dashboard/cover-letter/new" className="sidebar-link">
-            <span className="nav-icon">✉️</span>
+            <span className="nav-icon"><FaRegEnvelope /></span>
             Create Cover Letter
           </NavLink>
-          <NavLink to="/payment" className="sidebar-link">
-            <span className="nav-icon">💎</span>
+          <NavLink to="/dashboard/payment" className="sidebar-link">
+            <span className="nav-icon"><FaGem /></span>
             Premium
           </NavLink>
-          <NavLink to="/settings" className="sidebar-link">
-            <span className="nav-icon">⚙️</span>
+          <NavLink to="/dashboard/settings" className="sidebar-link">
+            <span className="nav-icon"><FaCog /></span>
             Settings
           </NavLink>
         </nav>

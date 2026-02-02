@@ -1,6 +1,60 @@
-import "./DashboardPages.css";
+import { useState } from "react";
+import { FaCrown, FaFileAlt, FaEnvelope, FaEdit, FaPlus, FaDownload, FaSave } from 'react-icons/fa'; // Updated icons
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import PhoneInput from 'react-phone-number-input';  // Import PhoneInput
+import 'react-phone-number-input/style.css'; // Make sure this CSS file is correctly imported
+import './DashboardPages.css';
 
 export default function ResumeNew() {
+  const [workExperience, setWorkExperience] = useState([]);  // Store all added work experiences
+  const [newExperience, setNewExperience] = useState({
+    company: "",
+    position: "",
+    startDate: null,
+    endDate: null,
+    description: ""
+  });
+
+  const [phoneNumber, setPhoneNumber] = useState(""); // State to manage phone number input
+
+  // Handle input changes for the new work experience
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewExperience((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle date changes for start and end dates
+  const handleDateChange = (date, name) => {
+    setNewExperience((prev) => ({
+      ...prev,
+      [name]: date
+    }));
+  };
+
+  // Add new work experience to the list
+  const handleAddExperience = () => {
+    if (
+      newExperience.company &&
+      newExperience.position &&
+      newExperience.startDate &&
+      newExperience.endDate &&
+      newExperience.description
+    ) {
+      setWorkExperience((prev) => [...prev, newExperience]);  // Add the new experience
+      setNewExperience({
+        company: "",
+        position: "",
+        startDate: null,
+        endDate: null,
+        description: ""
+      });  // Reset form after adding
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -8,20 +62,21 @@ export default function ResumeNew() {
           <h1 className="page-title">Edit Resume</h1>
         </div>
         <div className="header-actions">
-          <button className="btn btn-outline" type="button">
-            ✨ AI Suggestions
+          <button className="btn btn-outline" type="button" aria-label="AI Suggestions">
+            <FaCrown size={20} style={{ marginRight: '8px' }} />AI Suggestions
           </button>
-          <button className="btn btn-dark" type="button">
-            💾 Save
+          <button className="btn btn-dark" type="button" aria-label="Save Resume">
+            <FaSave size={20} style={{ marginRight: '8px' }} />Save
           </button>
         </div>
       </div>
 
       <div className="form-grid">
         <div className="form-stack">
+          {/* Personal Information Card */}
           <div className="content-card">
             <h3>Personal Information</h3>
-            <div className="input-group">
+            <div className="input-group full-name">
               <label htmlFor="full-name">Full Name</label>
               <input id="full-name" placeholder="John Doe" />
             </div>
@@ -32,7 +87,14 @@ export default function ResumeNew() {
               </div>
               <div className="input-group">
                 <label htmlFor="phone">Phone</label>
-                <input id="phone" placeholder="(555) 123-4567" />
+                <PhoneInput
+                  international
+                  defaultCountry="US"  // Ensure this is set correctly
+                  value={phoneNumber}
+                  onChange={setPhoneNumber}
+                  placeholder="(555) 123-4567"
+                  className="input-phone"
+                />
               </div>
               <div className="input-group">
                 <label htmlFor="location">Location</label>
@@ -45,6 +107,7 @@ export default function ResumeNew() {
             </div>
           </div>
 
+          {/* Professional Summary Card */}
           <div className="content-card">
             <h3>Professional Summary</h3>
             <div className="input-group">
@@ -54,37 +117,84 @@ export default function ResumeNew() {
             </div>
           </div>
 
+          {/* Work Experience Card */}
           <div className="content-card">
             <div className="section-title">
               <h3>Work Experience</h3>
-              <button className="btn btn-outline" type="button">
-                ＋ Add
+              <button className="btn btn-outline" type="button" onClick={handleAddExperience} aria-label="Add Work Experience">
+                <FaPlus size={20} style={{ marginRight: '8px' }} />Add Work Experience
               </button>
             </div>
+
+            {/* Work Experience Form Inputs */}
             <div className="input-grid">
               <div className="input-group">
                 <label>Company</label>
-                <input placeholder="Tech Corp" />
+                <input
+                  name="company"
+                  value={newExperience.company}
+                  onChange={handleInputChange}
+                  placeholder="Tech Corp"
+                />
               </div>
               <div className="input-group">
                 <label>Position</label>
-                <input placeholder="Senior Software Engineer" />
+                <input
+                  name="position"
+                  value={newExperience.position}
+                  onChange={handleInputChange}
+                  placeholder="Senior Software Engineer"
+                />
               </div>
               <div className="input-group">
                 <label>Start Date</label>
-                <input placeholder="January 2020" />
+                <DatePicker
+                  selected={newExperience.startDate}
+                  onChange={(date) => handleDateChange(date, "startDate")}
+                  dateFormat="MMMM yyyy"
+                  placeholderText="Select Start Date"
+                  className="input-date-picker"
+                />
               </div>
               <div className="input-group">
                 <label>End Date</label>
-                <input placeholder="Present" />
+                <DatePicker
+                  selected={newExperience.endDate}
+                  onChange={(date) => handleDateChange(date, "endDate")}
+                  dateFormat="MMMM yyyy"
+                  placeholderText="Select End Date"
+                  className="input-date-picker"
+                />
               </div>
             </div>
-            <div className="input-group">
+            <div className="input-group description-input">
               <label>Description</label>
-              <textarea placeholder="List key achievements and responsibilities." />
+              <textarea
+                name="description"
+                value={newExperience.description}
+                onChange={handleInputChange}
+                placeholder="List key achievements and responsibilities."
+              />
             </div>
+
+            {/* Display Work Experience List if any added */}
+            {workExperience.length > 0 && (
+              <div className="work-experience-list">
+                <h4>Added Work Experience</h4>
+                <ul>
+                  {workExperience.map((experience, index) => (
+                    <li key={index} className="work-experience-item">
+                      <strong>{experience.company}</strong> - {experience.position} <br />
+                      <em>{experience.startDate && experience.startDate.toLocaleDateString()} - {experience.endDate && experience.endDate.toLocaleDateString()}</em>
+                      <p>{experience.description}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
+          {/* Education Card */}
           <div className="content-card">
             <h3>Education</h3>
             <div className="input-grid">
@@ -107,6 +217,7 @@ export default function ResumeNew() {
             </div>
           </div>
 
+          {/* Skills Card */}
           <div className="content-card">
             <h3>Skills</h3>
             <div className="tag-row">
@@ -123,11 +234,12 @@ export default function ResumeNew() {
           </div>
         </div>
 
+        {/* Preview Card */}
         <div className="content-card preview-card">
           <div className="section-title">
             <h3>Preview</h3>
-            <button className="btn btn-outline" type="button">
-              ⬇ Download
+            <button className="btn btn-outline" type="button" aria-label="Download Resume">
+              <FaDownload size={20} style={{ marginRight: '8px' }} />Download
             </button>
           </div>
           <div className="preview-placeholder">

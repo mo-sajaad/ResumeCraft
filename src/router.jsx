@@ -54,12 +54,10 @@ export const router = createBrowserRouter([
           { index: true, element: withSuspense(<DashboardHome />) },
           { path: "resume/new", element: withSuspense(<ResumeNew />) },
           { path: "cover-letter/new", element: withSuspense(<CoverLetterNew />) },
+          { path: "payment", element: withSuspense(<Payment />) },
+          { path: "settings", element: withSuspense(<Settings />) }
         ],
       },
     ],
   },
-
-  // Other standalone routes
-  { path: "payment", element: withSuspense(<Payment />) },
-  { path: "settings", element: withSuspense(<Settings />) },
 ]);
