@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { NavLink, Outlet } from "react-router-dom";
 import "./DashboardLayout.css";
 
@@ -7,8 +8,13 @@ import { FaGem } from 'react-icons/fa';            // For Premium icon
 import { FaCog } from 'react-icons/fa';            // For Settings icon
 import { FaTh } from 'react-icons/fa';             // For Dashboard icon
 
-
 export default function DashboardLayout() {
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+
+  const toggleDropdown = () => {
+    setDropdownVisible(!dropdownVisible);
+  };
+
   return (
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
@@ -44,12 +50,21 @@ export default function DashboardLayout() {
       </aside>
       <div className="dashboard-main">
         <div className="dashboard-topbar">
-          <div className="user-chip">
+          <div className="user-chip" onClick={toggleDropdown}>
             <div className="user-avatar">JD</div>
             <div className="user-details">
               <span className="user-name">John Doe</span>
               <span className="user-plan">Free Plan</span>
             </div>
+            {dropdownVisible && (
+              <div className="user-dropdown">
+                <ul>
+                  <li><NavLink to="/dashboard/settings" className="dropdown-link">Profile</NavLink></li>
+                  <li><NavLink to="/dashboard/settings" className="dropdown-link">Settings</NavLink></li>
+                  <li><NavLink to="/auth/login" className="dropdown-link">Log Out</NavLink></li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
         <main className="dashboard-content">

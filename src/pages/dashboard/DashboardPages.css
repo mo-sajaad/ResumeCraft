@@ -133,7 +133,6 @@
   box-shadow: 0 4px 8px rgba(15, 23, 42, 0.08); /* Add shadow on icon hover */
 }
 
-
 .section-title {
   display: flex;
   align-items: center;
@@ -196,23 +195,22 @@
 .edit-link {
   color: #0f172a;
   font-weight: 600;
-  text-decoration: none;  /* Remove underline */
+  text-decoration: none; /* Remove underline */
   padding: 0.25rem 0.5rem;
-  border-radius: 10px;   /* Rounded corners */
+  border-radius: 10px; /* Rounded corners */
   transition: all 0.3s ease; /* Smooth transition for hover effect */
 }
 
 /* Hover effect for edit-link */
 .edit-link:hover {
   background-color: #e6e8ef; /* Light background on hover */
-  border-radius: 10px;        /* Maintain rounded corners */
-  border-color: #64748b;     /* Border color on hover */
+  border-radius: 10px; /* Maintain rounded corners */
+  border-color: #64748b; /* Border color on hover */
   transform: translateY(-2px); /* Lift the link slightly */
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08); /* Shadow effect for hover */
-  cursor: pointer;           /* Change cursor to pointer */
-  color: #1e293b;             /* Darker color on hover to enhance contrast */
+  cursor: pointer; /* Change cursor to pointer */
+  color: #1e293b; /* Darker color on hover to enhance contrast */
 }
-
 
 .form-grid {
   display: grid;
@@ -226,10 +224,6 @@
   gap: 1.5rem;
 }
 
-.full-name {
-  margin-bottom: 0.75rem;
-}
-
 .description-input {
   margin-top: 0.75rem;
 }
@@ -238,11 +232,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .input-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
 }
 
@@ -266,6 +261,10 @@
   resize: vertical;
 }
 
+.subjects-input-group {
+  padding-bottom: 0.75rem;
+}
+
 .tag-row {
   display: flex;
   flex-wrap: wrap;
@@ -278,12 +277,103 @@
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 600;
+  max-height: 2rem;
+}
+
+.remove-tag {
+  cursor: pointer;
+  margin-left: 8px;
+  color: red;
 }
 
 .tag.add-tag {
   background: #ffffff;
   border: 1px dashed #cbd5f5;
 }
+
+.input-group input {
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 0.95rem;
+}
+
+.add-skill-button,
+.tag {
+  margin: 0.25rem 0;
+}
+
+.skill-input {
+  margin: 0.25rem 0;
+  background: #ffffff;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: 50%;
+}
+
+.added-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.added-list li {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.added-list li:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.added-list li strong {
+  font-size: 1rem;
+  color: #111827;
+}
+
+.added-list li p {
+  margin: 6px 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.added-list li em {
+  color: #6b7280;
+  font-style: normal;
+  font-size: 0.85rem;
+}
+
+.added-list li button {
+  margin-top: 10px;
+  align-self: flex-start;
+}
+
+.project-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+}
+
 
 .preview-card {
   display: flex;
@@ -321,24 +411,42 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
-  margin-top: 1.5rem;
+  margin: 1.5rem 0;
 }
 
 .pricing-card {
   border: 2px solid #e6e8ef;
   border-radius: 20px;
   padding: 1.5rem;
+  margin-bottom: 1.5rem;
   background: #ffffff;
   display: flex;
+  height: 100%;
   flex-direction: column;
   gap: 1rem;
   text-align: center;
+  transition: all 0.2s ease;
+}
+
+.pricing-card:hover {
+  cursor: pointer;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+  border: 2px solid rgba(30, 41, 59, 0.6);
 }
 
 .pricing-card.featured {
   border-color: #0f172a;
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
   position: relative;
+}
+
+.pricing-features {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: auto;
+  text-align: center;
 }
 
 .pricing-badge {
@@ -364,6 +472,11 @@
   gap: 0.75rem;
   text-align: left;
   font-size: 0.9rem;
+  margin-top: 2rem;
+}
+
+.pricing-button {
+  justify-self: flex-end;
 }
 
 .feature-grid {
@@ -376,10 +489,114 @@
 .feature-card {
   background: #f8fafc;
   border-radius: 16px;
+  border: 2px solid #64748b;
   padding: 1rem;
   text-align: center;
   color: #475569;
 }
+
+.text-align {
+  text-align: center;
+}
+
+/* The container - defines the size of the track */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 37.5px;
+  height: 21.25px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The track (slider) */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 42.5px; /* Makes the track rounded */
+}
+
+/* The circle (before it's checked) */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16.25px;
+  width: 16.25px;
+  left: 2.5px;
+  bottom: 2.5px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%; /* Makes it a circle */
+}
+
+/* Background color when checked */
+input:checked + .slider {
+  background-color: #0f172a;
+}
+
+/* Move the circle when checked */
+input:checked + .slider:before {
+  transform: translateX(16.25px);
+}
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.2s ease;
+}
+
+.modal h3 {
+  margin: 0 0 8px 0;
+  color: #111827;
+}
+
+.modal p {
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 /* Styling for the date picker input */
 .input-date-picker {
@@ -392,10 +609,12 @@
 }
 
 /* Lighter placeholder text */
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #9ca3af; /* Light grey */
 }
 
-input, textarea {
+input,
+textarea {
   color: #0f172a; /* Ensure input text color is normal */
 }

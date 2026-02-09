@@ -12,60 +12,66 @@ export default function Payment() {
 
       <div className="pricing-grid">
         <div className="pricing-card">
-          <h3>Free</h3>
-          <p className="pricing-price">$0</p>
-          <p className="page-subtitle">Perfect for getting started</p>
-          <div className="pricing-list">
-            <span>✓ 1 resume</span>
-            <span>✓ 1 cover letter</span>
-            <span>✓ Basic templates</span>
-            <span>✓ PDF download</span>
-            <span>✓ Limited AI suggestions</span>
+          <div className="pricing-features">
+            <h3>Free</h3>
+            <p className="pricing-price">$0</p>
+            <p className="page-subtitle">Perfect for getting started</p>
+            <div className="pricing-list">
+              <span>✓ 1 resume</span>
+              <span>✓ 1 cover letter</span>
+              <span>✓ Basic templates</span>
+              <span>✓ PDF download</span>
+              <span>✓ Limited AI suggestions</span>
+            </div>
           </div>
-          <button className="btn btn-outline" type="button">
+          <button className="btn btn-outline pricing-button" type="button">
             Current Plan
           </button>
         </div>
 
         <div className="pricing-card featured">
           <span className="pricing-badge">Most Popular</span>
-          <h3>Premium</h3>
-          <p className="pricing-price">$9.99</p>
-          <p className="page-subtitle">For serious job seekers</p>
-          <div className="pricing-list">
-            <span>✓ Unlimited resumes & cover letters</span>
-            <span>✓ All premium templates</span>
-            <span>✓ Unlimited PDF & Word downloads</span>
-            <span>✓ Advanced AI suggestions</span>
-            <span>✓ ATS optimization score</span>
-            <span>✓ Priority support</span>
-            <span>✓ Custom branding</span>
-            <span>✓ Export to multiple formats</span>
+          <div className="pricing-features">
+            <h3>Premium</h3>
+            <p className="pricing-price">$9.99</p>
+            <p className="page-subtitle">For serious job seekers</p>
+            <div className="pricing-list">
+              <span>✓ Unlimited resumes & cover letters</span>
+              <span>✓ All premium templates</span>
+              <span>✓ Unlimited PDF & Word downloads</span>
+              <span>✓ Advanced AI suggestions</span>
+              <span>✓ ATS optimization score</span>
+              <span>✓ Priority support</span>
+              <span>✓ Custom branding</span>
+              <span>✓ Export to multiple formats</span>
+            </div>
           </div>
-          <button className="btn btn-dark" type="button">
+          <button className="btn btn-dark pricing-button" type="button">
             Choose Premium
           </button>
         </div>
 
         <div className="pricing-card">
-          <h3>Lifetime</h3>
-          <p className="pricing-price">$49.99</p>
-          <p className="page-subtitle">Best value - pay once, use forever</p>
-          <div className="pricing-list">
-            <span>✓ Everything in Premium</span>
-            <span>✓ Lifetime access</span>
-            <span>✓ Future feature updates</span>
-            <span>✓ No recurring charges</span>
-            <span>✓ VIP support</span>
+          <div className="pricing-features">
+            <h3>Lifetime</h3>
+            <p className="pricing-price">$49.99</p>
+            <p className="page-subtitle">Best value - pay once, use forever</p>
+            <div className="pricing-list">
+              <span>✓ Everything in Premium</span>
+              <span>✓ Lifetime access</span>
+              <span>✓ Future feature updates</span>
+              <span>✓ No recurring charges</span>
+              <span>✓ VIP support</span>
+            </div>
           </div>
-          <button className="btn btn-outline" type="button">
-            Choose Lifetime
+          <button className="btn btn-outline pricing-button" type="button">
+              Choose Lifetime
           </button>
         </div>
       </div>
 
       <div className="content-section">
-        <div className="content-card">
+        <div className="content-card text-align">
           <h3>Premium Features</h3>
           <div className="feature-grid">
             <div className="feature-card">

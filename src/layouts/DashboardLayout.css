@@ -102,6 +102,7 @@
   padding: 1.5rem 2.5rem 0;
 }
 
+/* User Chip Styles */
 .user-chip {
   display: flex;
   align-items: center;
@@ -110,14 +111,13 @@
   border-radius: 999px;
   background: #ffffff;
   border: 1px solid #e6e8ef;
+  position: relative; /* Needed for positioning dropdown */
 }
-
 
 .user-chip:hover {
   background-color: #e6e8ef;
   cursor: pointer;
 }
-
 
 .user-avatar {
   width: 34px;
@@ -145,6 +145,57 @@
 .user-plan {
   color: #64748b;
 }
+
+/* Dropdown Styles */
+.user-dropdown {
+  position: absolute;
+  top: 100%; /* Position dropdown below the user-chip */
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #e6e8ef;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  width: 133.961px;
+  padding: 10px 0;
+  z-index: 10; /* Ensures it appears above other elements */
+  display: none; /* Initially hidden */
+  
+}
+
+.user-chip:hover .user-dropdown {
+  display: block; /* Show dropdown when user-chip is hovered */
+}
+
+.user-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.user-dropdown li {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #1f2937;
+}
+
+.user-dropdown li:hover {
+  background-color: #f0f4f8;
+}
+
+/* Remove default link styles for dropdown links */
+.user-dropdown a {
+  text-decoration: none; /* Remove underline */
+  color: inherit; /* Inherit text color from parent, which is already set */
+  text-align: center; /* Add padding for spacing */
+  display: block; /* Make the links block elements for easier clickability */
+}
+
+.user-dropdown a:hover {
+  background-color: #f0f4f8; /* Light background on hover */
+  color: #1f2937; /* Optional: set text color on hover */
+}
+
 
 .dashboard-content {
   padding: 1.5rem 2.5rem 3rem;

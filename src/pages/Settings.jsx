@@ -14,7 +14,7 @@ export default function Settings() {
         <div className="content-card">
           <h3>Profile</h3>
           <div className="input-grid">
-            <div className="input-group">
+            <div className="input-group form-padding">
               <label htmlFor="full-name">Full name</label>
               <input id="full-name" placeholder="John Doe" />
             </div>
@@ -34,12 +34,20 @@ export default function Settings() {
           <div className="form-stack">
             <label className="preference-toggle">
               Weekly insights
-              <input type="checkbox" defaultChecked />
+              <label class="switch">
+                <input type="checkbox" />
+                <span class="slider round"></span>
+              </label>
             </label>
             <label className="preference-toggle">
               Job alerts
-              <input type="checkbox" />
+              <label class="switch">
+                <input type="checkbox" />
+                <span class="slider round"></span>
+              </label>
             </label>
+            
+
           </div>
         </div>
 
