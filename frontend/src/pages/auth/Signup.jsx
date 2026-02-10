@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "../../firebase";
+import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../../firebase";  // Import your Firebase setup
 import { useAuth } from "../../context/useAuth";
 
 export default function Signup() {
@@ -19,16 +19,33 @@ export default function Signup() {
     if (user) navigate("/dashboard");
   }, [user, navigate]);
 
+  // Handle Firebase Google Sign-In
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      setLoading(true);
+
+      // Set persistence to LOCAL before performing Google sign-in
+      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Google sign-in failed");
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      // Set persistence to LOCAL before sign-up
+      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
       // Update display name
       await updateProfile(userCredential.user, { displayName: fullName });
@@ -43,24 +60,20 @@ export default function Signup() {
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      {/* Titles */}
       <h1>Create Your Account</h1>
       <p className="subtitle">Start building your professional resume today</p>
 
-      {/* Error */}
       {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
 
       {/* Google signup */}
-      <button type="button" className="google-btn">
-        Continue with Google
+      <button type="button" className="google-btn" onClick={handleGoogleSignIn} disabled={loading}>
+        {loading ? "Signing in..." : "Continue with Google"}
       </button>
 
-      {/* Divider */}
       <div className="divider">
         <span>Or continue with email</span>
       </div>
 
-      {/* Full Name */}
       <label htmlFor="fullName">Full Name</label>
       <input
         type="text"
@@ -71,7 +84,6 @@ export default function Signup() {
         required
       />
 
-      {/* Email */}
       <label htmlFor="email">Email</label>
       <input
         type="email"
@@ -82,7 +94,6 @@ export default function Signup() {
         required
       />
 
-      {/* Password */}
       <label htmlFor="password">Password</label>
       <input
         type="password"
@@ -97,7 +108,6 @@ export default function Signup() {
         Must be at least 8 characters long
       </p>
 
-      {/* Terms */}
       <div className="terms">
         <input type="checkbox" id="terms" required />
         <label htmlFor="terms">
@@ -105,13 +115,10 @@ export default function Signup() {
         </label>
       </div>
 
-
-      {/* Submit */}
       <button type="submit" disabled={loading}>
         {loading ? "Creating account..." : "Create Account"}
       </button>
 
-      {/* Footer */}
       <p className="auth-footer">
         Already have an account? <Link to="/auth/login">Sign in</Link>
       </p>

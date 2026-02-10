@@ -41,15 +41,7 @@ export default function CoverLetterNew() {
             aria-label="AI Suggestions"
           >
             <FaCrown size={20} style={{ marginRight: "8px" }} />
-            AI Generate
-          </button>
-          <button
-            className="btn btn-dark"
-            type="button"
-            aria-label="Save Resume"
-          >
-            <FaSave size={20} style={{ marginRight: "8px" }} />
-            Save
+            Generate Cover Letter
           </button>
         </div>
       </div>
