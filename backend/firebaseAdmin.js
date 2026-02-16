@@ -1,13 +1,25 @@
 // firebaseAdmin.js
+const path = require('path');
 const admin = require('firebase-admin');
-const dotenv = require('dotenv');
 
-dotenv.config();
+let firebaseAdmin = null;
 
-const serviceAccount = require(process.env.FIREBASE_PRIVATE_KEY_PATH);
+try {
+  const configuredPath = process.env.FIREBASE_PRIVATE_KEY_PATH;
+  const serviceAccountPath = configuredPath
+    ? path.resolve(configuredPath)
+    : path.join(__dirname, 'firebase-service-account.json');
+  const serviceAccount = require(serviceAccountPath);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  }
 
-module.exports = admin;
+  firebaseAdmin = admin;
+} catch (error) {
+  console.warn('[firebaseAdmin] Firebase Admin is not configured:', error.message);
+}
+
+module.exports = firebaseAdmin;

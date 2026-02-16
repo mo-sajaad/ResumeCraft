@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 
 import { auth, hasFirebaseConfig } from "../../firebase";
+import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export default function Login() {
       setError("");
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
+      await exchangeFirebaseTokenForJwt();
       navigate("/dashboard");
     } catch {
       setError("Google sign-in failed");
@@ -48,11 +50,14 @@ export default function Login() {
   // Handle standard email/password sign-in
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!requireFirebase()) return;
+
     setLoading(true);
     setError("");
     try {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
+      await exchangeFirebaseTokenForJwt();
       navigate("/dashboard");
     } catch (err) {
       setError(`Failed to sign in: ${err.message}`);
@@ -60,6 +65,7 @@ export default function Login() {
       setLoading(false);
     }
   };
+
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>

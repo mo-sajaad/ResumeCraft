@@ -10,11 +10,9 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/ai', require('./routes/aiRoutes'));
-const coverLetterRoutes = require('./routes/coverLetterRoutes');
-app.use(coverLetterRoutes);
 
 app.use('/api/resumes', require('./routes/resumeRoutes'));
-
+app.use('/api/cover-letters', require('./routes/coverLetterRoutes'));
 
 
 app.use(errorHandler);

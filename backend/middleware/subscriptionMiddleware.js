@@ -3,7 +3,7 @@ const { checkLimit } = require('../services/subscriptionService');
 function enforceAIUsage(type) {
   return async (req, res, next) => {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const { allowed, plan } = await checkLimit(userId, type);
 
