@@ -159,42 +159,57 @@
   padding: 10px 0;
   z-index: 10; /* Ensures it appears above other elements */
   display: none; /* Initially hidden */
-  
 }
 
+/* Show dropdown on hover */
 .user-chip:hover .user-dropdown {
-  display: block; /* Show dropdown when user-chip is hovered */
+  display: block;
 }
 
+/* Reset list styles */
 .user-dropdown ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+/* List items */
 .user-dropdown li {
-  padding: 8px 16px;
+  padding: 0; /* padding handled by link/button */
   font-size: 0.85rem;
-  cursor: pointer;
   color: #1f2937;
 }
 
-.user-dropdown li:hover {
+/* Shared styles for NavLink and button */
+.user-dropdown .dropdown-link {
+  all: unset;
+  box-sizing: border-box;
+  line-height: 1.2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: #1f2937;
+  text-align: center;
+  cursor: pointer;
+}
+
+
+/* Hover state */
+.user-dropdown .dropdown-link:hover {
   background-color: #f0f4f8;
+  color: #1f2937;
 }
 
-/* Remove default link styles for dropdown links */
-.user-dropdown a {
-  text-decoration: none; /* Remove underline */
-  color: inherit; /* Inherit text color from parent, which is already set */
-  text-align: center; /* Add padding for spacing */
-  display: block; /* Make the links block elements for easier clickability */
+/* Disabled button state */
+.user-dropdown .dropdown-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
-.user-dropdown a:hover {
-  background-color: #f0f4f8; /* Light background on hover */
-  color: #1f2937; /* Optional: set text color on hover */
-}
 
 
 .dashboard-content {
