@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import "./DashboardPages.css";
+import { getAuthHeaders } from "../../utils/auth";
 
 export default function CoverLetterNew() {
   // PERSONAL INFO
@@ -15,11 +16,6 @@ export default function CoverLetterNew() {
   const [position, setPosition] = useState("");
   const [manager, setManager] = useState("");
 
-  // PRELOADED RESUME DATA
-  const [experience, setExperience] = useState([]);
-  const [education, setEducation] = useState([]);
-  const [projects, setProjects] = useState([]);
-
   // UI STATE
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,21 +25,19 @@ export default function CoverLetterNew() {
   useEffect(() => {
     const fetchLatestResume = async () => {
       try {
-        const token = localStorage.getItem("jwtToken");
-        const res = await fetch("/api/resumes/latest", {
-          headers: { Authorization: `Bearer ${token}` },
+          const res = await fetch("/api/resumes", {
+          headers: await getAuthHeaders(),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load resume");
 
-        if (data.resume) {
-          setFullName(data.resume.full_name || "");
-          setEmail(data.resume.email || "");
-          setPhoneNumber(data.resume.phone_e164 || "");
-          setAddress(data.resume.location_text || "");
-          setExperience(data.resume.experience || []);
-          setEducation(data.resume.education || []);
-          setProjects(data.resume.projects || []);
+        const latestResume = Array.isArray(data) ? data[0] : null;
+
+        if (latestResume) {
+          setFullName(latestResume.full_name || "");
+          setEmail(latestResume.email || "");
+          setPhoneNumber(latestResume.phone_e164 || "");
+          setAddress(latestResume.location_text || "");
         }
       } catch (err) {
         console.warn("Could not preload resume:", err.message);
@@ -77,19 +71,15 @@ export default function CoverLetterNew() {
     const payload = {
       personal: { fullName, email, phoneNumber, address },
       job: { company, position, manager },
-      experience,
-      education,
-      projects,
+      experience: [],
+      education: [],
+      projects: [],
     };
 
     try {
-      const token = localStorage.getItem("jwtToken");
-      const res = await fetch("/cover-letters/generate", {
+      const res = await fetch("/api/cover-letters/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: await getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
       });
 
@@ -112,46 +102,6 @@ export default function CoverLetterNew() {
     }
   };
 
-  // Save generated cover letter to DB
-  const handleSaveCoverLetter = async () => {
-    if (!generatedLetter) {
-      setError("Generate the cover letter first before saving.");
-      return;
-    }
-
-    setError("");
-    setLoading(true);
-
-    const payload = {
-      personal: { fullName, email, phoneNumber, address },
-      job: { company, position, manager },
-      experience,
-      education,
-      projects,
-    };
-
-    try {
-      const token = localStorage.getItem("jwtToken");
-      const res = await fetch("/api/cover-letters", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save cover letter");
-
-      alert("Cover letter saved successfully!");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="page-container">
       <div className="page-header">
@@ -163,13 +113,6 @@ export default function CoverLetterNew() {
             disabled={loading}
           >
             {loading ? "Generating..." : "Generate Cover Letter"}
-          </button>
-          <button
-            className="btn btn-outline"
-            onClick={handleSaveCoverLetter}
-            disabled={loading || !generatedLetter}
-          >
-            Save Cover Letter
           </button>
         </div>
       </div>

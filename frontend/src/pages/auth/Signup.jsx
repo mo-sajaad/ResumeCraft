@@ -11,6 +11,7 @@ import {
 
 import { useAuth } from "../../context/useAuth";
 import { auth, hasFirebaseConfig } from "../../firebase";
+import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Signup() {
   const { user } = useAuth();
@@ -46,6 +47,7 @@ export default function Signup() {
       setError("");
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
+      await exchangeFirebaseTokenForJwt();
       navigate("/dashboard");
     } catch {
       setError("Google sign-in failed");
@@ -69,6 +71,7 @@ export default function Signup() {
       // Update display name
       await updateProfile(userCredential.user, { displayName: fullName });
 
+      await exchangeFirebaseTokenForJwt();
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -76,6 +79,7 @@ export default function Signup() {
       setLoading(false);
     }
   };
+
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>

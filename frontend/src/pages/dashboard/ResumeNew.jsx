@@ -5,6 +5,8 @@ import ExperienceCard from "../../components/Resume/ExperienceCard";
 import EducationCard from "../../components/Resume/EducationCard";
 import ProjectsCard from "../../components/Resume/ProjectsCard";
 
+import { getAuthHeaders } from "../../utils/auth";
+
 export default function ResumeNew() {
   // PERSONAL INFO
   const [fullName, setFullName] = useState("");
@@ -72,14 +74,10 @@ export default function ResumeNew() {
     };
 
     try {
-      const token = localStorage.getItem("jwtToken");
 
       const res = await fetch("/api/resumes/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: await getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
       });
 

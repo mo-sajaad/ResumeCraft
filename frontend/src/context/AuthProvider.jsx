@@ -3,6 +3,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import { AuthContext } from "./AuthContext.jsx";
 import { auth, signOut } from "../firebase.js";
+import { exchangeFirebaseTokenForJwt } from "../utils/auth";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -11,8 +12,19 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!auth) return undefined;
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+
+      if (firebaseUser) {
+        try {
+          await exchangeFirebaseTokenForJwt();
+        } catch (error) {
+          console.warn("Failed to exchange Firebase token:", error.message);
+        }
+      } else {
+        localStorage.removeItem("jwtToken");
+      }
+
       setLoading(false);
     });
 
@@ -22,6 +34,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     if (!auth) return;
     await signOut(auth);
+    localStorage.removeItem("jwtToken");
   };
 
   return (
