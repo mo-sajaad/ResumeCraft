@@ -5,8 +5,6 @@ import ExperienceCard from "../../components/Resume/ExperienceCard";
 import EducationCard from "../../components/Resume/EducationCard";
 import ProjectsCard from "../../components/Resume/ProjectsCard";
 
-import { FaCrown, FaSave } from "react-icons/fa";
-
 export default function ResumeNew() {
   // PERSONAL INFO
   const [fullName, setFullName] = useState("");
@@ -15,7 +13,7 @@ export default function ResumeNew() {
   const [location, setLocation] = useState("");
   const [linkedin, setLinkedin] = useState("");
 
-  // SKILLS
+  // SKILLS (preloaded)
   const [skills, setSkills] = useState([
     "JavaScript",
     "React",
@@ -36,6 +34,7 @@ export default function ResumeNew() {
   // UI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [generatedResume, setGeneratedResume] = useState("");
 
   const validate = () => {
     if (!fullName.trim()) return "Full name is required";
@@ -62,6 +61,7 @@ export default function ResumeNew() {
 
     setError("");
     setLoading(true);
+    setGeneratedResume("");
 
     const payload = {
       personal: { fullName, email, phoneNumber, location, linkedin },
@@ -72,21 +72,30 @@ export default function ResumeNew() {
     };
 
     try {
-      const res = await fetch("/api/generate-resume", {
+      const token = localStorage.getItem("jwtToken");
+
+      const res = await fetch("/api/resumes/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error(
+            data.error ||
+              "You’ve reached your monthly limit. Upgrade your plan.",
+          );
+        }
         throw new Error(data.error || "Failed to generate resume");
       }
 
-      // Replace with your logic (download, show preview, etc.)
-      alert("Resume generated! (check console)");
-      console.log(data.resumeText);
+      setGeneratedResume(data.resumeText);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -95,17 +104,17 @@ export default function ResumeNew() {
   };
 
   return (
-    <div>
+    <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">Edit Resume</h1>
-        <div className="header-actions">
-          <button className="btn btn-outline">
-            <FaCrown /> AI Suggestions
-          </button>
-          <button className="btn btn-dark" onClick={handleGenerateResume}>
-            Generate Resume
-          </button>
-        </div>
+        <h1 className="page-title">Create Resume</h1>
+
+        <button
+          className="btn btn-primary"
+          onClick={handleGenerateResume}
+          disabled={loading}
+        >
+          {loading ? "Generating..." : "Generate Resume"}
+        </button>
       </div>
 
       {error && (
@@ -135,18 +144,26 @@ export default function ResumeNew() {
           setWorkExperience={setWorkExperience}
         />
 
-        <EducationCard
-          education={education}
-          setEducation={setEducation}
-        />
+        <EducationCard education={education} setEducation={setEducation} />
 
-        <ProjectsCard
-          projects={projects}
-          setProjects={setProjects}
-        />
+        <ProjectsCard projects={projects} setProjects={setProjects} />
       </div>
 
-      {loading && <div style={{ marginTop: "1rem" }}>Generating...</div>}
+      {generatedResume && (
+        <div style={{ marginTop: "2rem" }}>
+          <h2>Generated Resume</h2>
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              background: "#f5f5f5",
+              padding: "1rem",
+              borderRadius: "8px",
+            }}
+          >
+            {generatedResume}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }

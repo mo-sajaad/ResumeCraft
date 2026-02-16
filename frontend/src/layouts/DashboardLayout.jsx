@@ -1,18 +1,55 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { FaCog, FaGem, FaRegAddressCard, FaRegEnvelope, FaTh } from "react-icons/fa";
+
+import { useAuth } from "../context/useAuth";
+import { ROUTES } from "../constants/routes";
+
 import "./DashboardLayout.css";
 
-import { FaRegAddressCard } from 'react-icons/fa'; // For Resume icon
-import { FaRegEnvelope } from 'react-icons/fa';    // For Cover Letter icon
-import { FaGem } from 'react-icons/fa';            // For Premium icon
-import { FaCog } from 'react-icons/fa';            // For Settings icon
-import { FaTh } from 'react-icons/fa';             // For Dashboard icon
+const getInitials = (name, email) => {
+  const source = name?.trim() || email?.split("@")[0] || "";
+
+  if (!source) return "U";
+
+  const parts = source
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+};
+
 
 export default function DashboardLayout() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const userDisplayName = useMemo(() => {
+    return user?.displayName?.trim() || user?.email || "Guest User";
+  }, [user]);
+
+  const userInitials = useMemo(() => getInitials(userDisplayName), [userDisplayName]);
 
   const toggleDropdown = () => {
-    setDropdownVisible(!dropdownVisible);
+    setDropdownVisible((prev) => !prev);
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout?.();
+      navigate(ROUTES.LOGIN, { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+      setDropdownVisible(false);
+    }
   };
 
   return (
@@ -23,23 +60,23 @@ export default function DashboardLayout() {
           ResumeCraft
         </div>
         <nav className="sidebar-nav">
-          <NavLink to="/dashboard" end className="sidebar-link">
+          <NavLink to={ROUTES.DASHBOARD} end className="sidebar-link">
             <span className="nav-icon"><FaTh /></span>
             Dashboard
           </NavLink>
-          <NavLink to="/dashboard/resume/new" className="sidebar-link">
+          <NavLink to={ROUTES.RESUME_NEW} className="sidebar-link">
             <span className="nav-icon"><FaRegAddressCard /></span>
             Create Resume
           </NavLink>
-          <NavLink to="/dashboard/cover-letter/new" className="sidebar-link">
+          <NavLink to={ROUTES.COVERLETTER_NEW} className="sidebar-link">
             <span className="nav-icon"><FaRegEnvelope /></span>
             Create Cover Letter
           </NavLink>
-          <NavLink to="/dashboard/payment" className="sidebar-link">
+          <NavLink to={ROUTES.PAYMENT} className="sidebar-link">
             <span className="nav-icon"><FaGem /></span>
             Premium
           </NavLink>
-          <NavLink to="/dashboard/settings" className="sidebar-link">
+          <NavLink to={ROUTES.SETTINGS} className="sidebar-link">
             <span className="nav-icon"><FaCog /></span>
             Settings
           </NavLink>
@@ -50,18 +87,22 @@ export default function DashboardLayout() {
       </aside>
       <div className="dashboard-main">
         <div className="dashboard-topbar">
-          <div className="user-chip" onClick={toggleDropdown}>
-            <div className="user-avatar">JD</div>
+          <div className="user-chip" onClick={toggleDropdown} role="button" tabIndex={0}>
+            <div className="user-avatar">{userInitials}</div>
             <div className="user-details">
-              <span className="user-name">John Doe</span>
+              <span className="user-name">{userDisplayName}</span>
               <span className="user-plan">Free Plan</span>
             </div>
             {dropdownVisible && (
               <div className="user-dropdown">
                 <ul>
-                  <li><NavLink to="/dashboard/settings" className="dropdown-link">Profile</NavLink></li>
-                  <li><NavLink to="/dashboard/settings" className="dropdown-link">Settings</NavLink></li>
-                  <li><NavLink to="/auth/login" className="dropdown-link">Log Out</NavLink></li>
+                  <li><NavLink to={ROUTES.SETTINGS} className="dropdown-link">Profile</NavLink></li>
+                  <li><NavLink to={ROUTES.SETTINGS} className="dropdown-link">Settings</NavLink></li>
+                  <li>
+                    <button type="button" className="dropdown-link" onClick={handleLogout} disabled={isLoggingOut}>
+                      {isLoggingOut ? "Logging out..." : "Log Out"}
+                    </button>
+                  </li>
                 </ul>
               </div>
             )}

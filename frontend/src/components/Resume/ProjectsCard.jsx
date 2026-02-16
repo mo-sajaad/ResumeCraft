@@ -1,14 +1,10 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { FaPlus } from "react-icons/fa";
-
-import useListManager from "../../hooks/useListManager";
 import DeleteModal from "./DeleteModal";
-
 import "./ResumePages.css";
 
-export default function ProjectsCard() {
-  const { items, addOrUpdate, remove, edit, editingIndex } =
-    useListManager([]);
+export default function ProjectsCard({ projects, setProjects }) {
+  const [editingIndex, setEditingIndex] = useState(null);
 
   const [newProject, setNewProject] = useState({
     name: "",
@@ -39,9 +35,10 @@ export default function ProjectsCard() {
       githubUrl: "",
       liveUrl: "",
     });
+    setEditingIndex(null);
   };
 
-  // Validation
+  // Validation for adding/updating project
   const isValid = useMemo(() => {
     if (!newProject.name.trim() || !newProject.description.trim()) return false;
     if (!newProject.startDate.trim()) return false;
@@ -51,8 +48,27 @@ export default function ProjectsCard() {
 
   const handleAddOrUpdate = () => {
     if (!isValid) return;
-    addOrUpdate(newProject);
+
+    if (editingIndex !== null) {
+      const updated = [...projects];
+      updated[editingIndex] = newProject;
+      setProjects(updated);
+    } else {
+      setProjects([...projects, newProject]);
+    }
+
     resetForm();
+  };
+
+  const handleEdit = (index) => {
+    setNewProject(projects[index]);
+    setEditingIndex(index);
+  };
+
+  const handleDelete = () => {
+    const updated = projects.filter((_, index) => index !== projectToDelete);
+    setProjects(updated);
+    setShowDeleteModal(false);
   };
 
   const handleAddTech = () => {
@@ -88,23 +104,21 @@ export default function ProjectsCard() {
         </button>
       </div>
 
+      {/* Form Inputs */}
       <div className="input-grid">
         <div className="input-group">
           <label>Project Name</label>
           <input
-            name="name"
             value={newProject.name}
             onChange={(e) =>
               setNewProject((prev) => ({ ...prev, name: e.target.value }))
             }
-            placeholder="AI Resume Builder"
           />
         </div>
 
         <div className="input-group">
           <label>Project Type</label>
           <select
-            name="projectType"
             value={newProject.projectType}
             onChange={(e) =>
               setNewProject((prev) => ({
@@ -125,12 +139,13 @@ export default function ProjectsCard() {
       <div className="input-group">
         <label>Description</label>
         <textarea
-          name="description"
           value={newProject.description}
           onChange={(e) =>
-            setNewProject((prev) => ({ ...prev, description: e.target.value }))
+            setNewProject((prev) => ({
+              ...prev,
+              description: e.target.value,
+            }))
           }
-          placeholder="What did you build? What problem did it solve?"
         />
       </div>
 
@@ -145,7 +160,6 @@ export default function ProjectsCard() {
               </span>
             </div>
           ))}
-
           {isAddingTech ? (
             <input
               className="skill-input tag"
@@ -174,7 +188,6 @@ export default function ProjectsCard() {
         <div className="input-group">
           <label>Start Date</label>
           <input
-            name="startDate"
             value={newProject.startDate}
             onChange={(e) =>
               setNewProject((prev) => ({ ...prev, startDate: e.target.value }))
@@ -186,7 +199,6 @@ export default function ProjectsCard() {
         <div className="input-group">
           <label>End Date</label>
           <input
-            name="endDate"
             value={newProject.endDate}
             onChange={(e) =>
               setNewProject((prev) => ({ ...prev, endDate: e.target.value }))
@@ -200,7 +212,6 @@ export default function ProjectsCard() {
         <div className="input-group">
           <label>GitHub URL</label>
           <input
-            name="githubUrl"
             value={newProject.githubUrl}
             onChange={(e) =>
               setNewProject((prev) => ({ ...prev, githubUrl: e.target.value }))
@@ -212,7 +223,6 @@ export default function ProjectsCard() {
         <div className="input-group">
           <label>Live Demo URL</label>
           <input
-            name="liveUrl"
             value={newProject.liveUrl}
             onChange={(e) =>
               setNewProject((prev) => ({ ...prev, liveUrl: e.target.value }))
@@ -223,11 +233,11 @@ export default function ProjectsCard() {
       </div>
 
       {/* Added Projects List */}
-      {items.length > 0 && (
+      {projects.length > 0 && (
         <div className="project-list">
           <h4>Added Projects</h4>
           <ul className="added-list">
-            {items.map((project, index) => (
+            {projects.map((project, index) => (
               <li key={index}>
                 <strong>{project.name}</strong> ({project.projectType})
                 <p>{project.description}</p>
@@ -244,10 +254,7 @@ export default function ProjectsCard() {
                 <div className="project-actions">
                   <button
                     className="btn btn-outline"
-                    onClick={() => {
-                      const item = edit(index);
-                      setNewProject(item);
-                    }}
+                    onClick={() => handleEdit(index)}
                   >
                     Edit
                   </button>
@@ -272,12 +279,9 @@ export default function ProjectsCard() {
       <DeleteModal
         open={showDeleteModal}
         title="Delete Project?"
-        description={`Are you sure you want to delete "${items[projectToDelete]?.name}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${projects[projectToDelete]?.name}"? This action cannot be undone.`}
         onCancel={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          remove(projectToDelete);
-          setShowDeleteModal(false);
-        }}
+        onConfirm={handleDelete}
       />
     </div>
   );

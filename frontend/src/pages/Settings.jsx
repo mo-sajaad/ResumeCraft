@@ -1,6 +1,26 @@
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { useAuth } from "../context/useAuth";
+import { ROUTES } from "../constants/routes";
+
 import "./dashboard/DashboardPages.css";
 
 export default function Settings() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const joinedDate = useMemo(() => {
+    if (!user?.metadata?.creationTime) return "Not available";
+    const date = new Date(user.metadata.creationTime);
+    return Number.isNaN(date.valueOf()) ? "Not available" : date.toLocaleDateString();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await logout?.();
+    navigate(ROUTES.LOGIN, { replace: true });
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -16,16 +36,26 @@ export default function Settings() {
           <div className="input-grid">
             <div className="input-group form-padding">
               <label htmlFor="full-name">Full name</label>
-              <input id="full-name" placeholder="John Doe" />
+              <input
+                id="full-name"
+                placeholder="John Doe"
+                value={user?.displayName || ""}
+                readOnly
+              />
             </div>
             <div className="input-group">
               <label htmlFor="email">Email address</label>
-              <input id="email" placeholder="john.doe@email.com" />
+              <input
+                id="email"
+                placeholder="john.doe@email.com"
+                value={user?.email || ""}
+                readOnly
+              />
             </div>
           </div>
           <div className="input-group">
-            <label htmlFor="headline">Professional headline</label>
-            <input id="headline" placeholder="Product designer focused on growth" />
+            <label htmlFor="headline">Account created</label>
+            <input id="headline" value={joinedDate} readOnly />
           </div>
         </div>
 
@@ -34,20 +64,18 @@ export default function Settings() {
           <div className="form-stack">
             <label className="preference-toggle">
               Weekly insights
-              <label class="switch">
+              <label className="switch">
                 <input type="checkbox" />
-                <span class="slider round"></span>
+                <span className="slider round"></span>
               </label>
             </label>
             <label className="preference-toggle">
               Job alerts
-              <label class="switch">
+              <label className="switch">
                 <input type="checkbox" />
-                <span class="slider round"></span>
+                <span className="slider round"></span>
               </label>
             </label>
-            
-
           </div>
         </div>
 
@@ -71,6 +99,9 @@ export default function Settings() {
           </button>
           <button className="btn btn-outline" type="button">
             Reset password
+          </button>
+          <button className="btn btn-outline" type="button" onClick={handleLogout}>
+            Log out
           </button>
         </div>
       </div>

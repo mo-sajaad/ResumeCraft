@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "../../firebase";  // Import your Firebase setup
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  GoogleAuthProvider,
+  browserLocalPersistence,
+  createUserWithEmailAndPassword,
+  setPersistence,
+  signInWithPopup,
+  updateProfile,
+} from "firebase/auth";
+
 import { useAuth } from "../../context/useAuth";
+import { auth, hasFirebaseConfig } from "../../firebase";
 
 export default function Signup() {
   const { user } = useAuth();
@@ -19,31 +27,42 @@ export default function Signup() {
     if (user) navigate("/dashboard");
   }, [user, navigate]);
 
+  const requireFirebase = () => {
+    if (!hasFirebaseConfig || !auth) {
+      setError("Firebase is not configured. Add VITE_FIREBASE_* values to your frontend .env file.");
+      return false;
+    }
+    return true;
+  };
+
   // Handle Firebase Google Sign-In
   const handleGoogleSignIn = async () => {
+    if (!requireFirebase()) return;
+
     const provider = new GoogleAuthProvider();
     try {
       setLoading(true);
 
-      // Set persistence to LOCAL before performing Google sign-in
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      setError("");
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithPopup(auth, provider);
       navigate("/dashboard");
-    } catch (err) {
+    } catch {
       setError("Google sign-in failed");
+      setLoading(false);
+    } finally {
       setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+     if (!requireFirebase()) return;
+
     setLoading(true);
     setError("");
     try {
-      // Set persistence to LOCAL before sign-up
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      await setPersistence(auth, browserLocalPersistence);
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 

@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "../../firebase";
+
+import {
+  GoogleAuthProvider,
+  browserLocalPersistence,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from "firebase/auth";
+
+import { auth, hasFirebaseConfig } from "../../firebase";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,18 +18,29 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const requireFirebase = () => {
+    if (!hasFirebaseConfig || !auth) {
+      setError("Firebase is not configured. Add VITE_FIREBASE_* values to your frontend .env file.");
+      return false;
+    }
+    return true;
+  };
+
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
+    if (!requireFirebase()) return;
+
     const provider = new GoogleAuthProvider();
     try {
       setLoading(true);
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);  // Set persistence to LOCAL
-      const result = await signInWithPopup(auth, provider);
-      // Google user info
-      const user = result.user;
+      setError("");
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithPopup(auth, provider);
       navigate("/dashboard");
-    } catch (err) {
+    } catch {
       setError("Google sign-in failed");
+      setLoading(false);
+    } finally {
       setLoading(false);
     }
   };
@@ -32,11 +51,11 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);  // Set persistence to LOCAL
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithEmailAndPassword(auth, email, password);
       navigate("/dashboard");
     } catch (err) {
-      setError("Failed to sign in: " + err.message);
+      setError(`Failed to sign in: ${err.message}`);
     } finally {
       setLoading(false);
     }

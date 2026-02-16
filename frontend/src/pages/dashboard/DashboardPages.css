@@ -105,6 +105,8 @@
   gap: 1rem;
   transition: all 0.3s ease;
   cursor: pointer; /* Change cursor to pointer by default */
+  text-decoration: none;
+  color: inherit;
 }
 
 /* Icon styles inside quick-card */

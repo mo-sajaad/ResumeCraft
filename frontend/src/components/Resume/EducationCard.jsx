@@ -1,14 +1,10 @@
 import { useState, useMemo } from "react";
 import { FaPlus } from "react-icons/fa";
-
-import useListManager from "../../hooks/useListManager";
 import DeleteModal from "./DeleteModal";
-
 import "./ResumePages.css";
 
-export default function EducationCard() {
-  const { items, addOrUpdate, remove, edit, editingIndex } =
-    useListManager([]);
+export default function EducationCard({ education, setEducation }) {
+  const [editingIndex, setEditingIndex] = useState(null);
 
   const [newEducation, setNewEducation] = useState({
     school: "",
@@ -35,9 +31,12 @@ export default function EducationCard() {
       subjects: [{ subject: "", grade: "" }],
       graduationDate: "",
     });
+    setEditingIndex(null);
   };
 
-  // Validation
+  // -------------------------
+  // Validation (UNCHANGED)
+  // -------------------------
   const isValid = useMemo(() => {
     const { school, educationLevel, degree, fieldOfStudy, graduationDate } =
       newEducation;
@@ -54,16 +53,31 @@ export default function EducationCard() {
     return true;
   }, [newEducation]);
 
+  // -------------------------
+  // Add / Update (UPDATED TO USE PARENT STATE)
+  // -------------------------
   const handleAddOrUpdate = () => {
     if (!isValid) return;
-    addOrUpdate(newEducation);
+
+    if (editingIndex !== null) {
+      const updated = [...education];
+      updated[editingIndex] = newEducation;
+      setEducation(updated);
+    } else {
+      setEducation([...education, newEducation]);
+    }
+
     resetForm();
   };
 
+  // -------------------------
+  // Subjects Logic (UNCHANGED)
+  // -------------------------
   const handleSubjectChange = (index, e) => {
     const { name, value } = e.target;
     const updatedSubjects = [...newEducation.subjects];
     updatedSubjects[index][name] = value;
+
     setNewEducation((prev) => ({
       ...prev,
       subjects: updatedSubjects,
@@ -75,6 +89,12 @@ export default function EducationCard() {
       ...prev,
       subjects: [...prev.subjects, { subject: "", grade: "" }],
     }));
+  };
+
+  const handleDelete = () => {
+    const updated = education.filter((_, i) => i !== educationToDelete);
+    setEducation(updated);
+    setShowDeleteModal(false);
   };
 
   return (
@@ -243,13 +263,14 @@ export default function EducationCard() {
       )}
 
       {/* Added Education List */}
-      {items.length > 0 && (
+      {education.length > 0 && (
         <div className="education-list">
           <h4>Added Education</h4>
           <ul className="added-list">
-            {items.map((edu, index) => (
+            {education.map((edu, index) => (
               <li key={index}>
-                <strong>{edu.school}</strong> - {edu.degree || "High School"}
+                <strong>{edu.school}</strong> -{" "}
+                {edu.degree || "High School"}
                 <p>
                   <em>{edu.educationLevel}</em>
                 </p>
@@ -262,8 +283,8 @@ export default function EducationCard() {
                   <button
                     className="btn btn-outline"
                     onClick={() => {
-                      const item = edit(index);
-                      setNewEducation(item);
+                      setNewEducation(edu);
+                      setEditingIndex(index);
                     }}
                   >
                     Edit
@@ -285,16 +306,12 @@ export default function EducationCard() {
         </div>
       )}
 
-      {/* Delete Modal */}
       <DeleteModal
         open={showDeleteModal}
         title="Delete Education?"
-        description={`Are you sure you want to delete "${items[educationToDelete]?.school}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${education[educationToDelete]?.school}"? This action cannot be undone.`}
         onCancel={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          remove(educationToDelete);
-          setShowDeleteModal(false);
-        }}
+        onConfirm={handleDelete}
       />
     </div>
   );

@@ -10,10 +10,14 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+
+const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean);
+
+const app = hasFirebaseConfig ? initializeApp(firebaseConfig) : null;
+const auth = app ? getAuth(app) : null;
 
 // Google Authentication
 const googleProvider = new GoogleAuthProvider();
 
-export { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, googleProvider, signOut };
+
+export { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, googleProvider, signOut, hasFirebaseConfig };
