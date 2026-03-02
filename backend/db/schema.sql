@@ -81,6 +81,55 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 
+-- =====================================
+-- Auto-create free subscription for new users
+-- =====================================
+
+CREATE OR REPLACE FUNCTION create_free_subscription()
+RETURNS TRIGGER AS $$
+DECLARE
+  free_plan_id UUID;
+BEGIN
+  -- Get the free plan id
+  SELECT id INTO free_plan_id
+  FROM plans
+  WHERE code = 'free'
+  LIMIT 1;
+
+  -- Insert subscription
+  INSERT INTO subscriptions (
+    user_id,
+    plan_id,
+    status,
+    started_at,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    NEW.id,
+    free_plan_id,
+    'active',
+    NOW(),
+    NOW(),
+    NOW()
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER trigger_create_free_subscription
+AFTER INSERT ON users
+FOR EACH ROW
+EXECUTE FUNCTION create_free_subscription();
+
+
+CREATE UNIQUE INDEX unique_active_subscription_per_user
+ON subscriptions(user_id)
+WHERE status = 'active';
+
+
 CREATE TABLE IF NOT EXISTS payment_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

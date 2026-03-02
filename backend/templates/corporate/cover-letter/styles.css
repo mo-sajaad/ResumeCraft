@@ -1,0 +1,39 @@
+@page {
+  size: A4;
+  margin: 40px;
+}
+
+body {
+  font-family: Georgia, serif;
+  color: #222;
+  line-height: 1.6;
+}
+
+.sender h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.date {
+  margin-top: 25px;
+}
+
+.recipient {
+  margin-top: 25px;
+}
+
+.salutation {
+  margin-top: 25px;
+}
+
+.content {
+  margin-top: 15px;
+}
+
+.content p {
+  margin-bottom: 15px;
+}
+
+.closing {
+  margin-top: 40px;
+}

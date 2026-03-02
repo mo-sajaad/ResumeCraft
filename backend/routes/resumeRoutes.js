@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 const authenticateJWT = require('../middleware/authMiddleware');
-const enforceAIUsage = require('../middleware/subscriptionMiddleware');
+const attachPlan = require('../middleware/attachPlan');
+const enforceUsage = require('../middleware/enforceUsage');
+const requirePlan = require('../middleware/requirePlan');
 
 const {
   createResumeWithAI,
@@ -10,12 +12,21 @@ const {
   getResumeById,
   updateResume,
   deleteResume,
+  previewResume,
+  downloadResume
 } = require('../controllers/resumeController');
 
+/*
+  AI Resume Generation
+  - Must be logged in
+  - Must have active subscription
+  - Must respect monthly resume limit
+*/
 router.post(
   '/generate',
   authenticateJWT,
-  enforceAIUsage('resume'),
+  attachPlan,
+  enforceUsage('resume'),
   createResumeWithAI
 );
 
@@ -23,5 +34,19 @@ router.get('/', authenticateJWT, getResumesByUser);
 router.get('/:id', authenticateJWT, getResumeById);
 router.put('/:id', authenticateJWT, updateResume);
 router.delete('/:id', authenticateJWT, deleteResume);
+
+router.get("/:id/preview", authenticateJWT, previewResume);
+
+/*
+  Download Resume
+  Only premium and pro users allowed
+*/
+router.get(
+  "/:id/download",
+  authenticateJWT,
+  attachPlan,
+  requirePlan("premium"), // premium + pro allowed
+  downloadResume
+);
 
 module.exports = router;

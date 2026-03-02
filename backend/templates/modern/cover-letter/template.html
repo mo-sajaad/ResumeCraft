@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>{{full_name}}</h1>
+    <div class="contact">
+      {{email}} | {{phone}} | {{location}} | {{linkedin}}
+    </div>
+  </div>
+
+  <div class="date">
+    {{date}}
+  </div>
+
+  <div class="recipient">
+    <strong>{{recipient_name}}</strong><br/>
+    {{company_name}}<br/>
+    {{company_address}}
+  </div>
+
+  <div class="subject">
+    Re: {{job_title}} Position
+  </div>
+
+  <div class="content">
+    {{body_paragraphs}}
+  </div>
+
+  <div class="closing">
+    Sincerely,<br/><br/>
+    {{full_name}}
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 const authenticateJWT = require('../middleware/authMiddleware');
-const enforceAIUsage = require('../middleware/subscriptionMiddleware');
+const attachPlan = require('../middleware/attachPlan');
+const enforceUsage = require('../middleware/enforceUsage');
 
 const {
   createCoverLetterWithAI,
@@ -11,7 +12,8 @@ const {
 router.post(
   '/generate',
   authenticateJWT,
-  enforceAIUsage('cover_letter'),
+  attachPlan,
+  enforceUsage('cover_letter'),
   createCoverLetterWithAI
 );
 

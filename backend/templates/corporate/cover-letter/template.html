@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+<div class="sender">
+  <h1>{{full_name}}</h1>
+  {{location}}<br/>
+  {{email}} | {{phone}}<br/>
+  {{linkedin}}
+</div>
+
+<div class="date">
+  {{date}}
+</div>
+
+<div class="recipient">
+  {{recipient_name}}<br/>
+  {{company_name}}<br/>
+  {{company_address}}
+</div>
+
+<div class="salutation">
+  Dear {{recipient_name}},
+</div>
+
+<div class="content">
+  {{body_paragraphs}}
+</div>
+
+<div class="closing">
+  Yours sincerely,<br/><br/>
+  {{full_name}}
+</div>
+
+</body>
+</html>

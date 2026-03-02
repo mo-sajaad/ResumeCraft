@@ -1,0 +1,76 @@
+@page {
+  size: A4;
+  margin: 0;
+}
+
+.job {
+  page-break-inside: avoid;
+}
+
+body {
+  margin: 0;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  color: #333;
+}
+
+.container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 30%;
+  background: #f4f6f8;
+  padding: 40px 30px;
+  box-sizing: border-box;
+}
+
+.main {
+  width: 70%;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+h1 {
+  margin: 0 0 10px 0;
+  font-size: 28px;
+}
+
+.section-title {
+  margin-top: 30px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  font-weight: bold;
+  color: #555;
+  text-transform: uppercase;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 6px;
+}
+
+.item {
+  margin-top: 15px;
+}
+
+.item-title {
+  font-weight: bold;
+}
+
+.item-subtitle {
+  font-size: 13px;
+  color: #777;
+}
+
+ul {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.small-text {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
