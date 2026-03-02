@@ -1,4 +1,3 @@
-// services/aiService.js
 const OpenAI = require('openai');
 
 const openai = new OpenAI({
@@ -10,7 +9,45 @@ const openai = new OpenAI({
 ================================ */
 
 const resumeBasePrompt = `
-You are an expert resume writer. Using the information provided below, generate a professional, well-formatted, and ATS-friendly resume. Use clear sections, bullet points, and concise language. Highlight achievements, skills, and relevant experiences. Tailor the resume to be suitable for software engineering roles. Avoid redundancy and make it easy to read. 
+You are a professional career writing assistant. Using the information below, generate a clear, concise, and ATS-friendly resume for a Software Engineering role.
+
+Return ONLY JSON in this format:
+
+{
+  "summary": "Professional summary paragraph...",
+  "skills": ["Skill 1", "Skill 2", "..."],
+  "experience": [
+    {
+      "company": "...",
+      "position": "...",
+      "start_date": "...",
+      "end_date": "...",
+      "description": ["Achievement 1", "Achievement 2"]
+    }
+  ],
+  "education": [
+    {
+      "school": "...",
+      "degree": "...",
+      "field": "...",
+      "graduation_date": "..."
+    }
+  ],
+  "projects": [
+    {
+      "name": "...",
+      "type": "...",
+      "description": "...",
+      "technologies": ["Tech1", "Tech2"],
+      "github": "...",
+      "live_demo": "..."
+    }
+  ]
+}
+
+Do not add headings or extra commentary outside this JSON.
+
+---
 
 Personal Information:
 Name: {fullName}
@@ -31,22 +68,72 @@ Education:
 Projects:
 {projects}
 
-Instructions:
-- Start with a professional summary or objective.
-- Use action verbs and quantify achievements where possible.
-- Group skills logically.
-- Highlight technical and soft skills.
-- Make it suitable for an applicant tracking system (ATS).
-- Keep formatting clean and readable.
+Tone/Style: {tone}  // Modern, Corporate, Creative
 
-Output the resume in text format, ready to copy into Word, PDF, or LinkedIn.
+Instructions:
+- Start with a professional summary (2–3 sentences max) highlighting strengths.
+- Use strong action verbs and quantify achievements wherever possible.
+- Group skills logically and emphasize relevance to software engineering.
+- Use concise bullet points for work experience and projects.
+- Keep formatting clean, professional, and ATS-friendly.
+- Do not invent experience or skills.
 `;
 
 /* ================================
-   HELPER: BUILD RESUME PROMPT
+   COVER LETTER BASE PROMPT
 ================================ */
 
-function buildResumePrompt({ personal, skills, experience, education, projects }) {
+const coverLetterBasePrompt = `
+You are a professional career writing assistant. Using the information below, generate a concise, persuasive, and tailored cover letter for a Software Engineering position.
+
+Return ONLY JSON in this format:
+
+{
+  "body": "Paragraph 1...\n\nParagraph 2...\n\nParagraph 3..."
+}
+
+Do not add greetings, headers, or extra commentary outside this JSON.
+
+---
+
+Personal Information:
+Name: {fullName}
+Email: {email}
+Phone: {phone}
+Location: {location}
+LinkedIn: {linkedin}
+
+Job Information:
+Company: {company}
+Position: {position}
+Job Description: {jobDescription}
+
+Experience:
+{experience}
+
+Education:
+{education}
+
+Projects:
+{projects}
+
+Tone/Style: {tone}  // Modern, Corporate, Creative
+
+Instructions:
+- Start with a strong opening explaining interest in the role and company.
+- Highlight technical AND soft skills.
+- Prioritize measurable achievements where possible.
+- Keep it ATS-friendly and concise (3–5 paragraphs, max one page).
+- Avoid repeating the resume word-for-word.
+- If information is missing, focus on strengths without hallucinating details.
+- Use line breaks (\n\n) to separate paragraphs.
+`;
+
+/* ================================
+   HELPERS
+================================ */
+
+function buildResumePrompt({ personal, skills, experience, education, projects, tone }) {
   const skillsText = skills.join(', ');
 
   const experienceText = experience
@@ -79,75 +166,11 @@ function buildResumePrompt({ personal, skills, experience, education, projects }
     .replace('{skills}', skillsText)
     .replace('{experience}', experienceText)
     .replace('{education}', educationText)
-    .replace('{projects}', projectsText);
+    .replace('{projects}', projectsText)
+    .replace('{tone}', tone || 'Professional');
 }
 
-/* ================================
-   GENERATE RESUME TEXT
-================================ */
-
-async function generateResumeText(data) {
-  const prompt = buildResumePrompt(data);
-
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4', // or gpt-3.5-turbo
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a professional resume writing assistant.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
-    temperature: 0.7,
-  });
-
-  return completion.choices[0].message.content.trim();
-}
-
-/* ================================
-   COVER LETTER BASE PROMPT
-================================ */
-
-const coverLetterBasePrompt = `
-You are an expert cover letter writer. Using the information provided below, generate a professional, well-structured, and persuasive cover letter. 
-Make it personalized, concise, and tailored to a software engineering role. Highlight relevant skills, experiences, and achievements. Avoid redundancy and keep it easy to read.
-
-Personal Information:
-Name: {fullName}
-Email: {email}
-Phone: {phone}
-Location: {location}
-LinkedIn: {linkedin}
-
-Job Information:
-Company: {company}
-Position: {position}
-Job Description: {jobDescription}
-
-Experience:
-{experience}
-
-Education:
-{education}
-
-Projects:
-{projects}
-
-Instructions:
-- Start with a strong opening paragraph explaining why the applicant is interested.
-- Highlight technical and soft skills in the body.
-- Tailor the letter to the position and company.
-- Conclude with a confident closing statement.
-- Keep it professional and ATS-friendly.
-
-Output the cover letter in text format, ready to copy into Word, PDF, or email.
-`;
-
-
-function buildCoverLetterPrompt({ personal, experience, education, projects, job }) {
+function buildCoverLetterPrompt({ personal, experience, education, projects, job, tone }) {
   const experienceText = experience
     .map(
       (e) =>
@@ -180,14 +203,52 @@ function buildCoverLetterPrompt({ personal, experience, education, projects, job
     .replace('{jobDescription}', job.jobDescription || '')
     .replace('{experience}', experienceText)
     .replace('{education}', educationText)
-    .replace('{projects}', projectsText);
+    .replace('{projects}', projectsText)
+    .replace('{tone}', tone || 'Professional');
 }
 
-async function generateCoverLetter({ personal, experience, education, projects, job }) {
-  const prompt = buildCoverLetterPrompt({ personal, experience, education, projects, job });
+/* ================================
+   PARSE AI JSON SAFELY
+================================ */
+
+function parseAIJson(aiText) {
+  try {
+    const jsonStart = aiText.indexOf('{');
+    const jsonEnd = aiText.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1) return {};
+    const jsonString = aiText.slice(jsonStart, jsonEnd + 1);
+    return JSON.parse(jsonString);
+  } catch (err) {
+    console.error('Error parsing AI JSON:', err);
+    return {};
+  }
+}
+
+/* ================================
+   GENERATE FUNCTIONS
+================================ */
+
+async function generateResumeText(data) {
+  const prompt = buildResumePrompt(data);
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are a professional resume writing assistant.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.7,
+  });
+
+  const text = completion.choices[0].message.content.trim();
+  return parseAIJson(text);
+}
+
+async function generateCoverLetter(data) {
+  const prompt = buildCoverLetterPrompt(data);
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
     messages: [
       { role: 'system', content: 'You are a professional cover letter writing assistant.' },
       { role: 'user', content: prompt },
@@ -195,7 +256,8 @@ async function generateCoverLetter({ personal, experience, education, projects, 
     temperature: 0.7,
   });
 
-  return completion.choices[0].message.content.trim();
+  const text = completion.choices[0].message.content.trim();
+  return parseAIJson(text);
 }
 
 module.exports = {

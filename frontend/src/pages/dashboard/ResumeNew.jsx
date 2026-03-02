@@ -8,14 +8,23 @@ import ProjectsCard from "../../components/Resume/ProjectsCard";
 import { getAuthHeaders } from "../../utils/auth";
 
 export default function ResumeNew() {
+  // ===============================
   // PERSONAL INFO
+  // ===============================
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [location, setLocation] = useState("");
   const [linkedin, setLinkedin] = useState("");
 
-  // SKILLS (preloaded)
+  // ===============================
+  // STYLE (Template)
+  // ===============================
+  const [style, setStyle] = useState("modern");
+
+  // ===============================
+  // SKILLS
+  // ===============================
   const [skills, setSkills] = useState([
     "JavaScript",
     "React",
@@ -24,20 +33,23 @@ export default function ResumeNew() {
     "CSS",
   ]);
 
-  // EXPERIENCE
+  // ===============================
+  // EXPERIENCE / EDUCATION / PROJECTS
+  // ===============================
   const [workExperience, setWorkExperience] = useState([]);
-
-  // EDUCATION
   const [education, setEducation] = useState([]);
-
-  // PROJECTS
   const [projects, setProjects] = useState([]);
 
-  // UI
+  // ===============================
+  // UI STATE
+  // ===============================
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [generatedResume, setGeneratedResume] = useState("");
+  const [resumeId, setResumeId] = useState(null);
 
+  // ===============================
+  // VALIDATION
+  // ===============================
   const validate = () => {
     if (!fullName.trim()) return "Full name is required";
     if (!email.trim()) return "Email is required";
@@ -54,6 +66,9 @@ export default function ResumeNew() {
     return null;
   };
 
+  // ===============================
+  // GENERATE RESUME
+  // ===============================
   const handleGenerateResume = async () => {
     const validationError = validate();
     if (validationError) {
@@ -63,7 +78,7 @@ export default function ResumeNew() {
 
     setError("");
     setLoading(true);
-    setGeneratedResume("");
+    setResumeId(null);
 
     const payload = {
       personal: { fullName, email, phoneNumber, location, linkedin },
@@ -71,13 +86,15 @@ export default function ResumeNew() {
       experience: workExperience,
       education,
       projects,
+      style,
     };
 
     try {
-
       const res = await fetch("/api/resumes/generate", {
         method: "POST",
-        headers: await getAuthHeaders({ "Content-Type": "application/json" }),
+        headers: await getAuthHeaders({
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify(payload),
       });
 
@@ -87,13 +104,13 @@ export default function ResumeNew() {
         if (res.status === 403) {
           throw new Error(
             data.error ||
-              "You’ve reached your monthly limit. Upgrade your plan.",
+              "You’ve reached your monthly limit. Upgrade your plan."
           );
         }
         throw new Error(data.error || "Failed to generate resume");
       }
 
-      setGeneratedResume(data.resumeText);
+      setResumeId(data.resumeId);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -101,24 +118,64 @@ export default function ResumeNew() {
     }
   };
 
+  // ===============================
+  // DOWNLOAD PDF
+  // ===============================
+  const handleDownloadPDF = () => {
+    if (!resumeId) return;
+
+    window.open(
+      `/api/resumes/${resumeId}/download?style=${style}`,
+      "_blank"
+    );
+  };
+
+  // ===============================
+  // UI
+  // ===============================
   return (
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">Create Resume</h1>
 
-        <button
-          className="btn btn-primary"
-          onClick={handleGenerateResume}
-          disabled={loading}
-        >
-          {loading ? "Generating..." : "Generate Resume"}
-        </button>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          {/* Template Selector */}
+          <select
+            value={style}
+            onChange={(e) => setStyle(e.target.value)}
+            className="input"
+          >
+            <option value="modern">Modern</option>
+            <option value="corporate">Corporate</option>
+            <option value="creative">Creative</option>
+          </select>
+
+          <button
+            className="btn btn-primary"
+            onClick={handleGenerateResume}
+            disabled={loading}
+          >
+            {loading ? "Generating..." : "Generate Resume"}
+          </button>
+
+          {resumeId && (
+            <button
+              className="btn btn-secondary"
+              onClick={handleDownloadPDF}
+            >
+              Download PDF
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
-        <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>
+        <div style={{ color: "red", marginBottom: "1rem" }}>
+          {error}
+        </div>
       )}
 
+      {/* FORM */}
       <div className="form-stack">
         <div className="form-grid">
           <PersonalInfoCard
@@ -142,24 +199,33 @@ export default function ResumeNew() {
           setWorkExperience={setWorkExperience}
         />
 
-        <EducationCard education={education} setEducation={setEducation} />
+        <EducationCard
+          education={education}
+          setEducation={setEducation}
+        />
 
-        <ProjectsCard projects={projects} setProjects={setProjects} />
+        <ProjectsCard
+          projects={projects}
+          setProjects={setProjects}
+        />
       </div>
 
-      {generatedResume && (
+      {/* TEMPLATE PREVIEW */}
+      {resumeId && (
         <div style={{ marginTop: "2rem" }}>
-          <h2>Generated Resume</h2>
-          <pre
+          <h2>Resume Preview</h2>
+
+          <iframe
+            title="Resume Preview"
+            src={`/api/resumes/${resumeId}/preview?style=${style}`}
             style={{
-              whiteSpace: "pre-wrap",
-              background: "#f5f5f5",
-              padding: "1rem",
+              width: "100%",
+              height: "1000px",
+              border: "1px solid #ddd",
               borderRadius: "8px",
+              marginTop: "1rem",
             }}
-          >
-            {generatedResume}
-          </pre>
+          />
         </div>
       )}
     </div>

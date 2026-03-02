@@ -1,0 +1,51 @@
+@page {
+  size: A4;
+  margin: 40px;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  color: #333;
+  line-height: 1.6;
+}
+
+.header h1 {
+  color: #4A6CF7;
+  margin: 0;
+  font-size: 28px;
+}
+
+.contact {
+  font-size: 13px;
+  color: #555;
+}
+
+.divider {
+  height: 3px;
+  background: #4A6CF7;
+  margin: 15px 0 25px 0;
+}
+
+.date {
+  margin-top: 20px;
+}
+
+.recipient {
+  margin-top: 20px;
+}
+
+.salutation {
+  margin-top: 20px;
+}
+
+.content {
+  margin-top: 15px;
+}
+
+.content p {
+  margin-bottom: 15px;
+}
+
+.closing {
+  margin-top: 40px;
+}
