@@ -133,7 +133,7 @@ Instructions:
    HELPERS
 ================================ */
 
-function buildResumePrompt({ personal, skills, experience, education, projects, tone }) {
+function buildResumePrompt({ personal = {}, skills = [], experience = [], education = [], projects = [], tone }) {
   const skillsText = skills.join(', ');
 
   const experienceText = experience
@@ -170,7 +170,7 @@ function buildResumePrompt({ personal, skills, experience, education, projects, 
     .replace('{tone}', tone || 'Professional');
 }
 
-function buildCoverLetterPrompt({ personal, experience, education, projects, job, tone }) {
+function buildCoverLetterPrompt({ personal = {}, experience = [], education = [], projects = [], job = {}, tone }) {
   const experienceText = experience
     .map(
       (e) =>

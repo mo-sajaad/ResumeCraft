@@ -1,14 +1,22 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
+import { auth, sendPasswordResetEmail, updatePassword } from "../firebase";
 
 import "./dashboard/DashboardPages.css";
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth(); // now includes profile from DB
   const navigate = useNavigate();
+
+  const [weeklyInsightsEnabled, setWeeklyInsightsEnabled] = useState(false);
+  const [jobAlertsEnabled, setJobAlertsEnabled] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [feedback, setFeedback] = useState({ type: "", message: "" });
+  const [isSaving, setIsSaving] = useState(false);
 
   const joinedDate = useMemo(() => {
     if (!user?.metadata?.creationTime) return "Not available";
@@ -21,6 +29,66 @@ export default function Settings() {
     navigate(ROUTES.LOGIN, { replace: true });
   };
 
+  const setSuccess = (message) => setFeedback({ type: "success", message });
+  const setError = (message) => setFeedback({ type: "error", message });
+
+  const handleSaveChanges = async () => {
+    setFeedback({ type: "", message: "" });
+
+    if (!newPassword && !confirmPassword) {
+      setSuccess("Preferences saved.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (!auth?.currentUser) {
+      setError("No authenticated user found.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+      setNewPassword("");
+      setConfirmPassword("");
+      setSuccess("Preferences and password updated successfully.");
+    } catch (error) {
+      if (error?.code === "auth/requires-recent-login") {
+        setError("Please log in again before changing your password.");
+      } else {
+        setError(error?.message || "Failed to update password.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setFeedback({ type: "", message: "" });
+
+    if (!user?.email) {
+      setError("No email is available for this account.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      setSuccess("Password reset email sent.");
+    } catch (error) {
+      setError(error?.message || "Failed to send reset email.");
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -31,6 +99,7 @@ export default function Settings() {
       </div>
 
       <div className="form-stack">
+        {/* Profile Card */}
         <div className="content-card">
           <h3>Profile</h3>
           <div className="input-grid">
@@ -39,7 +108,7 @@ export default function Settings() {
               <input
                 id="full-name"
                 placeholder="John Doe"
-                value={user?.displayName || ""}
+                value={profile?.full_name || ""}
                 readOnly
               />
             </div>
@@ -48,7 +117,7 @@ export default function Settings() {
               <input
                 id="email"
                 placeholder="john.doe@email.com"
-                value={user?.email || ""}
+                value={profile?.email || user?.email || ""}
                 readOnly
               />
             </div>
@@ -59,45 +128,79 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Preferences Card */}
         <div className="content-card">
           <h3>Preferences</h3>
           <div className="form-stack">
-            <label className="preference-toggle">
-              Weekly insights
+            <div className="preference-toggle">
+              <span>Weekly insights</span>
               <label className="switch">
-                <input type="checkbox" />
+                <input
+                  type="checkbox"
+                  checked={weeklyInsightsEnabled}
+                  onChange={(e) => setWeeklyInsightsEnabled(e.target.checked)}
+                />
                 <span className="slider round"></span>
               </label>
-            </label>
-            <label className="preference-toggle">
-              Job alerts
+            </div>
+            <div className="preference-toggle">
+              <span>Job alerts</span>
               <label className="switch">
-                <input type="checkbox" />
+                <input
+                  type="checkbox"
+                  checked={jobAlertsEnabled}
+                  onChange={(e) => setJobAlertsEnabled(e.target.checked)}
+                />
                 <span className="slider round"></span>
               </label>
-            </label>
+            </div>
           </div>
         </div>
 
+        {/* Security Card */}
         <div className="content-card">
           <h3>Security</h3>
           <div className="input-grid">
             <div className="input-group">
               <label htmlFor="password">New password</label>
-              <input id="password" type="password" placeholder="••••••••" />
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
             </div>
             <div className="input-group">
               <label htmlFor="confirm-password">Confirm password</label>
-              <input id="confirm-password" type="password" placeholder="••••••••" />
+              <input
+                id="confirm-password"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
             </div>
           </div>
         </div>
 
+        {feedback.message && (
+          <p className={`settings-feedback settings-feedback--${feedback.type || "success"}`}>
+            {feedback.message}
+          </p>
+        )}
+
+        {/* Actions */}
         <div className="header-actions">
-          <button className="btn btn-dark" type="button">
-            Save changes
+          <button
+            className="btn btn-dark"
+            type="button"
+            onClick={handleSaveChanges}
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving..." : "Save changes"}
           </button>
-          <button className="btn btn-outline" type="button">
+          <button className="btn btn-outline" type="button" onClick={handleResetPassword}>
             Reset password
           </button>
           <button className="btn btn-outline" type="button" onClick={handleLogout}>

@@ -19,8 +19,7 @@ export default function Payment() {
             <div className="pricing-list">
               <span>✓ 1 resume</span>
               <span>✓ 1 cover letter</span>
-              <span>✓ Basic templates</span>
-              <span>✓ PDF download</span>
+              <span>✓ 1 basic template (Modern)</span>
               <span>✓ Limited AI suggestions</span>
             </div>
           </div>
