@@ -5,6 +5,7 @@ const authenticateJWT = require('../middleware/authMiddleware');
 const attachPlan = require('../middleware/attachPlan');
 const enforceUsage = require('../middleware/enforceUsage');
 const requirePlan = require('../middleware/requirePlan');
+const requireTemplateAccess = require('../middleware/requireTemplateAccess');
 
 const {
   createResumeWithAI,
@@ -27,6 +28,7 @@ router.post(
   authenticateJWT,
   attachPlan,
   enforceUsage('resume'),
+  requireTemplateAccess(),
   createResumeWithAI
 );
 
@@ -35,7 +37,7 @@ router.get('/:id', authenticateJWT, getResumeById);
 router.put('/:id', authenticateJWT, updateResume);
 router.delete('/:id', authenticateJWT, deleteResume);
 
-router.get("/:id/preview", authenticateJWT, previewResume);
+router.get("/:id/preview", authenticateJWT, attachPlan, requireTemplateAccess(), previewResume);
 
 /*
   Download Resume
@@ -46,6 +48,7 @@ router.get(
   authenticateJWT,
   attachPlan,
   requirePlan("premium"), // premium + pro allowed
+  requireTemplateAccess(),
   downloadResume
 );
 

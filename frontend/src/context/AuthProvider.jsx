@@ -6,7 +6,8 @@ import { auth, signOut } from "../firebase.js";
 import { exchangeFirebaseTokenForJwt } from "../utils/auth";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null);       // Firebase Auth user
+  const [profile, setProfile] = useState(null); // DB user profile (full_name, role, etc.)
   const [loading, setLoading] = useState(Boolean(auth));
 
   useEffect(() => {
@@ -17,12 +18,27 @@ export function AuthProvider({ children }) {
 
       if (firebaseUser) {
         try {
+          // Exchange Firebase token for your backend JWT
           await exchangeFirebaseTokenForJwt();
+
+          // Fetch the profile from your backend
+          const res = await fetch(`/api/users/${firebaseUser.uid}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+            },
+          });
+
+          if (!res.ok) throw new Error("Failed to fetch profile");
+
+          const data = await res.json();
+          setProfile(data); // includes full_name, role, etc.
+
         } catch (error) {
-          console.warn("Failed to exchange Firebase token:", error.message);
+          console.warn("Auth/Profile error:", error.message);
         }
       } else {
         localStorage.removeItem("jwtToken");
+        setProfile(null);
       }
 
       setLoading(false);
@@ -35,10 +51,11 @@ export function AuthProvider({ children }) {
     if (!auth) return;
     await signOut(auth);
     localStorage.removeItem("jwtToken");
+    setProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

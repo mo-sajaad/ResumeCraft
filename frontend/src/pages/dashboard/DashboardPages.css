@@ -620,3 +620,23 @@ input,
 textarea {
   color: #0f172a; /* Ensure input text color is normal */
 }
+
+
+.settings-feedback {
+  margin: 0;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.settings-feedback--success {
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.settings-feedback--error {
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}

@@ -17,15 +17,21 @@ export default function CoverLetterNew() {
   const [manager, setManager] = useState("");
 
   // UI STATE
+  const [style, setStyle] = useState("modern");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [generatedLetter, setGeneratedLetter] = useState("");
+  const [coverLetterId, setCoverLetterId] = useState(null);
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Fetch latest resume on mount to prefill personal info
   useEffect(() => {
     const fetchLatestResume = async () => {
       try {
-          const res = await fetch("/api/resumes", {
+        const res = await fetch("/api/resumes", {
           headers: await getAuthHeaders(),
         });
         const data = await res.json();
@@ -47,7 +53,36 @@ export default function CoverLetterNew() {
     fetchLatestResume();
   }, []);
 
-  // Simple validation
+  useEffect(() => {
+    if (!coverLetterId) return;
+
+    const fetchPreview = async () => {
+      setLoadingPreview(true);
+
+      try {
+        const res = await fetch(`/api/cover-letters/${coverLetterId}/preview?style=${style}`, {
+          headers: await getAuthHeaders(),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to load cover letter preview");
+        }
+
+        const html = await res.text();
+        setPreviewHtml(html);
+      } catch (err) {
+        setPreviewHtml("");
+        setError(err.message);
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+
+    fetchPreview();
+  }, [coverLetterId, style]);
+
+
   const validate = () => {
     if (!fullName.trim()) return "Full name is required";
     if (!email.trim()) return "Email is required";
@@ -56,7 +91,7 @@ export default function CoverLetterNew() {
     return null;
   };
 
-  // Generate AI cover letter
+
   const handleGenerateCoverLetter = async () => {
     const validationError = validate();
     if (validationError) {
@@ -67,6 +102,8 @@ export default function CoverLetterNew() {
     setError("");
     setLoading(true);
     setGeneratedLetter("");
+    setCoverLetterId(null);
+    setPreviewHtml("");
 
     const payload = {
       personal: { fullName, email, phoneNumber, address },
@@ -74,6 +111,7 @@ export default function CoverLetterNew() {
       experience: [],
       education: [],
       projects: [],
+      style,
     };
 
     try {
@@ -87,18 +125,49 @@ export default function CoverLetterNew() {
 
       if (!res.ok) {
         if (res.status === 403) {
-          throw new Error(
-            data.error || "You’ve reached your monthly limit. Upgrade your plan."
-          );
+          throw new Error(data.error || "You’ve reached your monthly limit or your plan cannot use this template.");
         }
         throw new Error(data.error || "Failed to generate cover letter");
       }
 
-      setGeneratedLetter(data.coverLetterText);
+      setGeneratedLetter(data.coverLetterText || "");
+      setCoverLetterId(data.coverLetterId || null);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!coverLetterId) return;
+
+    setError("");
+    setDownloadingPdf(true);
+
+    try {
+      const response = await fetch(`/api/cover-letters/${coverLetterId}/download?style=${style}`, {
+        headers: await getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download cover letter PDF");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `cover-letter-${coverLetterId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -107,38 +176,36 @@ export default function CoverLetterNew() {
       <div className="page-header">
         <h1 className="page-title">Create Cover Letter</h1>
         <div className="header-actions">
-          <button
-            className="btn btn-dark"
-            onClick={handleGenerateCoverLetter}
-            disabled={loading}
-          >
+          <select value={style} onChange={(e) => setStyle(e.target.value)} className="input">
+            <option value="modern">Modern</option>
+            <option value="corporate">Corporate</option>
+            <option value="creative">Creative</option>
+          </select>
+
+          <button className="btn btn-dark" onClick={handleGenerateCoverLetter} disabled={loading}>
             {loading ? "Generating..." : "Generate Cover Letter"}
           </button>
+
+          {coverLetterId ? (
+            <button className="btn btn-outline" onClick={handleDownloadPDF} disabled={downloadingPdf}>
+              {downloadingPdf ? "Downloading..." : "Download PDF"}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      {error && (
-        <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>
-      )}
+      {error && <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>}
 
       <div className="form-stack">
         <div className="content-card">
           <h3>Your Information</h3>
           <div className="input-group form-padding">
             <label>Full Name</label>
-            <input
-              placeholder="John Doe"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
+            <input placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </div>
           <div className="input-group">
             <label>Email</label>
-            <input
-              placeholder="john.doe@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <input placeholder="john.doe@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="input-group">
             <label>Phone</label>
@@ -164,11 +231,7 @@ export default function CoverLetterNew() {
           <h3>Job Details</h3>
           <div className="input-group form-padding">
             <label>Company Name</label>
-            <input
-              placeholder="Tech Corp"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-            />
+            <input placeholder="Tech Corp" value={company} onChange={(e) => setCompany(e.target.value)} />
           </div>
           <div className="input-group">
             <label>Position</label>
@@ -180,16 +243,12 @@ export default function CoverLetterNew() {
           </div>
           <div className="input-group">
             <label>Hiring Manager (Optional)</label>
-            <input
-              placeholder="Jane Smith"
-              value={manager}
-              onChange={(e) => setManager(e.target.value)}
-            />
+            <input placeholder="Jane Smith" value={manager} onChange={(e) => setManager(e.target.value)} />
           </div>
         </div>
       </div>
 
-      {generatedLetter && (
+      {generatedLetter ? (
         <div style={{ marginTop: "2rem" }}>
           <h2>Generated Cover Letter</h2>
           <pre
@@ -203,7 +262,27 @@ export default function CoverLetterNew() {
             {generatedLetter}
           </pre>
         </div>
-      )}
+      ) : null}
+
+      {coverLetterId ? (
+        <div style={{ marginTop: "2rem" }}>
+          <h2>Cover Letter Preview</h2>
+          {loadingPreview ? <p>Loading preview...</p> : null}
+          {!loadingPreview && previewHtml ? (
+            <iframe
+              title="Cover Letter Preview"
+              srcDoc={previewHtml}
+              style={{
+                width: "100%",
+                height: "1000px",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
+                marginTop: "1rem",
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -76,6 +76,16 @@ function populateTemplate(html, data, personal = {}) {
     .replace(/{{body_paragraphs}}/g, buildParagraphs(data.body));
 }
 
+function normalizeTemplateType(type = "") {
+  const normalized = String(type).toLowerCase();
+
+  if (normalized === "coverletter" || normalized === "cover_letter") {
+    return "cover-letter";
+  }
+
+  return normalized;
+}
+
 /* ===============================
    HTML RENDER (Used for Preview + PDF)
 =================================*/
@@ -84,9 +94,8 @@ function renderHTML(style, type, data, personal) {
   const templateDir = path.join(
     __dirname,
     "..",
-    "templates",
     style.toLowerCase(),
-    type.toLowerCase()
+    normalizeTemplateType(type)
   );
 
   const htmlPath = path.join(templateDir, "template.html");
