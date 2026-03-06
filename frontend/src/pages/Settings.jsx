@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/useAuth";
@@ -18,6 +18,15 @@ export default function Settings() {
   const [feedback, setFeedback] = useState({ type: "", message: "" });
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    if (!profile) return;
+
+    setWeeklyInsightsEnabled(
+      Boolean(profile?.weekly_insights ?? profile?.weeklyInsights)
+    );
+    setJobAlertsEnabled(Boolean(profile?.job_alerts ?? profile?.jobAlerts));
+  }, [profile]);
+
   const joinedDate = useMemo(() => {
     if (!user?.metadata?.creationTime) return "Not available";
     const date = new Date(user.metadata.creationTime);
@@ -32,32 +41,62 @@ export default function Settings() {
   const setSuccess = (message) => setFeedback({ type: "success", message });
   const setError = (message) => setFeedback({ type: "error", message });
 
+  const savePreferences = async () => {
+    if (!user?.uid) {
+      throw new Error("No authenticated user found.");
+    }
+
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      throw new Error("Missing auth token. Please log in again.");
+    }
+
+    const response = await fetch(`/api/users/${user.uid}/preferences`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        weeklyInsights: weeklyInsightsEnabled,
+        jobAlerts: jobAlertsEnabled,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Failed to save preferences.");
+    }
+  };
+
   const handleSaveChanges = async () => {
     setFeedback({ type: "", message: "" });
-
-    if (!newPassword && !confirmPassword) {
-      setSuccess("Preferences saved.");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (!auth?.currentUser) {
-      setError("No authenticated user found.");
-      return;
-    }
-
     setIsSaving(true);
 
     try {
+      await savePreferences();
+
+      if (!newPassword && !confirmPassword) {
+        setSuccess("Preferences saved.");
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+
+      if (!auth?.currentUser) {
+        setError("No authenticated user found.");
+        return;
+      }
+
       await updatePassword(auth.currentUser, newPassword);
       setNewPassword("");
       setConfirmPassword("");
@@ -66,7 +105,7 @@ export default function Settings() {
       if (error?.code === "auth/requires-recent-login") {
         setError("Please log in again before changing your password.");
       } else {
-        setError(error?.message || "Failed to update password.");
+        setError(error?.message || "Failed to update settings.");
       }
     } finally {
       setIsSaving(false);
