@@ -1,6 +1,52 @@
 import { auth } from "../firebase";
 
 const APP_JWT_KEY = "jwtToken";
+const JWT_EXPIRY_BUFFER_MS = 30 * 1000;
+
+function decodeJwtPayload(token) {
+  try {
+    const payloadSegment = token.split(".")[1];
+    if (!payloadSegment) return null;
+
+    const base64 = payloadSegment.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      "=",
+    );
+
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function isTokenExpired(token) {
+  const payload = decodeJwtPayload(token);
+  const expSeconds = payload?.exp;
+
+  if (typeof expSeconds !== "number") {
+    return true;
+  }
+
+  return Date.now() >= expSeconds * 1000 - JWT_EXPIRY_BUFFER_MS;
+}
+
+export function clearAppJwt() {
+  localStorage.removeItem(APP_JWT_KEY);
+}
+
+export function getStoredAppJwt() {
+  const token = localStorage.getItem(APP_JWT_KEY);
+
+  if (!token) return null;
+
+  if (isTokenExpired(token)) {
+    clearAppJwt();
+    return null;
+  }
+
+  return token;
+}
 
 export async function exchangeFirebaseTokenForJwt() {
   const firebaseUser = auth?.currentUser;
@@ -27,22 +73,25 @@ export async function exchangeFirebaseTokenForJwt() {
   return data.token;
 }
 
-export async function getAuthToken() {
-  const appJwt = localStorage.getItem(APP_JWT_KEY);
-  if (appJwt) {
-    return appJwt;
-  }
+export async function getAuthToken({ forceRefresh = false } = {}) {
+  if (!forceRefresh) {
+    const storedToken = getStoredAppJwt();
+    if (storedToken) {
+      return storedToken;
+    }
 
-  const firebaseUser = auth?.currentUser;
-  if (firebaseUser) {
-    return firebaseUser.getIdToken();
-  }
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) {
+      clearAppJwt();
+      return null;
+    }
 
-  return localStorage.getItem("token");
+    return exchangeFirebaseTokenForJwt();
+  }
 }
 
-export async function getAuthHeaders(extraHeaders = {}) {
-  const token = await getAuthToken();
+export async function getAuthHeaders(extraHeaders = {}, options) {
+  const token = await getAuthToken(options);
 
   return {
     ...extraHeaders,

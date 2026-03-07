@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
 import { auth, sendPasswordResetEmail, updatePassword } from "../firebase";
+import { getAuthHeaders } from "../utils/auth";
 
 import "./dashboard/DashboardPages.css";
 
@@ -46,17 +47,14 @@ export default function Settings() {
       throw new Error("No authenticated user found.");
     }
 
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
+    const headers = await getAuthHeaders({ "Content-Type": "application/json" });
+    if (!headers.Authorization) {
       throw new Error("Missing auth token. Please log in again.");
     }
 
     const response = await fetch(`/api/users/${user.uid}/preferences`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify({
         weeklyInsights: weeklyInsightsEnabled,
         jobAlerts: jobAlertsEnabled,

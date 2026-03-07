@@ -640,3 +640,27 @@ textarea {
   background: #fef2f2;
   color: #991b1b;
 }
+
+select.btn {
+  display: block;
+  text-align: center;
+  text-align-last: center;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+
+  position: relative;
+}
+
+/* Hover like your cards/buttons */
+select.btn:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
