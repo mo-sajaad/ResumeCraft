@@ -166,8 +166,7 @@ export default function ResumeNew() {
         <h1 className="page-title">Create Resume</h1>
 
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          {/* Template Selector */}
-          <select value={style} onChange={(e) => setStyle(e.target.value)} className="input">
+          <select value={style} onChange={(e) => setStyle(e.target.value)} className="btn">
             <option value="modern">Modern</option>
             <option value="corporate">Corporate</option>
             <option value="creative">Creative</option>

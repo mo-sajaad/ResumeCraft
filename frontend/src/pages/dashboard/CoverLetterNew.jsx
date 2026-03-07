@@ -176,7 +176,7 @@ export default function CoverLetterNew() {
       <div className="page-header">
         <h1 className="page-title">Create Cover Letter</h1>
         <div className="header-actions">
-          <select value={style} onChange={(e) => setStyle(e.target.value)} className="input">
+          <select value={style} onChange={(e) => setStyle(e.target.value)} className="btn">
             <option value="modern">Modern</option>
             <option value="corporate">Corporate</option>
             <option value="creative">Creative</option>
