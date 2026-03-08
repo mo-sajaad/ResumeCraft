@@ -15,6 +15,14 @@ export default function ResumeNew() {
   const [location, setLocation] = useState("");
   const [linkedin, setLinkedin] = useState("");
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const styles = [
+    { value: "modern", label: "Modern" },
+    { value: "corporate", label: "Corporate" },
+    { value: "creative", label: "Creative" }
+  ];
+
 
   // STYLE (Template)
   const [style, setStyle] = useState("modern");
@@ -166,11 +174,32 @@ export default function ResumeNew() {
         <h1 className="page-title">Create Resume</h1>
 
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <select value={style} onChange={(e) => setStyle(e.target.value)} className="btn">
-            <option value="modern">Modern</option>
-            <option value="corporate">Corporate</option>
-            <option value="creative">Creative</option>
-          </select>
+          <div className="dropdown">
+        <button
+          className="btn dropdown-toggle"
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+        >
+          {styles.find(s => s.value === style)?.label}
+          <span className="dropdown-arrow">▾</span>
+        </button>
+
+        {dropdownOpen && (
+          <div className="dropdown-menu">
+            {styles.map((s) => (
+              <div
+                key={s.value}
+                className={`dropdown-item ${style === s.value ? "active" : ""}`}
+                onClick={() => {
+                  setStyle(s.value);
+                  setDropdownOpen(false);
+                }}
+              >
+                {s.label}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
           <button className="btn btn-primary" onClick={handleGenerateResume} disabled={loading}>
             {loading ? "Generating..." : "Generate Resume"}

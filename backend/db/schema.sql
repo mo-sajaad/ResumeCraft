@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  billing_interval TEXT NOT NULL CHECK (billing_interval IN ('none', 'monthly', 'lifetime')),
+  billing_interval TEXT NOT NULL CHECK (billing_interval IN ('none', 'monthly', 'yearly')),
   amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
   currency CHAR(3) NOT NULL DEFAULT 'USD',
   active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -75,6 +75,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   current_period_end TIMESTAMPTZ,
   canceled_at TIMESTAMPTZ,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT UNIQUE,
+  stripe_price_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -145,6 +148,24 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
 
 CREATE INDEX IF NOT EXISTS idx_payment_transactions_user_id 
 ON payment_transactions(user_id);
+
+ALTER TABLE subscriptions
+  ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
+  ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT,
+  ADD COLUMN IF NOT EXISTS stripe_price_id TEXT;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'subscriptions_stripe_subscription_id_key'
+  ) THEN
+    ALTER TABLE subscriptions
+      ADD CONSTRAINT subscriptions_stripe_subscription_id_key UNIQUE (stripe_subscription_id);
+  END IF;
+END
+$$;
 
 -- =========================
 -- AI Usage Tracking

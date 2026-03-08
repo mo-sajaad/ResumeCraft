@@ -87,9 +87,27 @@ async function getUserProfileByFirebaseUid(firebaseUid) {
       u.linkedin_url,
       u.avatar_url,
       COALESCE(p.weekly_insights, FALSE) AS weekly_insights,
-      COALESCE(p.job_alerts, FALSE) AS job_alerts
+      COALESCE(p.job_alerts, FALSE) AS job_alerts,
+      active_plan.plan_code,
+      active_plan.plan_name,
+      active_plan.subscription_status,
+      active_plan.current_period_end
     FROM users u
     LEFT JOIN user_preferences p ON p.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT
+        pl.code AS plan_code,
+        pl.name AS plan_name,
+        s.status AS subscription_status,
+        s.current_period_end
+      FROM subscriptions s
+      JOIN plans pl ON pl.id = s.plan_id
+      WHERE s.user_id = u.id
+        AND s.status = 'active'
+        AND (s.current_period_end IS NULL OR s.current_period_end > NOW())
+      ORDER BY s.created_at DESC
+      LIMIT 1
+    ) AS active_plan ON TRUE
     WHERE u.firebase_uid = $1
     LIMIT 1
     `,

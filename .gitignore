@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 .env
 seed_admin.sql
+20260307_add_stripe_subscription_columns.sql

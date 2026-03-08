@@ -28,7 +28,7 @@ const getInitials = (name, email) => {
 export default function DashboardLayout() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
 
   const userDisplayName = useMemo(() => {
@@ -36,6 +36,11 @@ export default function DashboardLayout() {
   }, [user]);
 
   const userInitials = useMemo(() => getInitials(userDisplayName), [userDisplayName]);
+
+  const planLabel = useMemo(() => {
+    const code = (profile?.plan_code || 'free').toLowerCase();
+    return `${code.charAt(0).toUpperCase()}${code.slice(1)} Plan`;
+  }, [profile?.plan_code]);
 
   const toggleDropdown = () => {
     setDropdownVisible((prev) => !prev);
@@ -90,8 +95,8 @@ export default function DashboardLayout() {
           <div className="user-chip" onClick={toggleDropdown} role="button" tabIndex={0}>
             <div className="user-avatar">{userInitials}</div>
             <div className="user-details">
-              <span className="user-name">{userDisplayName}</span>
-              <span className="user-plan">Free Plan</span>
+              <span className="user-name">{profile?.full_name || userDisplayName}</span>
+              <span className="user-plan">{planLabel}</span>
             </div>
             {dropdownVisible && (
               <div className="user-dropdown">
