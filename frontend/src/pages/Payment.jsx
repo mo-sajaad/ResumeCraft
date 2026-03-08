@@ -1,101 +1,215 @@
+import { useMemo, useState } from "react";
+import { useAuth } from "../context/useAuth";
+import { getAuthHeaders } from "../utils/auth";
 import "./dashboard/DashboardPages.css";
 
 export default function Payment() {
+  const { profile } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState({ type: "", message: "" });
+
+  const activePlanCode = useMemo(
+    () => (profile?.plan_code || "free").toLowerCase(),
+    [profile?.plan_code]
+  );
+
+  const isPaidPlan = activePlanCode === "premium" || activePlanCode === "pro";
+  const isPremiumPlan = activePlanCode === "premium";
+  const isProPlan = activePlanCode === "pro";
+
+  const premiumButtonLabel = isPremiumPlan
+    ? "Current Plan"
+    : isProPlan
+    ? "Included in Pro"
+    : "Choose Premium";
+
+  const proButtonLabel = isProPlan
+    ? "Current Plan"
+    : isPremiumPlan
+    ? "Upgrade to Pro"
+    : "Choose Pro";
+
+  async function redirectToCheckout(plan) {
+    setFeedback({ type: "", message: "" });
+    setIsSubmitting(true);
+
+    try {
+      const headers = await getAuthHeaders({ "Content-Type": "application/json" });
+
+      const response = await fetch("/api/billing/checkout-session", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ plan }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to start checkout.");
+      }
+
+      window.location.assign(data.url);
+    } catch (error) {
+      setFeedback({ type: "error", message: error.message });
+      setIsSubmitting(false);
+    }
+  }
+
+  async function openBillingPortal() {
+    setFeedback({ type: "", message: "" });
+    setIsSubmitting(true);
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const response = await fetch("/api/billing/portal-session", {
+        method: "POST",
+        headers,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to open billing portal.");
+      }
+
+      window.location.assign(data.url);
+    } catch (error) {
+      setFeedback({ type: "error", message: error.message });
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Upgrade to Premium</h1>
-          <p className="page-subtitle">Unlock all features and take your job search to the next level</p>
+          <h1 className="page-title">Choose Your Plan</h1>
+          <p className="page-subtitle">
+            Unlock powerful tools to boost your job search
+          </p>
         </div>
       </div>
 
+      {feedback.message && (
+        <div className={`content-card ${feedback.type === "error" ? "error-message" : ""}`}>
+          {feedback.message}
+        </div>
+      )}
+
       <div className="pricing-grid">
+
+        {/* FREE */}
         <div className="pricing-card">
           <div className="pricing-features">
             <h3>Free</h3>
-            <p className="pricing-price">$0</p>
+
+            <p className="pricing-price">
+              $0 <span className="pricing-period">/month</span>
+            </p>
+
             <p className="page-subtitle">Perfect for getting started</p>
+
             <div className="pricing-list">
               <span>✓ 1 resume</span>
               <span>✓ 1 cover letter</span>
-              <span>✓ 1 basic template (Modern)</span>
+              <span>✓ 1 basic template</span>
               <span>✓ Limited AI suggestions</span>
+              <span>✓ PDF download</span>
             </div>
           </div>
-          <button className="btn btn-outline pricing-button" type="button">
-            Current Plan
+
+          <button className="btn btn-outline pricing-button" disabled>
+            {activePlanCode === "free" ? "Current Plan" : "Included"}
           </button>
         </div>
 
-        <div className="pricing-card featured">
-          <span className="pricing-badge">Most Popular</span>
+        {/* PREMIUM */}
+        <div className={`pricing-card ${isPremiumPlan ? "featured" : "with-badge"}`}>
+          <span className="pricing-badge">
+            {isPremiumPlan ? "Current Plan" : "Most Popular"}
+          </span>
+
           <div className="pricing-features">
             <h3>Premium</h3>
-            <p className="pricing-price">$9.99</p>
+
+            <p className="pricing-price">
+              $9.99 <span className="pricing-period">/month</span>
+            </p>
+
             <p className="page-subtitle">For serious job seekers</p>
+
             <div className="pricing-list">
-              <span>✓ Unlimited resumes & cover letters</span>
-              <span>✓ All premium templates</span>
-              <span>✓ Unlimited PDF & Word downloads</span>
+              <span>✓ Unlimited resumes</span>
+              <span>✓ Unlimited cover letters</span>
+              <span>✓ 50+ premium templates</span>
+              <span>✓ Unlimited downloads</span>
               <span>✓ Advanced AI suggestions</span>
               <span>✓ ATS optimization score</span>
-              <span>✓ Priority support</span>
-              <span>✓ Custom branding</span>
-              <span>✓ Export to multiple formats</span>
             </div>
           </div>
-          <button className="btn btn-dark pricing-button" type="button">
-            Choose Premium
+
+          <button
+            className="btn btn-dark pricing-button"
+            onClick={() => redirectToCheckout("premium")}
+            disabled={isSubmitting || isPremiumPlan || isProPlan}
+          >
+            {premiumButtonLabel}
           </button>
         </div>
 
-        <div className="pricing-card">
+        {/* PRO */}
+        <div className={`pricing-card ${isProPlan ? "featured" : ""}`}>
+          {isProPlan && <span className="pricing-badge">Current Plan</span>}
+
           <div className="pricing-features">
-            <h3>Lifetime</h3>
-            <p className="pricing-price">$49.99</p>
-            <p className="page-subtitle">Best value - pay once, use forever</p>
+            <h3>Pro</h3>
+
+            <p className="pricing-price">
+              $19.99 <span className="pricing-period">/month</span>
+            </p>
+
+            <p className="page-subtitle">For power users & professionals</p>
+
             <div className="pricing-list">
               <span>✓ Everything in Premium</span>
-              <span>✓ Lifetime access</span>
-              <span>✓ Future feature updates</span>
-              <span>✓ No recurring charges</span>
+              <span>✓ AI resume rewriting</span>
+              <span>✓ AI job match analysis</span>
+              <span>✓ LinkedIn optimization</span>
+              <span>✓ Advanced ATS analytics</span>
+              <span>✓ Early feature access</span>
               <span>✓ VIP support</span>
             </div>
           </div>
-          <button className="btn btn-outline pricing-button" type="button">
-              Choose Lifetime
+
+          <button
+            className="btn btn-outline pricing-button"
+            onClick={() => redirectToCheckout("pro")}
+            disabled={isSubmitting || isProPlan}
+          >
+            {proButtonLabel}
           </button>
         </div>
       </div>
 
-      <div className="content-section">
-        <div className="content-card text-align">
-          <h3>Premium Features</h3>
-          <div className="feature-grid">
-            <div className="feature-card">
-              <div className="promo-icon">✨</div>
-              <strong>Advanced AI</strong>
-              <p>Get intelligent suggestions for every section of your resume</p>
-            </div>
-            <div className="feature-card">
-              <div className="promo-icon">📄</div>
-              <strong>Premium Templates</strong>
-              <p>Access to 50+ professional, ATS-optimized templates</p>
-            </div>
-            <div className="feature-card">
-              <div className="promo-icon">⬇</div>
-              <strong>Unlimited Downloads</strong>
-              <p>Download in PDF, Word, and text formats anytime</p>
-            </div>
-            <div className="feature-card">
-              <div className="promo-icon">⚡</div>
-              <strong>ATS Score</strong>
-              <p>See how well your resume performs with ATS systems</p>
-            </div>
+      {isPaidPlan && (
+        <div className="content-section">
+          <div className="content-card text-align">
+            <h3>Already subscribed?</h3>
+            <p className="page-subtitle">
+              Manage your payment method and invoices.
+            </p>
+
+            <button
+              className="btn btn-dark"
+              onClick={openBillingPortal}
+              disabled={isSubmitting}
+            >
+              Manage Billing
+            </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
