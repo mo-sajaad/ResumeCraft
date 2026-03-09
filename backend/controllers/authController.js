@@ -34,7 +34,9 @@ async function exchangeFirebaseToken(req, res, next) {
       return res.status(400).json({ error: 'Firebase token must include uid and email' });
     }
 
-    await findOrCreateUser(decodedToken.uid, decodedToken.email);
+    const fullName = typeof req.body?.fullName === 'string' ? req.body.fullName : decodedToken.name || null;
+
+    await findOrCreateUser(decodedToken.uid, decodedToken.email, fullName);
     const token = createAppToken({ uid: decodedToken.uid, email: decodedToken.email });
 
     return res.json({

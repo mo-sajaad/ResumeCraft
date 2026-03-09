@@ -5,23 +5,36 @@ const { getStripeClient } = require('../config/stripe');
 
 const router = express.Router();
 
-const PLAN_PRICE_MAP = {
-  premium: 'STRIPE_PREMIUM_PRICE_ID',
-  pro: 'STRIPE_PRO_PRICE_ID',
+const PLAN_PRICE_ENV_ALIASES = {
+  premium: ['STRIPE_PREMIUM_PRICE_ID', 'STRIPE_PRICE_ID_PREMIUM'],
+  pro: ['STRIPE_PRO_PRICE_ID', 'STRIPE_PRICE_ID_PRO'],
 };
+
+function getPlanPriceId(plan) {
+  const envNames = PLAN_PRICE_ENV_ALIASES[plan] || [];
+  for (const envName of envNames) {
+    const value = process.env[envName];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
 
 router.post('/checkout-session', authenticateJWT, async (req, res, next) => {
   try {
-    const { plan } = req.body || {};
+    const rawPlan = req.body?.plan;
+    const plan = typeof rawPlan === 'string' ? rawPlan.trim().toLowerCase() : '';
 
-    if (!plan || !Object.prototype.hasOwnProperty.call(PLAN_PRICE_MAP, plan)) {
+    if (!Object.prototype.hasOwnProperty.call(PLAN_PRICE_ENV_ALIASES, plan)) {
       return res.status(400).json({ error: 'Invalid plan. Expected premium or pro.' });
     }
 
-    const priceId = process.env[PLAN_PRICE_MAP[plan]];
+    const priceId = getPlanPriceId(plan);
     if (!priceId) {
       return res.status(500).json({
-        error: `Stripe price is missing for plan '${plan}'.`,
+        error: `Stripe price is missing for plan '${plan}'. Configure one of: ${PLAN_PRICE_ENV_ALIASES[plan].join(', ')}.`,
       });
     }
 
