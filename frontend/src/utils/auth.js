@@ -56,11 +56,12 @@ export async function exchangeFirebaseTokenForJwt() {
   }
 
   const firebaseToken = await firebaseUser.getIdToken();
+  const fullName = firebaseUser.displayName || null;
 
   const response = await fetch("/api/auth/exchange", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ firebaseToken }),
+    body: JSON.stringify({ firebaseToken, fullName }),
   });
 
   const data = await response.json();
@@ -88,6 +89,14 @@ export async function getAuthToken({ forceRefresh = false } = {}) {
 
     return exchangeFirebaseTokenForJwt();
   }
+
+  const firebaseUser = auth?.currentUser;
+  if (!firebaseUser) {
+    clearAppJwt();
+    return null;
+  }
+
+  return exchangeFirebaseTokenForJwt();
 }
 
 export async function getAuthHeaders(extraHeaders = {}, options) {
