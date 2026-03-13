@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
-import "./DashboardPages.css";
+import "./DashboardShared.css";
 import { getAuthHeaders } from "../../utils/auth";
 import { ROUTES } from "../../constants/routes";
 
