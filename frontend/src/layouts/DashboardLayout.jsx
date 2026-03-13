@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { FaCog, FaGem, FaRegAddressCard, FaRegEnvelope, FaTh } from "react-icons/fa";
+import { FaChartLine, FaCog, FaGem, FaRegAddressCard, FaRegEnvelope, FaTh } from "react-icons/fa";
 
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
