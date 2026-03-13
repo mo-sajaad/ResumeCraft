@@ -1,0 +1,110 @@
+.ui-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.ui-page-title {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.ui-page-subtitle {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.ui-section-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+}
+
+.ui-empty-state,
+.ui-loading-state,
+.ui-error-state {
+  text-align: center;
+  padding: var(--space-8);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: #fafbff;
+}
+
+.ui-empty-title,
+.ui-error-title {
+  margin: 0 0 var(--space-2);
+}
+
+.ui-empty-description,
+.ui-error-description {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.ui-state-actions {
+  margin-top: var(--space-4);
+  display: inline-flex;
+  gap: var(--space-3);
+}
+
+.ui-btn {
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.ui-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ui-btn-primary {
+  color: var(--color-text-inverse);
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-700));
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-btn-secondary {
+  background: var(--color-bg-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.ui-skeleton {
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #eef2ff 25%, #e2e8f0 50%, #eef2ff 75%);
+  background-size: 220% 100%;
+  animation: skeleton-pulse 1.4s linear infinite;
+}
+
+.ui-skeleton + .ui-skeleton {
+  margin-top: var(--space-3);
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.ui-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.ui-breadcrumbs-current {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.ui-brand-badge{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--color-brand-500),var(--color-brand-700));color:#fff;display:grid;place-items:center;}
