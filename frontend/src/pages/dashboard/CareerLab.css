@@ -258,6 +258,38 @@
   gap: 1rem;
 }
 
+
+.career-lab-shared-defaults summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.career-lab-shared-defaults summary::-webkit-details-marker {
+  display: none;
+}
+
+.career-lab-shared-defaults[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.career-lab-shared-defaults summary svg {
+  transition: transform 0.2s ease;
+}
+
+.compact-grid {
+  margin-top: 0.75rem;
+}
+
+.career-lab-tool-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
 .career-lab-tool-header {
   display: flex;
   justify-content: space-between;
@@ -313,7 +345,8 @@
 @media (max-width: 1100px) {
   .career-lab-layout,
   .career-lab-workflow-grid,
-  .career-lab-categories {
+  .career-lab-categories,
+  .career-lab-tool-input-grid {
     grid-template-columns: 1fr;
   }
 

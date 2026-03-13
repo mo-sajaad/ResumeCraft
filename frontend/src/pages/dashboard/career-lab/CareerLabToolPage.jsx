@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, useOutletContext, useParams } from "react-router-dom";
-import { FaArrowRight, FaCheckCircle, FaPlay, FaSpinner } from "react-icons/fa";
+import { FaArrowRight, FaCheckCircle, FaPlay, FaSpinner, FaSyncAlt } from "react-icons/fa";
 
 import Button from "../../../components/ui/Button";
 import { TOOL_MAP } from "./careerLabTools";
@@ -13,9 +13,25 @@ function prettyResult(value) {
 
 export default function CareerLabToolPage() {
   const { toolId } = useParams();
-  const { inputs, results, running, runTool } = useOutletContext();
+  const { inputs, setInputs, results, running, runTool } = useOutletContext();
 
   const tool = TOOL_MAP[toolId];
+  const [draftInputsByTool, setDraftInputsByTool] = useState({});
+
+  const toolInputs = useMemo(() => {
+    if (!tool) return {};
+    const drafts = draftInputsByTool[tool.id] || {};
+    return tool.fields.reduce((acc, field) => {
+      acc[field.key] = drafts[field.key] ?? inputs[field.key] ?? "";
+      return acc;
+    }, {});
+  }, [tool, draftInputsByTool, inputs]);
+
+  const mergedInputs = useMemo(() => ({ ...inputs, ...toolInputs }), [inputs, toolInputs]);
+  const validationState = useMemo(() => {
+    if (!tool) return "invalid";
+    return tool.disabled(mergedInputs) ? "blocked" : "ready";
+  }, [tool, mergedInputs]);
 
   const validationState = useMemo(() => {
     if (!tool) return "invalid";
@@ -34,6 +50,28 @@ export default function CareerLabToolPage() {
   const isRunning = Boolean(running[tool.id]);
   const hasResult = Boolean(results[tool.id]);
 
+  const handleInputChange = (key, value) => {
+    setDraftInputsByTool((prev) => ({
+      ...prev,
+      [tool.id]: {
+        ...(prev[tool.id] || {}),
+        [key]: value,
+      },
+    }));
+  };
+
+  const handleRun = () => {
+    runTool(tool, mergedInputs);
+  };
+
+  const restoreSharedDefaults = () => {
+    setDraftInputsByTool((prev) => ({ ...prev, [tool.id]: {} }));
+  };
+
+  const saveToSharedDefaults = () => {
+    setInputs((prev) => ({ ...prev, ...toolInputs }));
+  };
+
   return (
     <section className="content-card career-lab-tool-card">
       <div className="career-lab-tool-header">
@@ -47,9 +85,40 @@ export default function CareerLabToolPage() {
         </span>
       </div>
 
+      <div className="career-lab-tool-input-grid">
+        {tool.fields.map((field) => (
+          <div key={field.key} className="career-lab-panel">
+            <label htmlFor={`tool-${tool.id}-${field.key}`}>{field.label}</label>
+            {field.type === "textarea" ? (
+              <textarea
+                id={`tool-${tool.id}-${field.key}`}
+                className="workspace-editor"
+                value={toolInputs[field.key] || ""}
+                onChange={(e) => handleInputChange(field.key, e.target.value)}
+                placeholder={field.placeholder}
+              />
+            ) : (
+              <input
+                id={`tool-${tool.id}-${field.key}`}
+                className="career-lab-input"
+                value={toolInputs[field.key] || ""}
+                onChange={(e) => handleInputChange(field.key, e.target.value)}
+                placeholder={field.placeholder}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
       <div className="career-lab-tool-actions">
-        <Button type="button" onClick={() => runTool(tool)} disabled={isRunning || tool.disabled(inputs)}>
+        <Button type="button" onClick={handleRun} disabled={isRunning || tool.disabled(mergedInputs)}>
           {isRunning ? <FaSpinner className="spin" /> : <FaPlay />} {isRunning ? tool.runningLabel : tool.buttonLabel}
+        </Button>
+        <Button type="button" variant="secondary" onClick={restoreSharedDefaults}>
+          <FaSyncAlt /> Use shared defaults
+        </Button>
+        <Button type="button" variant="secondary" onClick={saveToSharedDefaults}>
+          Save to shared defaults
         </Button>
         <Button as={NavLink} to="/dashboard/career-lab" variant="secondary">
           Explore all tools <FaArrowRight />
