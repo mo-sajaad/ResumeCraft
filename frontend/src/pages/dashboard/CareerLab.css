@@ -1,0 +1,153 @@
+.career-lab-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.career-lab-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.career-lab-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.career-lab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.career-lab-input {
+  border: 1px solid #dbe1eb;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.career-lab-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.career-lab-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.career-lab-group-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.career-lab-group-header span {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.career-lab-tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.career-lab-tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.career-lab-tool-description {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.career-lab-tool-card pre,
+.career-lab-panel pre {
+  min-height: 180px;
+  margin: 0;
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  overflow: auto;
+}
+
+@media (max-width: 1100px) {
+  .career-lab-layout,
+  .career-lab-tools-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+.career-lab-top-nav-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.career-lab-top-nav {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.career-lab-dropdown-group {
+  position: relative;
+}
+
+.career-lab-dropdown-trigger {
+  border: 1px solid #dbe1eb;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  font-weight: 600;
+  cursor: default;
+}
+
+.career-lab-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 250px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+  padding: 0.4rem;
+  display: none;
+  z-index: 30;
+}
+
+.career-lab-dropdown-group:hover .career-lab-dropdown-menu,
+.career-lab-dropdown-group:focus-within .career-lab-dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.career-lab-tool-link {
+  color: #334155;
+  text-decoration: none;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+}
+
+.career-lab-tool-link:hover {
+  background: #e2e8f0;
+}
+
+.career-lab-tool-link.active {
+  background: #0f172a;
+  color: #fff;
+}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/useAuth";
 import { getAuthHeaders } from "../utils/auth";
-import "./dashboard/DashboardPages.css";
+import "./dashboard/DashboardShared.css";
 
 export default function Payment() {
   const { profile, refreshProfile } = useAuth();
