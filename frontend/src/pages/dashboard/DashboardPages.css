@@ -1011,12 +1011,3 @@ select.btn:hover {
   outline: 2px solid #93c5fd;
   outline-offset: 1px;
 }
-
-
-.workspace-template-editor {
-  width: 100%;
-  min-height: 760px;
-  border: 1px solid #dbe3ef;
-  border-radius: 12px;
-  background: #fff;
-}
