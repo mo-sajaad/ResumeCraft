@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ROUTES } from "../../constants/routes";
 import { getAuthHeaders } from "../../utils/auth";
-import "./DashboardPages.css";
+import "./DashboardShared.css";
+import "./DocumentWorkspace.css";
 
 const ALLOWED_STYLES = ["modern", "corporate", "creative"];
 
