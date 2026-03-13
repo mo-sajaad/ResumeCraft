@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/useAuth";
 import { getAuthHeaders } from "../utils/auth";
 import "./dashboard/DashboardPages.css";
 
 export default function Payment() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
 
   const activePlanCode = useMemo(
     () => (profile?.plan_code || "free").toLowerCase(),
-    [profile?.plan_code]
+    [profile?.plan_code],
   );
 
   const isPaidPlan = activePlanCode === "premium" || activePlanCode === "pro";
@@ -20,21 +20,64 @@ export default function Payment() {
   const premiumButtonLabel = isPremiumPlan
     ? "Current Plan"
     : isProPlan
-    ? "Included in Pro"
-    : "Choose Premium";
+      ? "Included in Pro"
+      : "Choose Premium";
 
   const proButtonLabel = isProPlan
     ? "Current Plan"
     : isPremiumPlan
-    ? "Upgrade to Pro"
-    : "Choose Pro";
+      ? "Upgrade to Pro"
+      : "Choose Pro";
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasSuccess = params.get("success") === "1";
+    const hasCanceled = params.get("canceled") === "1";
+
+    if (!hasSuccess && !hasCanceled) {
+      return;
+    }
+
+    if (hasSuccess) {
+      setFeedback({
+        type: "success",
+        message: "Payment successful. Updating your subscription…",
+      });
+
+      refreshProfile()
+        .then(() => {
+          setFeedback({
+            type: "success",
+            message: "Your subscription is active.",
+          });
+        })
+        .catch(() => {
+          setFeedback({
+            type: "error",
+            message:
+              "Payment succeeded, but we could not refresh your plan yet. Please reload.",
+          });
+        });
+    } else if (hasCanceled) {
+      setFeedback({ type: "error", message: "Checkout was canceled." });
+    }
+
+    params.delete("success");
+    params.delete("canceled");
+
+    const cleanedQuery = params.toString();
+    const cleanedUrl = `${window.location.pathname}${cleanedQuery ? `?${cleanedQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", cleanedUrl);
+  }, [refreshProfile]);
 
   async function redirectToCheckout(plan) {
     setFeedback({ type: "", message: "" });
     setIsSubmitting(true);
 
     try {
-      const headers = await getAuthHeaders({ "Content-Type": "application/json" });
+      const headers = await getAuthHeaders({
+        "Content-Type": "application/json",
+      });
 
       const response = await fetch("/api/billing/checkout-session", {
         method: "POST",
@@ -92,13 +135,14 @@ export default function Payment() {
       </div>
 
       {feedback.message && (
-        <div className={`content-card ${feedback.type === "error" ? "error-message" : ""}`}>
+        <div
+          className={`content-card ${feedback.type === "error" ? "error-message" : ""}`}
+        >
           {feedback.message}
         </div>
       )}
 
       <div className="pricing-grid">
-
         {/* FREE */}
         <div className="pricing-card">
           <div className="pricing-features">
@@ -125,7 +169,9 @@ export default function Payment() {
         </div>
 
         {/* PREMIUM */}
-        <div className={`pricing-card ${isPremiumPlan ? "featured" : "with-badge"}`}>
+        <div
+          className={`pricing-card ${isPremiumPlan ? "featured" : "with-badge"}`}
+        >
           <span className="pricing-badge">
             {isPremiumPlan ? "Current Plan" : "Most Popular"}
           </span>

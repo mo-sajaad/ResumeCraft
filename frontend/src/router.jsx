@@ -16,6 +16,7 @@ const Signup = lazy(() => import("./pages/auth/Signup.jsx"));
 const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome.jsx"));
 const ResumeNew = lazy(() => import("./pages/dashboard/ResumeNew.jsx"));
 const CoverLetterNew = lazy(() => import("./pages/dashboard/CoverLetterNew.jsx"));
+const DocumentWorkspace = lazy(() => import("./pages/dashboard/DocumentWorkspace.jsx"));
 const Payment = lazy(() => import("./pages/Payment.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
           { index: true, element: withSuspense(<DashboardHome />) },
           { path: "resume/new", element: withSuspense(<ResumeNew />) },
           { path: "cover-letter/new", element: withSuspense(<CoverLetterNew />) },
+          { path: "editor", element: withSuspense(<DocumentWorkspace />) },
           { path: "payment", element: withSuspense(<Payment />) },
           { path: "settings", element: withSuspense(<Settings />) }
         ],
