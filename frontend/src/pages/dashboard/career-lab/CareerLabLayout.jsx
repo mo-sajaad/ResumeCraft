@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { FaArrowRight, FaBullseye, FaCheckCircle, FaFlask, FaSearch } from "react-icons/fa";
+import { FaArrowRight, FaBullseye, FaCheckCircle, FaChevronDown, FaFlask, FaSearch } from "react-icons/fa";
 
 import Button from "../../../components/ui/Button";
 import { getAuthHeaders } from "../../../utils/auth";
@@ -41,7 +41,9 @@ export default function CareerLabLayout() {
     return { completed, total, inputCoverage };
   }, [results, inputs]);
 
-  const runTool = async (tool) => {
+  const runTool = async (tool, overrideInputs = null) => {
+    const payloadInputs = overrideInputs || inputs;
+
     setRunning((prev) => ({ ...prev, [tool.id]: true }));
     setError("");
 
@@ -49,7 +51,7 @@ export default function CareerLabLayout() {
       const response = await fetch(tool.endpoint, {
         method: "POST",
         headers: await getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(tool.payload(inputs)),
+        body: JSON.stringify(tool.payload(payloadInputs)),
       });
 
       const data = await response.json().catch(() => ({}));
@@ -58,6 +60,9 @@ export default function CareerLabLayout() {
       }
 
       setResults((prev) => ({ ...prev, [tool.id]: data }));
+      if (overrideInputs) {
+        setInputs((prev) => ({ ...prev, ...overrideInputs }));
+      }
     } catch (err) {
       setError(err.message || `Unable to run ${tool.title}.`);
       throw err;
@@ -84,7 +89,7 @@ export default function CareerLabLayout() {
           <p className="career-lab-eyebrow">Career Lab</p>
           <h1 className="page-title">AI-Powered Career Command Center</h1>
           <p className="career-lab-hero-description">
-            Run targeted analysis workflows for ATS, role fit, interview prep, and market strategy from a single workspace.
+            Hybrid workflow: every tool has a dedicated input form, while optional shared defaults keep your repeated context in sync.
           </p>
         </div>
         <div className="career-lab-metrics">
@@ -99,7 +104,7 @@ export default function CareerLabLayout() {
             <FaSearch />
             <div>
               <strong>{progress.inputCoverage}/7</strong>
-              <span>inputs provided</span>
+              <span>shared defaults set</span>
             </div>
           </div>
         </div>
@@ -135,85 +140,51 @@ export default function CareerLabLayout() {
         </div>
       </section>
 
-      <section className="content-card career-lab-inputs">
-        <div className="career-lab-group-header">
-          <h3>Shared Input Workspace</h3>
-          <span>These inputs power every tool</span>
-        </div>
-
-        <div className="career-lab-layout">
+      <details className="content-card career-lab-shared-defaults">
+        <summary>
+          <span>Shared Defaults (Optional)</span>
+          <FaChevronDown />
+        </summary>
+        <p className="career-lab-tool-description">
+          Tool pages load from these defaults first. You can still override inputs per tool before running.
+        </p>
+        <div className="career-lab-layout compact-grid">
           <section className="career-lab-panel">
-            <label htmlFor="job-description">Job Description</label>
-            <textarea
-              id="job-description"
-              className="workspace-editor"
-              value={inputs.jobDescription}
-              onChange={(e) => setInputs((p) => ({ ...p, jobDescription: e.target.value }))}
-              placeholder="Paste full job description here..."
-            />
-          </section>
-
-          <section className="career-lab-panel">
-            <label htmlFor="resume-text">Resume Text</label>
-            <textarea
-              id="resume-text"
-              className="workspace-editor"
-              value={inputs.resumeText}
-              onChange={(e) => setInputs((p) => ({ ...p, resumeText: e.target.value }))}
-              placeholder="Paste resume text for analysis tools..."
-            />
-          </section>
-        </div>
-
-        <div className="career-lab-layout">
-          <section className="career-lab-panel">
-            <label htmlFor="benchmark-text">Benchmark Resume</label>
-            <textarea
-              id="benchmark-text"
-              className="workspace-editor"
-              value={inputs.benchmarkText}
-              onChange={(e) => setInputs((p) => ({ ...p, benchmarkText: e.target.value }))}
-              placeholder="Paste benchmark resume for competitive analysis..."
-            />
-          </section>
-
-          <section className="career-lab-panel career-lab-stacked-inputs">
-            <label htmlFor="target-role">Target Role</label>
+            <label htmlFor="shared-role">Target Role</label>
             <input
-              id="target-role"
+              id="shared-role"
               className="career-lab-input"
               value={inputs.targetRole}
               onChange={(e) => setInputs((p) => ({ ...p, targetRole: e.target.value }))}
               placeholder="e.g. Senior Backend Engineer"
             />
+          </section>
 
-            <label htmlFor="target-location">Target Location</label>
+          <section className="career-lab-panel">
+            <label htmlFor="shared-location">Target Location</label>
             <input
-              id="target-location"
+              id="shared-location"
               className="career-lab-input"
               value={inputs.targetLocation}
               onChange={(e) => setInputs((p) => ({ ...p, targetLocation: e.target.value }))}
-              placeholder="e.g. Berlin, DE"
-            />
-
-            <label htmlFor="years-experience">Years of Experience</label>
-            <input
-              id="years-experience"
-              className="career-lab-input"
-              value={inputs.yearsExperience}
-              onChange={(e) => setInputs((p) => ({ ...p, yearsExperience: e.target.value }))}
-              placeholder="e.g. 5"
-            />
-
-            <label htmlFor="answer-text">Interview Answer (Optional)</label>
-            <textarea
-              id="answer-text"
-              className="workspace-editor compact"
-              value={inputs.answerText}
-              onChange={(e) => setInputs((p) => ({ ...p, answerText: e.target.value }))}
-              placeholder="Paste answer for coaching feedback..."
+              placeholder="e.g. London, UK"
             />
           </section>
+        </div>
+      </details>
+
+      <section className="content-card career-lab-inputs">
+        <div className="career-lab-group-header">
+          <h3>Start a Tool Flow</h3>
+          <span>Open any tool for focused inputs + result output</span>
+        </div>
+        <div className="career-lab-cta-row">
+          <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">
+            <FaFlask /> Start Diagnostic Flow
+          </Button>
+          <Button as={NavLink} to="/dashboard/career-lab/tools/interview-prep" variant="secondary">
+            <FaBullseye /> Jump to Interview Prep
+          </Button>
         </div>
 
         <div className="career-lab-cta-row">

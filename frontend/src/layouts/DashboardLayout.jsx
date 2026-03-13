@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  FaAngleDoubleLeft,
+  FaAngleDoubleRight,
   FaBars,
   FaChartLine,
   FaCog,
@@ -16,6 +18,8 @@ import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
 
 import "./DashboardLayout.css";
+
+const SIDEBAR_STATE_KEY = "dashboardSidebarCollapsed";
 
 const NAV_GROUPS = [
   {
@@ -35,7 +39,7 @@ const NAV_GROUPS = [
   {
     label: "Account",
     links: [
-      { to: ROUTES.PAYMENT, label: "Premium", icon: <FaGem /> },
+      { to: ROUTES.PAYMENT, label: "Billing", icon: <FaGem /> },
       { to: ROUTES.SETTINGS, label: "Settings", icon: <FaCog /> },
     ],
   },
@@ -59,10 +63,19 @@ function buildBreadcrumbs(pathname) {
   return crumbs;
 }
 
+function getStoredSidebarState() {
+  try {
+    return localStorage.getItem(SIDEBAR_STATE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 export default function DashboardLayout() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(getStoredSidebarState);
   const menuRef = useRef(null);
 
   const { user, profile, logout } = useAuth();
@@ -90,6 +103,14 @@ export default function DashboardLayout() {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_STATE_KEY, String(isSidebarCollapsed));
+    } catch {
+      // no-op if storage unavailable
+    }
+  }, [isSidebarCollapsed]);
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -102,11 +123,11 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="dashboard-shell">
+    <div className={`dashboard-shell ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <aside className={`dashboard-sidebar ${mobileSidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-icon">✦</div>
-          ResumeCraft
+          <span className="brand-label">ResumeCraft</span>
           <button className="sidebar-close" type="button" onClick={() => setMobileSidebarOpen(false)} aria-label="Close navigation">
             <FaTimes />
           </button>
@@ -117,9 +138,9 @@ export default function DashboardLayout() {
             <div key={group.label}>
               <div className="sidebar-section-label">{group.label}</div>
               {group.links.map((link) => (
-                <NavLink key={link.to} to={link.to} end={link.end} className="sidebar-link">
+                <NavLink key={link.to} to={link.to} end={link.end} className="sidebar-link" title={link.label}>
                   <span className="nav-icon">{link.icon}</span>
-                  {link.label}
+                  <span className="sidebar-link-text">{link.label}</span>
                 </NavLink>
               ))}
             </div>
@@ -133,6 +154,15 @@ export default function DashboardLayout() {
           <div className="topbar-left">
             <button className="menu-toggle" type="button" onClick={() => setMobileSidebarOpen(true)} aria-label="Open navigation menu">
               <FaBars />
+            </button>
+            <button
+              className="sidebar-collapse-toggle"
+              type="button"
+              onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+              aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isSidebarCollapsed ? <FaAngleDoubleRight /> : <FaAngleDoubleLeft />}
             </button>
             <Breadcrumbs items={breadcrumbs} />
           </div>
