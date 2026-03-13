@@ -20,6 +20,14 @@ export default function CareerLabLayout() {
   const [running, setRunning] = useState({});
   const [error, setError] = useState("");
 
+  const groupedTools = useMemo(
+    () => TOOL_CATEGORIES.map((category) => ({
+      ...category,
+      tools: CAREER_LAB_TOOLS.filter((tool) => tool.category === category.id),
+    })),
+    []
+  );
+
   const progress = useMemo(() => {
     const total = CAREER_LAB_TOOLS.length;
     const completed = CAREER_LAB_TOOLS.filter((tool) => Boolean(results[tool.id])).length;
@@ -72,6 +80,29 @@ export default function CareerLabLayout() {
 
       {error ? <div className="content-card error-message">{error}</div> : null}
 
+      <section className="content-card career-lab-top-nav-wrapper">
+        <div className="career-lab-group-header">
+          <h2>Feature Pages</h2>
+          <span>{progress.completed}/{progress.total} completed</span>
+        </div>
+        <div className="career-lab-top-nav" role="navigation" aria-label="Career Lab Tool Navigation">
+          {groupedTools.map((group) => (
+            <div key={group.id} className="career-lab-dropdown-group">
+              <button className="career-lab-dropdown-trigger" type="button">
+                {group.label}
+              </button>
+              <div className="career-lab-dropdown-menu">
+                {group.tools.map((tool) => (
+                  <NavLink key={tool.id} to={`/dashboard/career-lab/tools/${tool.id}`} className="career-lab-tool-link">
+                    {tool.title}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="content-card career-lab-inputs">
         <h3>Shared Inputs</h3>
         <div className="career-lab-layout">
@@ -96,27 +127,6 @@ export default function CareerLabLayout() {
             <input className="career-lab-input" value={inputs.yearsExperience} onChange={(e) => setInputs((p) => ({ ...p, yearsExperience: e.target.value }))} placeholder="Years of experience" />
             <textarea className="workspace-editor" value={inputs.answerText} onChange={(e) => setInputs((p) => ({ ...p, answerText: e.target.value }))} placeholder="Optional interview answer text..." />
           </section>
-        </div>
-      </section>
-
-      <section className="content-card career-lab-tool-nav-wrapper">
-        <div className="career-lab-group-header">
-          <h2>Tool Pages</h2>
-          <span>{progress.completed}/{progress.total} completed</span>
-        </div>
-        <div className="career-lab-tool-nav-grid">
-          {TOOL_CATEGORIES.map((category) => (
-            <div key={category.id} className="career-lab-tool-nav-col">
-              <h4>{category.label}</h4>
-              <div className="career-lab-tool-nav-list">
-                {CAREER_LAB_TOOLS.filter((tool) => tool.category === category.id).map((tool) => (
-                  <NavLink key={tool.id} to={`/dashboard/career-lab/tools/${tool.id}`} className="career-lab-tool-link">
-                    {tool.title}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
