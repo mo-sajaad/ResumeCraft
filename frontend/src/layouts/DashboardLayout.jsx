@@ -16,6 +16,7 @@ import {
 import Breadcrumbs from "../components/ui/Breadcrumbs";
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
+import { TOOL_MAP } from "../pages/dashboard/career-lab/careerLabTools";
 
 import "./DashboardLayout.css";
 
@@ -53,13 +54,60 @@ const getInitials = (name, email) => {
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 };
 
+function titleize(segment = "") {
+  return segment
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function buildBreadcrumbs(pathname) {
   if (!pathname.startsWith("/dashboard")) return [];
+
+  const parts = pathname.split("/").filter(Boolean);
   const crumbs = [{ label: "Dashboard", to: ROUTES.DASHBOARD }];
-  if (pathname.includes("/career-lab")) {
-    crumbs.push({ label: "Career Lab", to: ROUTES.CAREER_LAB });
-    if (pathname.includes("/tools/")) crumbs.push({ label: "Tool", to: pathname });
+
+  if (parts.length === 1) return crumbs;
+
+  const section = parts[1];
+
+  if (section === "resume" && parts[2] === "new") {
+    crumbs.push({ label: "Create Resume", to: ROUTES.RESUME_NEW });
+    return crumbs;
   }
+
+  if (section === "cover-letter" && parts[2] === "new") {
+    crumbs.push({ label: "Create Cover Letter", to: ROUTES.COVERLETTER_NEW });
+    return crumbs;
+  }
+
+  if (section === "editor") {
+    crumbs.push({ label: "Editor", to: ROUTES.DOCUMENT_WORKSPACE });
+    return crumbs;
+  }
+
+  if (section === "payment") {
+    crumbs.push({ label: "Billing", to: ROUTES.PAYMENT });
+    return crumbs;
+  }
+
+  if (section === "settings") {
+    crumbs.push({ label: "Settings", to: ROUTES.SETTINGS });
+    return crumbs;
+  }
+
+  if (section === "career-lab") {
+    crumbs.push({ label: "Career Lab", to: ROUTES.CAREER_LAB });
+
+    if (parts[2] === "tools" && parts[3]) {
+      const tool = TOOL_MAP[parts[3]];
+      crumbs.push({ label: tool?.title || titleize(parts[3]), to: pathname });
+    }
+
+    return crumbs;
+  }
+
+  crumbs.push({ label: titleize(section), to: pathname });
   return crumbs;
 }
 

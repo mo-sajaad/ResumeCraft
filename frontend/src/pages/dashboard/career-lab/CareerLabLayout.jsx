@@ -25,6 +25,7 @@ export default function CareerLabLayout() {
   const [results, setResults] = useState({});
   const [running, setRunning] = useState({});
   const [error, setError] = useState("");
+  const [openGroupId, setOpenGroupId] = useState(TOOL_CATEGORIES[0]?.id || null);
 
   const groupedTools = useMemo(
     () => TOOL_CATEGORIES.map((category) => ({
@@ -118,25 +119,36 @@ export default function CareerLabLayout() {
           <span>Move from analysis to action</span>
         </div>
 
-        <div className="career-lab-top-nav" role="navigation" aria-label="Career Lab Tool Navigation">
-          {groupedTools.map((group) => (
-            <div key={group.id} className="career-lab-dropdown-group">
-              <button className="career-lab-dropdown-trigger" type="button">
-                {group.label}
-              </button>
-              <div className="career-lab-dropdown-menu">
-                {group.tools.map((tool) => {
-                  const done = Boolean(results[tool.id]);
-                  return (
-                    <NavLink key={tool.id} to={`/dashboard/career-lab/tools/${tool.id}`} className="career-lab-tool-link">
-                      <span>{tool.title}</span>
-                      {done ? <FaCheckCircle className="career-lab-tool-done" /> : <FaArrowRight className="career-lab-tool-arrow" />}
-                    </NavLink>
-                  );
-                })}
+        <div className="career-lab-groups-grid" role="navigation" aria-label="Career Lab Tool Navigation">
+          {groupedTools.map((group) => {
+            const isOpen = openGroupId === group.id;
+            return (
+              <div key={group.id} className="career-lab-group-card">
+                <button
+                  className="career-lab-dropdown-trigger"
+                  type="button"
+                  onClick={() => setOpenGroupId((prev) => (prev === group.id ? null : group.id))}
+                  aria-expanded={isOpen}
+                >
+                  <span>{group.label}</span>
+                  <span className="career-lab-group-meta">{group.tools.length} tools {isOpen ? <FaChevronUp /> : <FaChevronDown />}</span>
+                </button>
+                {isOpen ? (
+                  <div className="career-lab-dropdown-menu is-open">
+                    {group.tools.map((tool) => {
+                      const done = Boolean(results[tool.id]);
+                      return (
+                        <NavLink key={tool.id} to={`/dashboard/career-lab/tools/${tool.id}`} className="career-lab-tool-link">
+                          <span>{tool.title}</span>
+                          {done ? <FaCheckCircle className="career-lab-tool-done" /> : <FaArrowRight className="career-lab-tool-arrow" />}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -178,15 +190,6 @@ export default function CareerLabLayout() {
           <h3>Start a Tool Flow</h3>
           <span>Open any tool for focused inputs + result output</span>
         </div>
-        <div className="career-lab-cta-row">
-          <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">
-            <FaFlask /> Start Diagnostic Flow
-          </Button>
-          <Button as={NavLink} to="/dashboard/career-lab/tools/interview-prep" variant="secondary">
-            <FaBullseye /> Jump to Interview Prep
-          </Button>
-        </div>
-
         <div className="career-lab-cta-row">
           <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">
             <FaFlask /> Start Diagnostic Flow
