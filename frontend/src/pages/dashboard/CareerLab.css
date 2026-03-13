@@ -54,14 +54,18 @@
 
 .career-lab-inputs {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   gap: 1rem;
+  background: linear-gradient(120deg, #0f172a, #1e1b4b 65%, #312e81);
+  color: #fff;
 }
 
-.career-lab-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+.career-lab-eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
 }
 
 .career-lab-panel {
@@ -111,9 +115,10 @@
   margin: 0;
 }
 
-.career-lab-group-header span {
-  color: #64748b;
-  font-size: 0.9rem;
+.career-lab-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .career-lab-top-nav-wrapper {
@@ -122,46 +127,48 @@
   gap: 0.75rem;
 }
 
-.career-lab-top-nav {
-  display: flex;
+.career-lab-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
-  flex-wrap: wrap;
 }
 
-.career-lab-dropdown-group {
-  position: relative;
+.career-lab-group-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .career-lab-dropdown-trigger {
-  border: 1px solid #dbe1eb;
+  border: 0;
+  border-bottom: 1px solid #eef2f7;
   background: #ffffff;
   color: #0f172a;
-  border-radius: 10px;
-  padding: 0.55rem 0.8rem;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.career-lab-group-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-weight: 600;
+  font-size: 0.82rem;
+  color: #64748b;
 }
 
 .career-lab-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 280px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
   padding: 0.4rem;
-  display: none;
-  z-index: 30;
-}
-
-.career-lab-dropdown-group:hover .career-lab-dropdown-menu,
-.career-lab-dropdown-group:focus-within .career-lab-dropdown-menu {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 0.2rem;
 }
-
 .career-lab-tool-link {
   color: #334155;
   text-decoration: none;
@@ -179,6 +186,182 @@
 .career-lab-tool-link.active {
   background: #0f172a;
   color: #fff;
+}
+
+.career-lab-tool-done {
+  color: #22c55e;
+}
+
+.career-lab-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.career-lab-workflow-grid,
+.career-lab-categories {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.career-lab-workflow-card,
+.career-lab-category-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem;
+  background: #f8fafc;
+}
+
+.career-lab-workflow-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e0e7ff;
+  color: #3730a3;
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.career-lab-workflow-card h4,
+.career-lab-category-card h4 {
+  margin: 0 0 0.35rem;
+}
+
+.career-lab-workflow-card p,
+.career-lab-tool-description {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.career-lab-category-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.career-lab-category-card li {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.career-lab-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.career-lab-tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+
+.career-lab-shared-defaults summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.career-lab-shared-defaults summary::-webkit-details-marker {
+  display: none;
+}
+
+.career-lab-shared-defaults[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.career-lab-shared-defaults summary svg {
+  transition: transform 0.2s ease;
+}
+
+.compact-grid {
+  margin-top: 0.75rem;
+}
+
+.career-lab-tool-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.career-lab-tool-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.career-lab-status-pill {
+  border-radius: 999px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+}
+
+.career-lab-status-pill.ready {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.career-lab-status-pill.blocked {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.career-lab-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.career-lab-result-panel pre {
+  min-height: 220px;
+  margin: 0;
+  background: #f8fafc;
+  padding: 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  overflow: auto;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1100px) {
+  .career-lab-layout,
+  .career-lab-workflow-grid,
+  .career-lab-categories,
+  .career-lab-tool-input-grid,
+  .career-lab-groups-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .career-lab-hero,
+  .career-lab-tool-header {
+    flex-direction: column;
+  }
 }
 
 .career-lab-tool-done {
