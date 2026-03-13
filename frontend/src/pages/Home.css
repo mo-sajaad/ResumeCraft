@@ -159,6 +159,8 @@ html {
 .hero-copy p {
   color: #cbd5e1;
   max-width: 640px;
+  font-size: 1.06rem;
+  line-height: 1.65;
 }
 
 .hero-ctas {
@@ -186,6 +188,40 @@ html {
 h2 {
   color: #f8fafc;
   margin-bottom: 0.85rem;
+  font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+}
+
+.section-lead {
+  margin: 0 0 1.2rem;
+  color: #cbd5e1;
+  max-width: 740px;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.logo-strip-title {
+  margin: 0 0 0.9rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.logo-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.logo-pill {
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.62);
+  color: #cbd5e1;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .feature-grid,
@@ -201,8 +237,25 @@ h2 {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 1rem;
+  padding: 1.1rem;
   box-shadow: 0 14px 25px rgba(2, 6, 23, 0.35);
+}
+
+.card h3 {
+  margin: 0.2rem 0 0.45rem;
+  font-size: 1.1rem;
+  color: #f8fafc;
+}
+
+.card p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.card p + p {
+  margin-top: 0.65rem;
 }
 
 .hover-lift {
@@ -225,6 +278,12 @@ h2 {
   text-transform: uppercase;
   color: #dbeafe;
   background: rgba(96, 165, 250, 0.22);
+}
+
+.feature-outcome {
+  color: #bfdbfe;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .stat-item {
@@ -412,6 +471,11 @@ details p {
 
   .hero-section {
     grid-template-columns: 1fr;
+  }
+
+  .top-nav-ctas {
+    width: 100%;
+    justify-content: center;
   }
 }
 
