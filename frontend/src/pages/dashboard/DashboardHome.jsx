@@ -53,7 +53,7 @@ export default function DashboardHome() {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
-  const [docsError, setDocsError] = useState("");
+  const [_docsError, setDocsError] = useState("");
 
   const activePlanCode = (profile?.plan_code || "free").toLowerCase();
   const isPaidPlan = activePlanCode === "premium" || activePlanCode === "pro";
