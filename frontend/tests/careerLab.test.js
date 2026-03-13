@@ -29,10 +29,12 @@ test('career lab tools config includes high-use endpoints', () => {
   assert.match(toolsSource, /"\/api\/career-tools\/interview-prep"/);
 });
 
-test('career lab layout and config separate navigation by categories', () => {
+test('career lab layout includes top dropdown navigation sections', () => {
   const layoutSource = read(layoutPath);
   const toolsSource = read(toolsPath);
-  assert.match(layoutSource, /Tool Pages/);
+  assert.match(layoutSource, /career-lab-top-nav/);
+  assert.match(layoutSource, /career-lab-dropdown-menu/);
+  assert.match(layoutSource, /Feature Pages/);
   assert.match(toolsSource, /Core Analysis/);
   assert.match(toolsSource, /Market & Strategy/);
   assert.match(toolsSource, /Interview & Execution/);
