@@ -20,6 +20,9 @@ const {
   offerNegotiationPrep,
   jobSearchSprint,
   personalBrandAudit,
+  careerPivotPlan,
+  outreachMessageGenerator,
+  interviewDrillPlan,
 } = require('../controllers/careerToolsController');
 
 const router = express.Router();
@@ -40,5 +43,8 @@ router.post('/portfolio-audit', authenticateJWT, attachPlan, requireFeature('has
 router.post('/offer-negotiation', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), offerNegotiationPrep);
 router.post('/job-search-sprint', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), jobSearchSprint);
 router.post('/personal-brand-audit', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), personalBrandAudit);
+router.post('/career-pivot-plan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), careerPivotPlan);
+router.post('/outreach-messages', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), outreachMessageGenerator);
+router.post('/interview-drill-plan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), interviewDrillPlan);
 
 module.exports = router;

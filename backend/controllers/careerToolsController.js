@@ -580,6 +580,90 @@ async function personalBrandAudit(req, res, next) {
   }
 }
 
+
+async function careerPivotPlan(req, res, next) {
+  try {
+    const resumeText = String(req.body?.resumeText || '').trim();
+    const targetRole = String(req.body?.targetRole || '').trim();
+    const jobDescription = String(req.body?.jobDescription || '').trim();
+
+    if (!resumeText || !targetRole) {
+      return res.status(400).json({ error: 'resumeText and targetRole are required.' });
+    }
+
+    const resumeSkills = extractSkillsFromText(resumeText);
+    const targetSignals = extractSkillsFromText(`${targetRole} ${jobDescription}`);
+    const missingSignals = targetSignals.filter((skill) => !resumeSkills.includes(skill));
+    const transferabilityScore = Math.max(25, Math.min(100, 45 + resumeSkills.length * 4 - missingSignals.length * 6));
+
+    return res.json({
+      transferabilityScore,
+      pivotTrack: [
+        'Week 1: Reframe resume summary around transferable outcomes.',
+        'Week 2: Ship one domain-relevant mini project and document impact.',
+        'Week 3: Practice 5 pivot narrative stories (problem, action, result).',
+        'Week 4: Apply with targeted messaging and iterate weekly.',
+      ],
+      skillGaps: missingSignals.slice(0, 6),
+      narrative: `Position your background as immediately relevant to ${targetRole} through outcomes, ownership, and speed-to-ramp evidence.`,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function outreachMessageGenerator(req, res, next) {
+  try {
+    const targetRole = String(req.body?.targetRole || '').trim();
+    const location = String(req.body?.location || '').trim();
+    const resumeText = String(req.body?.resumeText || '').trim();
+
+    if (!targetRole) {
+      return res.status(400).json({ error: 'targetRole is required.' });
+    }
+
+    const measurableBullets = countMeasurableBullets(resumeText);
+    const credibilitySignal = Math.min(100, 38 + measurableBullets * 10);
+
+    return res.json({
+      credibilitySignal,
+      coldMessage: `Hi <Name> — I’m exploring ${targetRole} opportunities${location ? ` in ${location}` : ''}. I’ve delivered measurable impact on production systems and would value a short chat on what your team prioritizes for this role.`,
+      warmFollowUp: 'Wanted to follow up in case this got buried — happy to send a concise portfolio summary with outcomes and relevance to your current hiring needs.',
+      referralAsk: 'If there is a fit, would you be open to referring me or suggesting the best way to align my application with your team expectations?',
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function interviewDrillPlan(req, res, next) {
+  try {
+    const jobDescription = String(req.body?.jobDescription || '').trim();
+    const targetRole = String(req.body?.targetRole || '').trim();
+    const answerText = String(req.body?.answerText || '').trim();
+
+    if (!jobDescription && !targetRole) {
+      return res.status(400).json({ error: 'jobDescription or targetRole is required.' });
+    }
+
+    const skillSignals = extractSkillsFromText(`${jobDescription} ${targetRole}`);
+    const confidenceScore = estimateConfidence(answerText);
+
+    return res.json({
+      confidenceScore,
+      drillQuestions: (skillSignals.length ? skillSignals : ['system design', 'leadership', 'debugging']).slice(0, 6).map((skill) => `Drill: Explain a high-impact example demonstrating ${skill}.`),
+      cadence: {
+        sessionsPerWeek: 4,
+        mockInterviewsPerWeek: 2,
+        retrospectiveMinutes: 20,
+      },
+      focus: confidenceScore < 55 ? 'Strengthen structured storytelling and quantified outcomes.' : 'Raise depth and precision under follow-up pressure.',
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   parseJobDescription,
   analyzeAts,
@@ -597,4 +681,7 @@ module.exports = {
   offerNegotiationPrep,
   jobSearchSprint,
   personalBrandAudit,
+  careerPivotPlan,
+  outreachMessageGenerator,
+  interviewDrillPlan,
 };
