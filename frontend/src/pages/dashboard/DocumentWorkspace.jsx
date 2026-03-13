@@ -10,9 +10,7 @@ const ALLOWED_STYLES = ["modern", "corporate", "creative"];
 function normalizeType(value) {
   const type = String(value || "").toLowerCase();
   if (type === "resume") return "resume";
-  if (type === "cover-letter" || type === "cover_letter" || type === "coverletter") {
-    return "cover-letter";
-  }
+  if (type === "cover-letter" || type === "cover_letter" || type === "coverletter") return "cover-letter";
   return "";
 }
 
@@ -33,11 +31,83 @@ function getDocumentEndpoint(type, id) {
 }
 
 function getDocumentRoute(type, id) {
+  return type === "resume" ? `${ROUTES.RESUME_NEW}?resumeId=${id}` : `${ROUTES.COVERLETTER_NEW}?coverLetterId=${id}`;
+}
+
+function extractLegacyText(type, data) {
   if (type === "resume") {
-    return `${ROUTES.RESUME_NEW}?resumeId=${id}`;
+    if (typeof data?.summary === "string") return data.summary;
+    if (typeof data?.generated_text === "string") {
+      try {
+        const parsed = JSON.parse(data.generated_text);
+        if (typeof parsed?.summary === "string") return parsed.summary;
+      } catch {
+        return data.generated_text;
+      }
+    }
+    return "";
   }
 
-  return `${ROUTES.COVERLETTER_NEW}?coverLetterId=${id}`;
+  if (typeof data?.body_paragraphs === "string") return data.body_paragraphs;
+  if (typeof data?.generated_text === "string") {
+    try {
+      const parsed = JSON.parse(data.generated_text);
+      if (typeof parsed?.body === "string") return parsed.body;
+    } catch {
+      return data.generated_text;
+    }
+  }
+
+  return "";
+}
+
+function plainTextToHtml(text) {
+  const normalized = String(text || "").trim();
+  if (!normalized) return "<p><br/></p>";
+
+  return normalized
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+}
+
+function htmlToPlainText(html) {
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+  return (temp.textContent || temp.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function fetchLegacyDocument(type, id) {
+  const response = await fetch(getDocumentEndpoint(type, id), { headers: await getAuthHeaders() });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) throw new Error(data?.error || "Failed to load document.");
+
+  return {
+    title: data?.title || "",
+    text: extractLegacyText(type, data),
+  };
+}
+
+async function saveLegacyDocument(type, id, title, text, style) {
+  const body =
+    type === "resume"
+      ? { title, summary: text, generated_text: { summary: text }, template_key: style }
+      : { title, body_paragraphs: text, generated_text: { body: text } };
+
+  const response = await fetch(getDocumentEndpoint(type, id), {
+    method: "PUT",
+    headers: await getAuthHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error || "Failed to save changes.");
+
+  return {
+    title: data?.title || title,
+    text: extractLegacyText(type, data) || text,
+  };
 }
 
 function extractLegacyText(type, data) {
@@ -150,9 +220,7 @@ export default function DocumentWorkspace() {
 
   useEffect(() => {
     const styleFromQuery = (searchParams.get("style") || "").toLowerCase();
-    if (ALLOWED_STYLES.includes(styleFromQuery)) {
-      setStyle(styleFromQuery);
-    }
+    if (ALLOWED_STYLES.includes(styleFromQuery)) setStyle(styleFromQuery);
   }, [searchParams]);
 
   useEffect(() => {
@@ -163,7 +231,7 @@ export default function DocumentWorkspace() {
 
     let isMounted = true;
 
-    async function fetchDocument() {
+    async function loadWorkspace() {
       setLoadingDocument(true);
       setError("");
 
@@ -198,26 +266,23 @@ export default function DocumentWorkspace() {
           setLoadingDocument(false);
         }
       }
-    }
 
     fetchDocument();
 
+    iframe.addEventListener("load", onLoad);
     return () => {
-      isMounted = false;
+      iframe.removeEventListener("load", onLoad);
+      if (iframe._cleanup) iframe._cleanup();
     };
   }, [type, id, style, refreshTick]);
 
   const handleDownload = async () => {
     if (!type || !id) return;
-
     setLoadingDownload(true);
     setError("");
 
     try {
-      const response = await fetch(getDownloadEndpoint(type, id, style), {
-        headers: await getAuthHeaders(),
-      });
-
+      const response = await fetch(getDownloadEndpoint(type, id, style), { headers: await getAuthHeaders() });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to download PDF.");
@@ -252,9 +317,8 @@ export default function DocumentWorkspace() {
       const response = await fetch("/api/workspace/document", {
         method: "PUT",
         headers: await getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ type, id, style, text: documentText }),
+        body: JSON.stringify({ type, id, style, text }),
       });
-
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
@@ -292,9 +356,12 @@ export default function DocumentWorkspace() {
       });
 
       const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "AI rewrite failed.");
 
-      if (!response.ok) {
-        throw new Error(data?.error || "AI rewrite failed.");
+      const rewrittenHtml = plainTextToHtml(data?.rewrittenText || currentText);
+      setDocumentHtml(rewrittenHtml);
+      if (iframeRef.current?.contentDocument?.body) {
+        iframeRef.current.contentDocument.body.innerHTML = rewrittenHtml;
       }
 
       const rewrittenText = data?.rewrittenText || currentText;
