@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { FaArrowRight, FaBullseye, FaCheckCircle, FaChevronDown, FaFlask, FaSearch } from "react-icons/fa";
+import { FaArrowRight, FaBullseye, FaCheckCircle, FaChevronUp, FaChevronDown, FaFlask, FaSearch } from "react-icons/fa";
 
 import Button from "../../../components/ui/Button";
 import { getAuthHeaders } from "../../../utils/auth";
