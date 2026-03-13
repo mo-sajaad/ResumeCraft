@@ -8,6 +8,7 @@ import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import RedirectIfAuth from "./routes/RedirectIfAuth.jsx";
 
 import ErrorPage from "./pages/ErrorPage.jsx";
+import BrandedLoader from "./components/ui/BrandedLoader.jsx";
 
 // Lazy-loaded pages
 const Home = lazy(() => import("./pages/Home.jsx"));
@@ -25,7 +26,7 @@ const CareerLabToolPage = lazy(() => import("./pages/dashboard/career-lab/Career
 
 // Suspense wrapper
 const withSuspense = (element) => (
-  <Suspense fallback={<div>Loading...</div>}>{element}</Suspense>
+  <Suspense fallback={<BrandedLoader />}>{element}</Suspense>
 );
 
 export const router = createBrowserRouter([
