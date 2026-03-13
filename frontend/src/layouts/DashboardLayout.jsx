@@ -9,21 +9,11 @@ import "./DashboardLayout.css";
 
 const getInitials = (name, email) => {
   const source = name?.trim() || email?.split("@")[0] || "";
-
   if (!source) return "U";
-
-  const parts = source
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
+  const parts = source.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 };
-
 
 export default function DashboardLayout() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -31,20 +21,12 @@ export default function DashboardLayout() {
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
 
-  const userDisplayName = useMemo(() => {
-    return user?.displayName?.trim() || user?.email || "Guest User";
-  }, [user]);
-
+  const userDisplayName = useMemo(() => user?.displayName?.trim() || user?.email || "Guest User", [user]);
   const userInitials = useMemo(() => getInitials(userDisplayName), [userDisplayName]);
-
   const planLabel = useMemo(() => {
-    const code = (profile?.plan_code || 'free').toLowerCase();
+    const code = (profile?.plan_code || "free").toLowerCase();
     return `${code.charAt(0).toUpperCase()}${code.slice(1)} Plan`;
   }, [profile?.plan_code]);
-
-  const toggleDropdown = () => {
-    setDropdownVisible((prev) => !prev);
-  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -64,6 +46,7 @@ export default function DashboardLayout() {
           <div className="brand-icon">✦</div>
           ResumeCraft
         </div>
+
         <nav className="sidebar-nav">
           <NavLink to={ROUTES.DASHBOARD} end className="sidebar-link">
             <span className="nav-icon"><FaTh /></span>
@@ -77,6 +60,13 @@ export default function DashboardLayout() {
             <span className="nav-icon"><FaRegEnvelope /></span>
             Create Cover Letter
           </NavLink>
+
+          <div className="sidebar-section-label">Career Lab</div>
+          <NavLink to={ROUTES.CAREER_LAB} end className="sidebar-link sidebar-sublink">Overview</NavLink>
+          <NavLink to={ROUTES.CAREER_LAB_ATS} className="sidebar-link sidebar-sublink">ATS Tool</NavLink>
+          <NavLink to={ROUTES.CAREER_LAB_ROLE_FIT} className="sidebar-link sidebar-sublink">Role Fit Tool</NavLink>
+          <NavLink to={ROUTES.CAREER_LAB_INTERVIEW_PREP} className="sidebar-link sidebar-sublink">Interview Prep Tool</NavLink>
+
           <NavLink to={ROUTES.PAYMENT} className="sidebar-link">
             <span className="nav-icon"><FaGem /></span>
             Premium
@@ -86,13 +76,13 @@ export default function DashboardLayout() {
             Settings
           </NavLink>
         </nav>
-        <div className="sidebar-footer">
-          Keep your documents fresh by revisiting them weekly for quick updates.
-        </div>
+
+        <div className="sidebar-footer">Use Career Lab pages one by one to run focused analysis instead of one giant form.</div>
       </aside>
+
       <div className="dashboard-main">
         <div className="dashboard-topbar">
-          <div className="user-chip" onClick={toggleDropdown} role="button" tabIndex={0}>
+          <div className="user-chip" onClick={() => setDropdownVisible((p) => !p)} role="button" tabIndex={0}>
             <div className="user-avatar">{userInitials}</div>
             <div className="user-details">
               <span className="user-name">{profile?.full_name || userDisplayName}</span>
