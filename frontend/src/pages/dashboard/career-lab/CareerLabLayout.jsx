@@ -197,6 +197,7 @@ export default function CareerLabLayout() {
               placeholder="e.g. Senior Backend Engineer"
             />
           </section>
+
           <section className="career-lab-panel">
             <label htmlFor="shared-location">Target Location</label>
             <input
