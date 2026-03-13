@@ -1,10 +1,33 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import "./DashboardPages.css";
 import { getAuthHeaders } from "../../utils/auth";
+import { ROUTES } from "../../constants/routes";
+
+function parseCoverLetterBody(rawGeneratedText, fallbackBody = "") {
+  if (fallbackBody?.trim()) {
+    return fallbackBody;
+  }
+
+  if (!rawGeneratedText) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(rawGeneratedText);
+    return typeof parsed?.body === "string" ? parsed.body : "";
+  } catch {
+    return rawGeneratedText;
+  }
+}
 
 export default function CoverLetterNew() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedCoverLetterId = searchParams.get("coverLetterId");
+
   // PERSONAL INFO
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,6 +52,7 @@ export default function CoverLetterNew() {
 
   // Fetch latest resume on mount to prefill personal info
   useEffect(() => {
+    if (requestedCoverLetterId) return;
     const fetchLatestResume = async () => {
       try {
         const res = await fetch("/api/resumes", {
@@ -51,7 +75,55 @@ export default function CoverLetterNew() {
     };
 
     fetchLatestResume();
-  }, []);
+  }, [requestedCoverLetterId]);
+
+  useEffect(() => {
+    if (!requestedCoverLetterId) return;
+
+    let isMounted = true;
+
+    async function loadExistingCoverLetter() {
+      setError("");
+
+      try {
+        const response = await fetch(
+          `/api/cover-letters/${requestedCoverLetterId}`,
+          {
+            headers: await getAuthHeaders(),
+          },
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to load cover letter");
+        }
+
+        if (!isMounted) return;
+
+        setCoverLetterId(data.id || requestedCoverLetterId);
+        setFullName(data.full_name || "");
+        setEmail(data.email || "");
+        setPhoneNumber(data.phone_e164 || "");
+        setAddress(data.address_text || "");
+        setCompany(data.company_name || "");
+        setPosition(data.position_title || "");
+        setManager(data.hiring_manager || "");
+        setGeneratedLetter(
+          parseCoverLetterBody(data.generated_text, data.body_paragraphs),
+        );
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err.message || "Unable to open cover letter.");
+      }
+    }
+
+    loadExistingCoverLetter();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [requestedCoverLetterId]);
 
   useEffect(() => {
     if (!coverLetterId) return;
@@ -60,9 +132,12 @@ export default function CoverLetterNew() {
       setLoadingPreview(true);
 
       try {
-        const res = await fetch(`/api/cover-letters/${coverLetterId}/preview?style=${style}`, {
-          headers: await getAuthHeaders(),
-        });
+        const res = await fetch(
+          `/api/cover-letters/${coverLetterId}/preview?style=${style}`,
+          {
+            headers: await getAuthHeaders(),
+          },
+        );
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -82,7 +157,6 @@ export default function CoverLetterNew() {
     fetchPreview();
   }, [coverLetterId, style]);
 
-
   const validate = () => {
     if (!fullName.trim()) return "Full name is required";
     if (!email.trim()) return "Email is required";
@@ -90,7 +164,6 @@ export default function CoverLetterNew() {
     if (!position.trim()) return "Position is required";
     return null;
   };
-
 
   const handleGenerateCoverLetter = async () => {
     const validationError = validate();
@@ -125,13 +198,19 @@ export default function CoverLetterNew() {
 
       if (!res.ok) {
         if (res.status === 403) {
-          throw new Error(data.error || "You’ve reached your monthly limit or your plan cannot use this template.");
+          throw new Error(
+            data.error ||
+              "You’ve reached your monthly limit or your plan cannot use this template.",
+          );
         }
         throw new Error(data.error || "Failed to generate cover letter");
       }
 
       setGeneratedLetter(data.coverLetterText || "");
       setCoverLetterId(data.coverLetterId || null);
+      if (data.coverLetterId) {
+        navigate(`${ROUTES.DOCUMENT_WORKSPACE}?type=cover-letter&id=${data.coverLetterId}&style=${style}`);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -146,9 +225,12 @@ export default function CoverLetterNew() {
     setDownloadingPdf(true);
 
     try {
-      const response = await fetch(`/api/cover-letters/${coverLetterId}/download?style=${style}`, {
-        headers: await getAuthHeaders(),
-      });
+      const response = await fetch(
+        `/api/cover-letters/${coverLetterId}/download?style=${style}`,
+        {
+          headers: await getAuthHeaders(),
+        },
+      );
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
@@ -174,38 +256,60 @@ export default function CoverLetterNew() {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">Create Cover Letter</h1>
+        <h1 className="page-title">{requestedCoverLetterId ? "Open Cover Letter" : "Create Cover Letter"}</h1>
         <div className="header-actions">
-          <select value={style} onChange={(e) => setStyle(e.target.value)} className="btn">
+          <select
+            value={style}
+            onChange={(e) => setStyle(e.target.value)}
+            className="btn"
+          >
             <option value="modern">Modern</option>
             <option value="corporate">Corporate</option>
             <option value="creative">Creative</option>
           </select>
 
-          <button className="btn btn-dark" onClick={handleGenerateCoverLetter} disabled={loading}>
+          <button
+            className="btn btn-dark"
+            onClick={handleGenerateCoverLetter}
+            disabled={loading}
+          >
             {loading ? "Generating..." : "Generate Cover Letter"}
           </button>
 
           {coverLetterId ? (
-            <button className="btn btn-outline" onClick={handleDownloadPDF} disabled={downloadingPdf}>
+            <button
+              className="btn btn-outline"
+              onClick={handleDownloadPDF}
+              disabled={downloadingPdf}
+            >
               {downloadingPdf ? "Downloading..." : "Download PDF"}
             </button>
           ) : null}
         </div>
       </div>
 
-      {error && <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>}
+      {error && (
+        <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>
+      )}
 
       <div className="form-stack">
         <div className="content-card">
           <h3>Your Information</h3>
           <div className="input-group form-padding">
             <label>Full Name</label>
-            <input placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <input
+              placeholder="John Doe"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
           </div>
           <div className="input-group">
             <label>Email</label>
-            <input placeholder="john.doe@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              placeholder="john.doe@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="input-group">
             <label>Phone</label>
@@ -231,7 +335,11 @@ export default function CoverLetterNew() {
           <h3>Job Details</h3>
           <div className="input-group form-padding">
             <label>Company Name</label>
-            <input placeholder="Tech Corp" value={company} onChange={(e) => setCompany(e.target.value)} />
+            <input
+              placeholder="Tech Corp"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
           </div>
           <div className="input-group">
             <label>Position</label>
@@ -243,7 +351,11 @@ export default function CoverLetterNew() {
           </div>
           <div className="input-group">
             <label>Hiring Manager (Optional)</label>
-            <input placeholder="Jane Smith" value={manager} onChange={(e) => setManager(e.target.value)} />
+            <input
+              placeholder="Jane Smith"
+              value={manager}
+              onChange={(e) => setManager(e.target.value)}
+            />
           </div>
         </div>
       </div>

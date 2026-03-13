@@ -24,6 +24,22 @@ function toCoverLetterTextFromRow(row) {
   return paragraphs;
 }
 
+
+function toCoverLetterTemplateData(row) {
+  return {
+    body: toCoverLetterTextFromRow(row),
+    date: new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }),
+    recipientName: row.hiring_manager || 'Hiring Manager',
+    companyName: row.company_name || '',
+    companyAddress: '',
+    jobTitle: row.position_title || '',
+  };
+}
+
 async function createCoverLetterWithAI(req, res, next) {
   const userId = req.user.id;
 
@@ -212,8 +228,8 @@ async function previewCoverLetter(req, res, next) {
     }
 
     const row = result.rows[0];
-    const body = toCoverLetterTextFromRow(row);
-    const html = renderHTML(style, 'cover-letter', { body }, {
+    const templateData = toCoverLetterTemplateData(row);
+    const html = renderHTML(style, 'cover-letter', templateData, {
       fullName: row.full_name,
       email: row.email,
       phoneNumber: row.phone_e164,
@@ -243,9 +259,9 @@ async function downloadCoverLetter(req, res, next) {
     }
 
     const row = result.rows[0];
-    const body = toCoverLetterTextFromRow(row);
+    const templateData = toCoverLetterTemplateData(row);
 
-    const pdfBuffer = await generatePDF(style, 'cover-letter', { body }, {
+    const pdfBuffer = await generatePDF(style, 'cover-letter', templateData, {
       fullName: row.full_name,
       email: row.email,
       phoneNumber: row.phone_e164,

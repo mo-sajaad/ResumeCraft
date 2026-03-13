@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PersonalInfoCard from "../../components/Resume/PersonalInfoCard";
 import SkillsCard from "../../components/Resume/SkillsCard";
 import ExperienceCard from "../../components/Resume/ExperienceCard";
@@ -6,8 +7,33 @@ import EducationCard from "../../components/Resume/EducationCard";
 import ProjectsCard from "../../components/Resume/ProjectsCard";
 
 import { getAuthHeaders } from "../../utils/auth";
+import { ROUTES } from "../../constants/routes";
+
+
+function parseResumeGeneratedData(rawGeneratedText) {
+  if (!rawGeneratedText) {
+    return { summary: "", skills: [], experience: [], education: [], projects: [] };
+  }
+
+  try {
+    const parsed = JSON.parse(rawGeneratedText);
+    return {
+      summary: parsed?.summary || "",
+      skills: Array.isArray(parsed?.skills) ? parsed.skills : [],
+      experience: Array.isArray(parsed?.experience) ? parsed.experience : [],
+      education: Array.isArray(parsed?.education) ? parsed.education : [],
+      projects: Array.isArray(parsed?.projects) ? parsed.projects : [],
+    };
+  } catch {
+    return { summary: "", skills: [], experience: [], education: [], projects: [] };
+  }
+}
 
 export default function ResumeNew() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedResumeId = searchParams.get("resumeId");
+
   // PERSONAL INFO
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,7 +75,7 @@ export default function ResumeNew() {
     if (!email.trim()) return "Email is required";
     if (skills.length === 0) return "Add at least one skill";
 
-    if ( workExperience.length === 0 && education.length === 0 && projects.length === 0) {
+    if (workExperience.length === 0 && education.length === 0 && projects.length === 0) {
       return "Add at least one experience, education or project";
     }
 
@@ -82,6 +108,53 @@ export default function ResumeNew() {
       setLoadingPreview(false);
     }
   };
+
+  useEffect(() => {
+    if (!requestedResumeId) return;
+
+    let isMounted = true;
+
+    async function loadExistingResume() {
+      setError("");
+
+      try {
+        const response = await fetch(`/api/resumes/${requestedResumeId}`, {
+          headers: await getAuthHeaders(),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to load resume");
+        }
+
+        if (!isMounted) return;
+
+        const generated = parseResumeGeneratedData(data.generated_text);
+
+        setResumeId(data.id || requestedResumeId);
+        setFullName(data.full_name || "");
+        setEmail(data.email || "");
+        setPhoneNumber(data.phone_e164 || "");
+        setLocation(data.location_text || "");
+        setLinkedin(data.linkedin_url || "");
+        setStyle(data.template_key || "modern");
+        setSkills(generated.skills.length ? generated.skills : []);
+        setWorkExperience(generated.experience);
+        setEducation(generated.education);
+        setProjects(generated.projects);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err.message || "Unable to open resume.");
+      }
+    }
+
+    loadExistingResume();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [requestedResumeId]);
 
   useEffect(() => {
     if (!resumeId) return;
@@ -127,6 +200,7 @@ export default function ResumeNew() {
       }
 
       setResumeId(data.resumeId);
+      navigate(`${ROUTES.DOCUMENT_WORKSPACE}?type=resume&id=${data.resumeId}&style=${style}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -175,33 +249,30 @@ export default function ResumeNew() {
 
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
           <div className="dropdown">
-        <button
-          className="btn dropdown-toggle"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-        >
-          {styles.find(s => s.value === style)?.label}
-          <span className="dropdown-arrow">▾</span>
-        </button>
+        <button className="btn dropdown-toggle" onClick={() => setDropdownOpen(!dropdownOpen)}>
+              {styles.find((s) => s.value === style)?.label}
+              <span className="dropdown-arrow">▾</span>
+            </button>
 
-        {dropdownOpen && (
-          <div className="dropdown-menu">
-            {styles.map((s) => (
-              <div
-                key={s.value}
-                className={`dropdown-item ${style === s.value ? "active" : ""}`}
-                onClick={() => {
-                  setStyle(s.value);
-                  setDropdownOpen(false);
-                }}
-              >
-                {s.label}
+            {dropdownOpen && (
+              <div className="dropdown-menu">
+                {styles.map((s) => (
+                  <div
+                    key={s.value}
+                    className={`dropdown-item ${style === s.value ? "active" : ""}`}
+                    onClick={() => {
+                      setStyle(s.value);
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
 
-          <button className="btn btn-primary" onClick={handleGenerateResume} disabled={loading}>
+          <button className="btn btn-dark" onClick={handleGenerateResume} disabled={loading}>
             {loading ? "Generating..." : "Generate Resume"}
           </button>
 

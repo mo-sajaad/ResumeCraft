@@ -260,7 +260,31 @@ async function generateCoverLetter(data) {
   return parseAIJson(text);
 }
 
+
+async function rewriteDocumentText({ type, currentText, instruction }) {
+  const normalizedType = type === 'resume' ? 'resume' : 'cover letter';
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a professional career writing assistant. Return only the revised document text with no markdown fences or explanations.',
+      },
+      {
+        role: 'user',
+        content: `Document type: ${normalizedType}\n\nCurrent document:\n${currentText}\n\nRevision request: ${instruction}`
+      },
+    ],
+    temperature: 0.4,
+  });
+
+  return completion.choices[0].message.content.trim();
+}
+
 module.exports = {
   generateResumeText,
   generateCoverLetter,
+  rewriteDocumentText
 };
