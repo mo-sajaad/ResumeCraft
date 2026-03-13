@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { FaArrowRight, FaBullseye, FaCheckCircle, FaChevronUp, FaChevronDown, FaFlask, FaSearch } from "react-icons/fa";
 
@@ -12,6 +12,8 @@ function countPopulatedInputs(inputs) {
 }
 
 export default function CareerLabLayout() {
+  const location = useLocation();
+
   const [inputs, setInputs] = useState({
     jobDescription: "",
     resumeText: "",
@@ -25,7 +27,7 @@ export default function CareerLabLayout() {
   const [results, setResults] = useState({});
   const [running, setRunning] = useState({});
   const [error, setError] = useState("");
-  const [openGroupId, setOpenGroupId] = useState(TOOL_CATEGORIES[0]?.id || null);
+  const [openGroupIds, setOpenGroupIds] = useState(() => TOOL_CATEGORIES.map((category) => category.id));
 
   const groupedTools = useMemo(
     () => TOOL_CATEGORIES.map((category) => ({
@@ -41,6 +43,17 @@ export default function CareerLabLayout() {
     const inputCoverage = countPopulatedInputs(inputs);
     return { completed, total, inputCoverage };
   }, [results, inputs]);
+
+  const interviewPrepPath = "/dashboard/career-lab/tools/interview-prep";
+  const isInterviewPrepOpen = location.pathname === interviewPrepPath;
+
+  const toggleGroup = (groupId) => {
+    setOpenGroupIds((prev) => (prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]));
+  };
+
+  const toggleAllGroups = () => {
+    setOpenGroupIds((prev) => (prev.length === TOOL_CATEGORIES.length ? [] : TOOL_CATEGORIES.map((category) => category.id)));
+  };
 
   const runTool = async (tool, overrideInputs = null) => {
     const payloadInputs = overrideInputs || inputs;
@@ -116,18 +129,23 @@ export default function CareerLabLayout() {
       <section className="content-card career-lab-top-nav-wrapper">
         <div className="career-lab-group-header">
           <h2>Feature Pages</h2>
-          <span>Move from analysis to action</span>
+          <div className="career-lab-top-actions">
+            <span>Move from analysis to action</span>
+            <button type="button" className="career-lab-toggle-all" onClick={toggleAllGroups}>
+              {openGroupIds.length === TOOL_CATEGORIES.length ? "Collapse all" : "Expand all"}
+            </button>
+          </div>
         </div>
 
         <div className="career-lab-groups-grid" role="navigation" aria-label="Career Lab Tool Navigation">
           {groupedTools.map((group) => {
-            const isOpen = openGroupId === group.id;
+            const isOpen = openGroupIds.includes(group.id);
             return (
               <div key={group.id} className="career-lab-group-card">
                 <button
                   className="career-lab-dropdown-trigger"
                   type="button"
-                  onClick={() => setOpenGroupId((prev) => (prev === group.id ? null : group.id))}
+                  onClick={() => toggleGroup(group.id)}
                   aria-expanded={isOpen}
                 >
                   <span>{group.label}</span>
@@ -194,8 +212,8 @@ export default function CareerLabLayout() {
           <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">
             <FaFlask /> Start Diagnostic Flow
           </Button>
-          <Button as={NavLink} to="/dashboard/career-lab/tools/interview-prep" variant="secondary">
-            <FaBullseye /> Jump to Interview Prep
+          <Button as={NavLink} to={interviewPrepPath} variant="secondary" aria-current={isInterviewPrepOpen ? "page" : undefined}>
+            <FaBullseye /> {isInterviewPrepOpen ? "Interview Prep Open" : "Jump to Interview Prep"}
           </Button>
         </div>
       </section>
