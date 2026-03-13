@@ -29,6 +29,9 @@ export default function CareerLab() {
   const [runningNegotiationPrep, setRunningNegotiationPrep] = useState(false);
   const [runningJobSprint, setRunningJobSprint] = useState(false);
   const [runningBrandAudit, setRunningBrandAudit] = useState(false);
+  const [runningPivotPlan, setRunningPivotPlan] = useState(false);
+  const [runningOutreachMessages, setRunningOutreachMessages] = useState(false);
+  const [runningInterviewDrill, setRunningInterviewDrill] = useState(false);
 
   const [error, setError] = useState("");
   const [parserResult, setParserResult] = useState(null);
@@ -47,6 +50,9 @@ export default function CareerLab() {
   const [negotiationResult, setNegotiationResult] = useState(null);
   const [jobSprintResult, setJobSprintResult] = useState(null);
   const [brandAuditResult, setBrandAuditResult] = useState(null);
+  const [pivotPlanResult, setPivotPlanResult] = useState(null);
+  const [outreachMessagesResult, setOutreachMessagesResult] = useState(null);
+  const [interviewDrillResult, setInterviewDrillResult] = useState(null);
 
   const callTool = async (url, payload, setResult, fallbackError) => {
     const response = await fetch(url, {
@@ -330,6 +336,60 @@ export default function CareerLab() {
     }
   };
 
+  const handleCareerPivotPlan = async () => {
+    setRunningPivotPlan(true);
+    setError("");
+
+    try {
+      await callTool(
+        "/api/career-tools/career-pivot-plan",
+        { resumeText, targetRole, jobDescription },
+        setPivotPlanResult,
+        "Failed to generate career pivot plan."
+      );
+    } catch (err) {
+      setError(err.message || "Unable to generate career pivot plan.");
+    } finally {
+      setRunningPivotPlan(false);
+    }
+  };
+
+  const handleOutreachMessages = async () => {
+    setRunningOutreachMessages(true);
+    setError("");
+
+    try {
+      await callTool(
+        "/api/career-tools/outreach-messages",
+        { targetRole, location: targetLocation, resumeText },
+        setOutreachMessagesResult,
+        "Failed to generate outreach messages."
+      );
+    } catch (err) {
+      setError(err.message || "Unable to generate outreach messages.");
+    } finally {
+      setRunningOutreachMessages(false);
+    }
+  };
+
+  const handleInterviewDrillPlan = async () => {
+    setRunningInterviewDrill(true);
+    setError("");
+
+    try {
+      await callTool(
+        "/api/career-tools/interview-drill-plan",
+        { jobDescription, targetRole, answerText },
+        setInterviewDrillResult,
+        "Failed to generate interview drill plan."
+      );
+    } catch (err) {
+      setError(err.message || "Unable to generate interview drill plan.");
+    } finally {
+      setRunningInterviewDrill(false);
+    }
+  };
+
   const handleRoleFit = async () => {
     setRunningRoleFit(true);
     setError("");
@@ -353,7 +413,7 @@ export default function CareerLab() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Career Lab</h1>
-          <p className="page-subtitle">Includes Job Parser, ATS, Recruiter Scan, Competitive Analysis, Interview Prep, Role Fit, Salary, Market Demand, Roadmap, Visa Guidance, Readiness, Networking, Portfolio Audit, Negotiation, Sprint, and Brand Audit.</p>
+          <p className="page-subtitle">Includes Job Parser, ATS, Recruiter Scan, Competitive Analysis, Interview Prep, Role Fit, Salary, Market Demand, Roadmap, Visa Guidance, Readiness, Networking, Portfolio Audit, Negotiation, Sprint, and Brand Audit, Pivot Plan, Outreach Messages, and Drill Plan.</p>
         </div>
       </div>
 
@@ -385,6 +445,9 @@ export default function CareerLab() {
           </button>
           <button className="btn btn-outline" type="button" onClick={handleJobSearchSprint} disabled={runningJobSprint || !targetRole.trim()}>
             {runningJobSprint ? "Planning..." : "Build Job Search Sprint"}
+          </button>
+          <button className="btn btn-outline" type="button" onClick={handleInterviewDrillPlan} disabled={runningInterviewDrill || (!jobDescription.trim() && !targetRole.trim())}>
+            {runningInterviewDrill ? "Drilling..." : "Generate Interview Drill Plan"}
           </button>
         </section>
 
@@ -481,6 +544,12 @@ export default function CareerLab() {
           <button className="btn btn-outline" type="button" onClick={handlePersonalBrandAudit} disabled={runningBrandAudit || !resumeText.trim()}>
             {runningBrandAudit ? "Auditing..." : "Run Personal Brand Audit"}
           </button>
+          <button className="btn btn-outline" type="button" onClick={handleCareerPivotPlan} disabled={runningPivotPlan || !resumeText.trim() || !targetRole.trim()}>
+            {runningPivotPlan ? "Planning..." : "Generate Career Pivot Plan"}
+          </button>
+          <button className="btn btn-outline" type="button" onClick={handleOutreachMessages} disabled={runningOutreachMessages || !targetRole.trim()}>
+            {runningOutreachMessages ? "Writing..." : "Generate Outreach Messages"}
+          </button>
         </section>
       </div>
 
@@ -504,6 +573,9 @@ export default function CareerLab() {
             offerNegotiation: Boolean(negotiationResult),
             jobSearchSprint: Boolean(jobSprintResult),
             personalBrandAudit: Boolean(brandAuditResult),
+            careerPivotPlan: Boolean(pivotPlanResult),
+            outreachMessages: Boolean(outreachMessagesResult),
+            interviewDrillPlan: Boolean(interviewDrillResult),
           }, null, 2)}</pre>
         </section>
         <section className="content-card career-lab-panel">
@@ -593,6 +665,21 @@ export default function CareerLab() {
         <section className="content-card career-lab-panel">
           <h3>Personal Brand Audit Output</h3>
           <pre>{JSON.stringify(brandAuditResult || { message: "No brand audit yet." }, null, 2)}</pre>
+        </section>
+        <section className="content-card career-lab-panel">
+          <h3>Career Pivot Plan Output</h3>
+          <pre>{JSON.stringify(pivotPlanResult || { message: "No career pivot plan yet." }, null, 2)}</pre>
+        </section>
+      </div>
+
+      <div className="career-lab-layout">
+        <section className="content-card career-lab-panel">
+          <h3>Outreach Messages Output</h3>
+          <pre>{JSON.stringify(outreachMessagesResult || { message: "No outreach messages yet." }, null, 2)}</pre>
+        </section>
+        <section className="content-card career-lab-panel">
+          <h3>Interview Drill Plan Output</h3>
+          <pre>{JSON.stringify(interviewDrillResult || { message: "No interview drill plan yet." }, null, 2)}</pre>
         </section>
       </div>
 
