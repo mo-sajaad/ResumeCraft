@@ -8,4 +8,5 @@ export const ROUTES = {
   DOCUMENT_WORKSPACE: "/dashboard/editor",
   PAYMENT: "/dashboard/payment",
   SETTINGS: "/dashboard/settings",
+  CAREER_LAB: "/dashboard/career-lab",
 };
