@@ -86,3 +86,54 @@
     grid-template-columns: 1fr;
   }
 }
+
+.career-lab-tool-nav-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.career-lab-tool-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.career-lab-tool-nav-col {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.career-lab-tool-nav-col h4 {
+  margin: 0 0 0.5rem;
+}
+
+.career-lab-tool-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.career-lab-tool-link {
+  color: #334155;
+  text-decoration: none;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+}
+
+.career-lab-tool-link:hover {
+  background: #e2e8f0;
+}
+
+.career-lab-tool-link.active {
+  background: #0f172a;
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .career-lab-tool-nav-grid {
+    grid-template-columns: 1fr;
+  }
+}
