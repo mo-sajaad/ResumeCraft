@@ -2,14 +2,31 @@ import { Link } from "react-router-dom";
 import "./Home.css";
 
 const featureItems = [
-  { id: "resume-optimization", title: "Resume Optimization", description: "ATS scoring, bullet rewrites, and role-specific resume improvements.", tag: "Core" },
-  { id: "cover-letter", title: "Cover Letter Generator", description: "Generate job-tailored cover letters instantly from your resume + target JD.", tag: "Writing" },
-  { id: "job-parser", title: "Job Description Parser", description: "Extract must-have skills, responsibilities, and match signals.", tag: "Matching" },
-  { id: "github-portfolio", title: "GitHub & Portfolio Optimization", description: "Improve README narratives and infer missing stack signals.", tag: "Portfolio" },
-  { id: "interview-prep", title: "Interview Prep", description: "Question banks, STAR response coaching, and mock interview flow.", tag: "Interview" },
-  { id: "career-strategy", title: "Career Strategy Tools", description: "Salary estimates, market demand insights, and role-fit analyzers.", tag: "Strategy" },
-  { id: "competitive-intelligence", title: "Competitive Intelligence", description: "Benchmark your resume against top candidate patterns.", tag: "Benchmark" },
-  { id: "ats-simulation", title: "ATS & Recruiter Simulation", description: "Keyword match, ATS scoring, red flag detection, and recruiter skim view.", tag: "Simulation" },
+  { id: "resume-optimization", title: "Resume Optimization", description: "ATS scoring, bullet rewrites, and role-specific resume improvements.", tag: "Core", outcome: "Raise match confidence before every application" },
+  { id: "cover-letter", title: "Cover Letter Generator", description: "Generate job-tailored cover letters instantly from your resume + target JD.", tag: "Writing", outcome: "Ship personalized letters in minutes" },
+  { id: "job-parser", title: "Job Description Parser", description: "Extract must-have skills, responsibilities, and match signals.", tag: "Matching", outcome: "Prioritize what recruiters actually grade" },
+  { id: "github-portfolio", title: "GitHub & Portfolio Optimization", description: "Improve README narratives and infer missing stack signals.", tag: "Portfolio", outcome: "Tell a stronger technical story" },
+  { id: "interview-prep", title: "Interview Prep", description: "Question banks, STAR response coaching, and mock interview flow.", tag: "Interview", outcome: "Practice with high-signal feedback loops" },
+  { id: "career-strategy", title: "Career Strategy Tools", description: "Salary estimates, market demand insights, and role-fit analyzers.", tag: "Strategy", outcome: "Choose smarter roles and timelines" },
+  { id: "competitive-intelligence", title: "Competitive Intelligence", description: "Benchmark your resume against top candidate patterns.", tag: "Benchmark", outcome: "See where your profile beats or lags" },
+  { id: "ats-simulation", title: "ATS & Recruiter Simulation", description: "Keyword match, ATS scoring, red flag detection, and recruiter skim view.", tag: "Simulation", outcome: "Preview recruiter reaction before applying" },
+];
+
+const socialProof = ["Google", "Meta", "Microsoft", "Amazon", "Stripe", "Atlassian"];
+
+const useCases = [
+  {
+    title: "Students applying for internships",
+    description: "Turn class projects into outcomes recruiters understand, and target roles with clearer requirements.",
+  },
+  {
+    title: "Early-career developers",
+    description: "Find keyword gaps, improve impact bullets, and build confidence for recruiter and hiring-manager screens.",
+  },
+  {
+    title: "Career-switching engineers",
+    description: "Translate previous experience into role-relevant narratives and focus on highest-probability openings.",
+  },
 ];
 
 const plans = [
@@ -94,6 +111,15 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="section section-tight fade-in-up" aria-label="Social proof">
+          <p className="logo-strip-title">Trusted by candidates targeting teams at</p>
+          <div className="logo-strip" role="list" aria-label="Company logos represented as text labels">
+            {socialProof.map((logo) => (
+              <span key={logo} role="listitem" className="logo-pill">{logo}</span>
+            ))}
+          </div>
+        </section>
+
         <section className="section section-tight fade-in-up" aria-label="Product overview">
           <h2>Overview</h2>
           <p>
@@ -112,12 +138,26 @@ export default function Home() {
 
         <section id="features" className="section fade-in-up">
           <h2>Features</h2>
+          <p className="section-lead">Everything you need from first draft to final interview, in one workflow.</p>
           <div className="feature-grid">
             {featureItems.map((item) => (
               <article key={item.id} id={item.id} className="card hover-lift">
                 <span className="feature-tag">{item.tag}</span>
                 <h3>{item.title}</h3>
                 <p>{item.description}</p>
+                <p className="feature-outcome">{item.outcome}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="use-cases" className="section fade-in-up">
+          <h2>Built for every stage of the tech job search</h2>
+          <div className="testimonial-grid">
+            {useCases.map((useCase) => (
+              <article key={useCase.title} className="card">
+                <h3>{useCase.title}</h3>
+                <p>{useCase.description}</p>
               </article>
             ))}
           </div>
@@ -191,6 +231,7 @@ export default function Home() {
 
         <section id="faq" className="section fade-in-up">
           <h2>FAQ</h2>
+          <details className="card"><summary>Should I expect separate pages for every feature?</summary><p>Not required for a high-converting SaaS homepage. Keep one focused landing page first, then add dedicated feature pages later for SEO, ads, and deeper product education.</p></details>
           <details className="card"><summary>Is there a free plan?</summary><p>Yes. Start free and upgrade once you need unlimited rewrites and advanced analytics.</p></details>
           <details className="card"><summary>Who is this built for?</summary><p>Tech students, early-career developers, and professionals targeting stronger roles.</p></details>
           <details className="card"><summary>Can I cancel anytime?</summary><p>Yes, you can cancel paid plans at any time from billing settings.</p></details>
