@@ -9,4 +9,7 @@ export const ROUTES = {
   PAYMENT: "/dashboard/payment",
   SETTINGS: "/dashboard/settings",
   CAREER_LAB: "/dashboard/career-lab",
+  CAREER_LAB_ATS: "/dashboard/career-lab/tools/ats-analysis",
+  CAREER_LAB_ROLE_FIT: "/dashboard/career-lab/tools/role-fit",
+  CAREER_LAB_INTERVIEW_PREP: "/dashboard/career-lab/tools/interview-prep",
 };

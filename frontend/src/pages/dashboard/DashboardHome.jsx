@@ -198,7 +198,7 @@ export default function DashboardHome() {
 
 
           <NavLink
-            to={ROUTES.CAREER_LAB}
+            to={ROUTES.CAREER_LAB_ATS}
             className="quick-card create-button"
           >
             <div className="promo-details">
@@ -208,7 +208,7 @@ export default function DashboardHome() {
               <div>
                 <strong>Open Career Lab</strong>
                 <div className="page-subtitle">
-                  Parse job descriptions and run ATS analysis
+                  Open separated Career Lab tool pages
                 </div>
               </div>
             </div>
