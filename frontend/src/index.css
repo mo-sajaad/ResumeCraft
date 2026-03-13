@@ -1,12 +1,2 @@
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system,
-               BlinkMacSystemFont, "Segoe UI",
-               Roboto, Helvetica, Arial, sans-serif;
-  background: var(--color-background);
-  color: var(--color-foreground);
-}
+@import "./styles/design-system.css";
+@import "./components/ui/ui.css";
