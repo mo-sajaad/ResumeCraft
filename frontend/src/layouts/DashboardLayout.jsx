@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { FaCog, FaGem, FaRegAddressCard, FaRegEnvelope, FaTh } from "react-icons/fa";
+import { FaChartLine, FaCog, FaGem, FaRegAddressCard, FaRegEnvelope, FaTh } from "react-icons/fa";
 
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
@@ -76,6 +76,10 @@ export default function DashboardLayout() {
           <NavLink to={ROUTES.COVERLETTER_NEW} className="sidebar-link">
             <span className="nav-icon"><FaRegEnvelope /></span>
             Create Cover Letter
+          </NavLink>
+          <NavLink to={ROUTES.CAREER_LAB} className="sidebar-link">
+            <span className="nav-icon"><FaChartLine /></span>
+            Career Lab
           </NavLink>
           <NavLink to={ROUTES.PAYMENT} className="sidebar-link">
             <span className="nav-icon"><FaGem /></span>
