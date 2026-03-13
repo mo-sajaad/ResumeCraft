@@ -6,7 +6,7 @@ import { ROUTES } from "../constants/routes";
 import { auth, sendPasswordResetEmail, updatePassword } from "../firebase";
 import { getAuthHeaders } from "../utils/auth";
 
-import "./dashboard/DashboardPages.css";
+import "./dashboard/DashboardShared.css";
 
 export default function Settings() {
   const { user, profile, logout } = useAuth(); // now includes profile from DB

@@ -5,7 +5,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { ROUTES } from "../../constants/routes";
 import { getAuthHeaders } from "../../utils/auth";
-import "./DashboardPages.css";
+import "./DashboardShared.css";
 
 
 function formatLastEdited(dateValue) {
@@ -53,7 +53,7 @@ export default function DashboardHome() {
   const [resumes, setResumes] = useState([]);
   const [coverLetters, setCoverLetters] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
-  const [docsError, setDocsError] = useState("");
+  const [_docsError, setDocsError] = useState("");
 
   const activePlanCode = (profile?.plan_code || "free").toLowerCase();
   const isPaidPlan = activePlanCode === "premium" || activePlanCode === "pro";
@@ -195,6 +195,26 @@ export default function DashboardHome() {
             </div>
             <FaPlus size={24} />
           </NavLink>
+
+
+          <NavLink
+            to={ROUTES.CAREER_LAB_ATS}
+            className="quick-card create-button"
+          >
+            <div className="promo-details">
+              <div className="icon">
+                <FaEdit size={30} />
+              </div>
+              <div>
+                <strong>Open Career Lab</strong>
+                <div className="page-subtitle">
+                  Open separated Career Lab tool pages
+                </div>
+              </div>
+            </div>
+            <FaPlus size={24} />
+          </NavLink>
+
         </div>
       </section>
 
