@@ -33,6 +33,11 @@ export default function CareerLabToolPage() {
     return tool.disabled(mergedInputs) ? "blocked" : "ready";
   }, [tool, mergedInputs]);
 
+  const validationState = useMemo(() => {
+    if (!tool) return "invalid";
+    return tool.disabled(inputs) ? "blocked" : "ready";
+  }, [tool, inputs]);
+
   if (!tool) {
     return (
       <section className="content-card career-lab-tool-card">

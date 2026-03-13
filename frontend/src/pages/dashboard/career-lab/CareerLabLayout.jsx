@@ -159,6 +159,7 @@ export default function CareerLabLayout() {
               placeholder="e.g. Senior Backend Engineer"
             />
           </section>
+
           <section className="career-lab-panel">
             <label htmlFor="shared-location">Target Location</label>
             <input
@@ -177,6 +178,15 @@ export default function CareerLabLayout() {
           <h3>Start a Tool Flow</h3>
           <span>Open any tool for focused inputs + result output</span>
         </div>
+        <div className="career-lab-cta-row">
+          <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">
+            <FaFlask /> Start Diagnostic Flow
+          </Button>
+          <Button as={NavLink} to="/dashboard/career-lab/tools/interview-prep" variant="secondary">
+            <FaBullseye /> Jump to Interview Prep
+          </Button>
+        </div>
+
         <div className="career-lab-cta-row">
           <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">
             <FaFlask /> Start Diagnostic Flow
