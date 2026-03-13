@@ -19,6 +19,7 @@ const CoverLetterNew = lazy(() => import("./pages/dashboard/CoverLetterNew.jsx")
 const DocumentWorkspace = lazy(() => import("./pages/dashboard/DocumentWorkspace.jsx"));
 const Payment = lazy(() => import("./pages/Payment.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
+const CareerLab = lazy(() => import("./pages/dashboard/CareerLab.jsx"));
 
 // Suspense wrapper
 const withSuspense = (element) => (
@@ -57,7 +58,8 @@ export const router = createBrowserRouter([
           { path: "cover-letter/new", element: withSuspense(<CoverLetterNew />) },
           { path: "editor", element: withSuspense(<DocumentWorkspace />) },
           { path: "payment", element: withSuspense(<Payment />) },
-          { path: "settings", element: withSuspense(<Settings />) }
+          { path: "settings", element: withSuspense(<Settings />) },
+          { path: "career-lab", element: withSuspense(<CareerLab />) }
         ],
       },
     ],
