@@ -5,7 +5,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { ROUTES } from "../../constants/routes";
 import { getAuthHeaders } from "../../utils/auth";
-import "./DashboardPages.css";
+import "./DashboardShared.css";
 
 
 function formatLastEdited(dateValue) {
@@ -195,6 +195,26 @@ export default function DashboardHome() {
             </div>
             <FaPlus size={24} />
           </NavLink>
+
+
+          <NavLink
+            to={ROUTES.CAREER_LAB}
+            className="quick-card create-button"
+          >
+            <div className="promo-details">
+              <div className="icon">
+                <FaEdit size={30} />
+              </div>
+              <div>
+                <strong>Open Career Lab</strong>
+                <div className="page-subtitle">
+                  Parse job descriptions and run ATS analysis
+                </div>
+              </div>
+            </div>
+            <FaPlus size={24} />
+          </NavLink>
+
         </div>
       </section>
 
