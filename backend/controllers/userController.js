@@ -2,6 +2,7 @@ const {
   getUserProfileByFirebaseUid,
   updateUserPreferences,
 } = require('../services/userService');
+const { isAdminUid } = require('../services/adminService');
 
 function ensureAuthorizedUser(req, res) {
   if (req.user?.firebaseUid !== req.params.firebaseUid) {
@@ -38,7 +39,10 @@ async function getUserProfile(req, res, next) {
       return res.status(404).json({ error: 'User profile not found.' });
     }
 
-    return res.json(profile);
+    return res.json({
+      ...profile,
+      is_admin: isAdminUid(req.params.firebaseUid),
+    });
   } catch (error) {
     return next(error);
   }

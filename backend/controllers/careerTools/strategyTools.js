@@ -3,6 +3,7 @@ const {
   extractSkillsFromText,
   countMeasurableBullets,
 } = require('./utils');
+const { buildAiEnhancedResponse } = require('./aiEnhancement');
 
 async function marketDemandAnalysis(req, res, next) {
   try {
@@ -23,7 +24,7 @@ async function marketDemandAnalysis(req, res, next) {
     if (normalizeText(location).includes('remote')) demandScore += 6;
     demandScore = Math.min(100, demandScore);
 
-    return res.json({
+    const baselineResponse = {
       demandScore,
       marketOutlook: demandScore >= 75 ? 'high' : demandScore >= 60 ? 'moderate' : 'emerging',
       topSignals: [
@@ -31,7 +32,17 @@ async function marketDemandAnalysis(req, res, next) {
         'GenAI tooling literacy is increasingly requested.',
         'System design depth is a strong differentiator for senior roles.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'market_demand',
+      input: { targetRole, location },
+      baselineResponse,
+      requiredKeys: ['demandScore', 'marketOutlook'],
+      outputRequirements: "Return keys: demandScore (0-100), marketOutlook ('high'|'moderate'|'emerging'), topSignals (string[]).",
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -50,7 +61,7 @@ async function learningRoadmap(req, res, next) {
     const jdSkills = extractSkillsFromText(jobDescription);
     const gaps = jdSkills.filter((skill) => !resumeSkills.includes(skill));
 
-    return res.json({
+    const baselineResponse = {
       prioritySkills: gaps.slice(0, 6),
       roadmap: gaps.slice(0, 4).map((skill, index) => ({
         week: index + 1,
@@ -58,7 +69,17 @@ async function learningRoadmap(req, res, next) {
         action: `Build one mini-project and one resume bullet proving ${skill}.`,
       })),
       note: 'Prioritize practical proof (projects/bullets) over passive reading.',
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'learning_roadmap',
+      input: { resumeText, jobDescription },
+      baselineResponse,
+      requiredKeys: ['prioritySkills', 'roadmap'],
+      outputRequirements: 'Return keys: prioritySkills (string[]), roadmap ({week,focus,action}[]), note (string).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -77,7 +98,7 @@ async function visaGuidance(req, res, next) {
     const measurableBullets = countMeasurableBullets(resumeText);
     const profileStrength = Math.min(100, 35 + measurableBullets * 8 + (normalizeText(targetRole).includes('senior') ? 12 : 0));
 
-    return res.json({
+    const baselineResponse = {
       profileStrength,
       guidance: [
         `For ${location}, emphasize scarce skills and measurable impact in ${targetRole} projects.`,
@@ -85,7 +106,17 @@ async function visaGuidance(req, res, next) {
         'Prepare a concise impact portfolio (resume + project links + quantified outcomes).',
       ],
       disclaimer: 'This is product guidance, not legal immigration advice.',
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'visa_guidance',
+      input: { targetRole, location, resumeText },
+      baselineResponse,
+      requiredKeys: ['profileStrength', 'guidance'],
+      outputRequirements: 'Return keys: profileStrength (0-100), guidance (string[]), disclaimer (string).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -113,7 +144,7 @@ async function applicationReadiness(req, res, next) {
     if (quantifiedImpactScore < 45) blockers.push('Quantified outcomes are limited; add measurable impact to key bullets.');
     if (resumeText.split(/\s+/).length < 150) blockers.push('Resume detail appears sparse for this role level.');
 
-    return res.json({
+    const baselineResponse = {
       targetRole: targetRole || 'unspecified',
       readinessScore,
       skillMatchScore,
@@ -125,7 +156,17 @@ async function applicationReadiness(req, res, next) {
         'Days 8-10: Prepare STAR stories for core requirements and outcomes.',
         'Days 11-14: Apply in focused batches and iterate based on response signals.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'application_readiness',
+      input: { resumeText, jobDescription, targetRole },
+      baselineResponse,
+      requiredKeys: ['readinessScore', 'actionPlan14Days'],
+      outputRequirements: 'Return keys: targetRole (string), readinessScore (0-100), skillMatchScore (0-100), quantifiedImpactScore (0-100), blockers (string[]), actionPlan14Days (string[]).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -144,7 +185,7 @@ async function networkingStrategy(req, res, next) {
     const measurableBullets = countMeasurableBullets(resumeText);
     const profileSignal = Math.min(100, 45 + measurableBullets * 7);
 
-    return res.json({
+    const baselineResponse = {
       profileSignal,
       targetChannels: [
         `Alumni and ex-colleagues working as ${targetRole} in ${location || 'your target market'}.`,
@@ -157,7 +198,17 @@ async function networkingStrategy(req, res, next) {
         referralRequestsPerWeek: 4,
       },
       messageTemplate: `Hi <Name> — I’m targeting ${targetRole} roles${location ? ` in ${location}` : ''} and would value 10 minutes to learn how your team evaluates candidates. I can share a concise portfolio with measurable outcomes if useful.`,
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'networking_strategy',
+      input: { targetRole, location, resumeText },
+      baselineResponse,
+      requiredKeys: ['profileSignal', 'targetChannels', 'messageTemplate'],
+      outputRequirements: 'Return keys: profileSignal (0-100), targetChannels (string[]), outreachCadence ({weeklyNewContacts,weeklyFollowUps,referralRequestsPerWeek}), messageTemplate (string).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -176,7 +227,7 @@ async function portfolioAudit(req, res, next) {
     const hasLeadershipSignal = normalizeText(resumeText).includes('led') || normalizeText(resumeText).includes('mentored');
     const proofCoverageScore = Math.min(100, 35 + measurableBullets * 9 + (hasLeadershipSignal ? 12 : 0));
 
-    return res.json({
+    const baselineResponse = {
       targetRole: targetRole || 'unspecified',
       proofCoverageScore,
       missingEvidence: [
@@ -189,7 +240,17 @@ async function portfolioAudit(req, res, next) {
         'Attach links to code, demo, and measurable outcome snapshot.',
         'Map each artifact to a target role requirement for quick recruiter scan.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'portfolio_audit',
+      input: { resumeText, targetRole },
+      baselineResponse,
+      requiredKeys: ['proofCoverageScore', 'missingEvidence', 'portfolioBacklog'],
+      outputRequirements: 'Return keys: targetRole (string), proofCoverageScore (0-100), missingEvidence (string[]), portfolioBacklog (string[]).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
