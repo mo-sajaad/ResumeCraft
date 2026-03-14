@@ -1,8 +1,22 @@
 const OpenAI = require('openai');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openaiClient = null;
+
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    const error = new Error('AI features are unavailable because OPENAI_API_KEY is not configured.');
+    error.status = 503;
+    throw error;
+  }
+
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+
+  return openaiClient;
+}
 
 /* ================================
    RESUME BASE PROMPT
@@ -230,6 +244,7 @@ function parseAIJson(aiText) {
 
 async function generateResumeText(data) {
   const prompt = buildResumePrompt(data);
+  const openai = getOpenAIClient();
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -246,6 +261,7 @@ async function generateResumeText(data) {
 
 async function generateCoverLetter(data) {
   const prompt = buildCoverLetterPrompt(data);
+  const openai = getOpenAIClient();
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -263,6 +279,7 @@ async function generateCoverLetter(data) {
 
 async function rewriteDocumentText({ type, currentText, instruction }) {
   const normalizedType = type === 'resume' ? 'resume' : 'cover letter';
+  const openai = getOpenAIClient();
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

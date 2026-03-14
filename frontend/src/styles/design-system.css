@@ -1,0 +1,53 @@
+:root {
+  --font-family-sans: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --color-brand-500: #4338ca;
+  --color-brand-600: #3730a3;
+  --color-brand-700: #312e81;
+  --color-accent-500: #0ea5e9;
+
+  --color-bg-page: #f4f6fb;
+  --color-bg-surface: #ffffff;
+  --color-bg-subtle: #eef2ff;
+  --color-border: #e2e8f0;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #ffffff;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.08);
+
+  --focus-ring: 0 0 0 3px rgba(67, 56, 202, 0.28);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
