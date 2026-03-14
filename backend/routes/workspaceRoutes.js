@@ -5,6 +5,11 @@ const attachPlan = require('../middleware/attachPlan');
 const requirePlan = require('../middleware/requirePlan');
 const requireFeature = require('../middleware/requireFeature');
 const {
+  aiRequestRateLimiter,
+  workspaceRewriteInputGuard,
+  enforceMaxBulletCount,
+} = require('../middleware/aiAbuseProtection');
+const {
   getWorkspaceDocument,
   updateWorkspaceDocument,
   rewriteWorkspaceDocument,
@@ -20,6 +25,9 @@ router.post(
   attachPlan,
   requirePlan('premium'),
   requireFeature('has_advanced_ai'),
+  aiRequestRateLimiter,
+  workspaceRewriteInputGuard,
+  enforceMaxBulletCount,
   rewriteWorkspaceDocument
 );
 

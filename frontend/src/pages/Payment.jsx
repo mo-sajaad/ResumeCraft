@@ -199,6 +199,7 @@ export default function Payment() {
             className="btn btn-dark pricing-button"
             onClick={() => redirectToCheckout("premium")}
             disabled={isSubmitting || isPremiumPlan || isProPlan}
+            aria-current={isPremiumPlan ? "true" : undefined}
           >
             {premiumButtonLabel}
           </button>
@@ -232,6 +233,7 @@ export default function Payment() {
             className="btn btn-outline pricing-button"
             onClick={() => redirectToCheckout("pro")}
             disabled={isSubmitting || isProPlan}
+            aria-current={isProPlan ? "true" : undefined}
           >
             {proButtonLabel}
           </button>

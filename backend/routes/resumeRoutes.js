@@ -8,6 +8,12 @@ const requirePlan = require('../middleware/requirePlan');
 const requireTemplateAccess = require('../middleware/requireTemplateAccess');
 
 const {
+  aiRequestRateLimiter,
+  enforceMaxBulletCount,
+  enforceResumePayloadLength,
+} = require('../middleware/aiAbuseProtection');
+
+const {
   createResumeWithAI,
   getResumesByUser,
   getResumeById,
@@ -29,6 +35,9 @@ router.post(
   attachPlan,
   enforceUsage('resume'),
   requireTemplateAccess(),
+  aiRequestRateLimiter,
+  enforceResumePayloadLength,
+  enforceMaxBulletCount,
   createResumeWithAI
 );
 

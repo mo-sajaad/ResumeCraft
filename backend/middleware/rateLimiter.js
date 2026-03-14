@@ -1,14 +1,12 @@
+const { getRedisClient } = require('../config/redis');
+
 const WINDOW_SWEEP_INTERVAL_MS = 60 * 1000;
 
-function getIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length) {
-    return forwarded.split(',')[0].trim();
-  }
+function getClientIp(req) {
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
-function createRateLimiter({ windowMs = 60_000, max = 60, keyGenerator } = {}) {
+function createInMemoryLimiter({ windowMs, max, keyGenerator }) {
   const store = new Map();
 
   const intervalId = setInterval(() => {
@@ -24,17 +22,14 @@ function createRateLimiter({ windowMs = 60_000, max = 60, keyGenerator } = {}) {
     intervalId.unref();
   }
 
-  return function rateLimitMiddleware(req, res, next) {
+  return function inMemoryRateLimit(req, res, next) {
     const now = Date.now();
-    const key = keyGenerator ? keyGenerator(req) : getIp(req);
+    const key = keyGenerator ? keyGenerator(req) : getClientIp(req);
 
     const entry = store.get(key);
 
     if (!entry || entry.expiresAt <= now) {
-      store.set(key, {
-        count: 1,
-        expiresAt: now + windowMs,
-      });
+      store.set(key, { count: 1, expiresAt: now + windowMs });
       return next();
     }
 
@@ -43,12 +38,48 @@ function createRateLimiter({ windowMs = 60_000, max = 60, keyGenerator } = {}) {
     if (entry.count > max) {
       const retryAfterSeconds = Math.ceil((entry.expiresAt - now) / 1000);
       res.set('Retry-After', String(Math.max(1, retryAfterSeconds)));
-      return res.status(429).json({
-        error: 'Too many requests. Please try again shortly.',
-      });
+      return res.status(429).json({ message: 'Too many requests. Please try again shortly.' });
     }
 
     return next();
+  };
+}
+
+function createRateLimiter({ windowMs = 60_000, max = 60, keyGenerator } = {}) {
+  const redis = getRedisClient();
+  const fallbackLimiter = createInMemoryLimiter({ windowMs, max, keyGenerator });
+
+  if (!redis) {
+    return fallbackLimiter;
+  }
+
+  return async function redisRateLimitMiddleware(req, res, next) {
+    const key = keyGenerator ? keyGenerator(req) : getClientIp(req);
+    const redisKey = `ratelimit:${key}`;
+
+    try {
+      const count = await redis.incr(redisKey);
+
+      if (count === 1) {
+        await redis.pExpire(redisKey, windowMs);
+      }
+
+      if (count > max) {
+        const ttlMs = await redis.pTTL(redisKey);
+        const retryAfterSeconds = Math.max(1, Math.ceil(Math.max(0, ttlMs) / 1000));
+        res.set('Retry-After', String(retryAfterSeconds));
+        return res.status(429).json({ message: 'Too many requests. Please try again shortly.' });
+      }
+
+      return next();
+    } catch (error) {
+      console.error('[rateLimiter] Redis operation failed:', error.message);
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(503).json({ message: 'Service temporarily unavailable.' });
+      }
+
+      return fallbackLimiter(req, res, next);
+    }
   };
 }
 

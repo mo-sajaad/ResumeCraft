@@ -57,6 +57,37 @@ const stats = [
   { value: "12k+", label: "Tech job seekers supported" },
 ];
 
+
+const benchmarkRows = [
+  {
+    area: "Resume builder guidance",
+    resumecraft: "Role-specific AI guidance with ATS, recruiter skim, and interview tie-in.",
+    marketStandard: "Strong template + wizard experience, but limited full-loop coaching.",
+  },
+  {
+    area: "Job-match intelligence",
+    resumecraft: "Live role-fit, ATS diagnostics, and keyword gap analysis from your target JD.",
+    marketStandard: "Often focused on resume writing quality without deep JD-to-resume matching.",
+  },
+  {
+    area: "Interview & execution",
+    resumecraft: "Built-in interview prep, outreach planning, and sprint execution tools.",
+    marketStandard: "Usually offered as separate products or add-ons.",
+  },
+  {
+    area: "Career strategy depth",
+    resumecraft: "Salary, market demand, negotiation, pivot planning, and application readiness in one workspace.",
+    marketStandard: "More document-centric than end-to-end job-search strategy.",
+  },
+];
+
+const qualitySignals = [
+  "ATS-focused language checks and keyword targeting",
+  "Actionable rewrites tied to measurable outcomes",
+  "One workspace from resume polish to interview prep",
+  "AI enhancement fallbacks for reliability in all environments",
+];
+
 export default function Home() {
   return (
     <div className="home-page">
@@ -76,6 +107,7 @@ export default function Home() {
             </div>
           </div>
           <a href="#pricing">Pricing</a>
+          <a href="#compare">Compare</a>
           <a href="#how-it-works">How It Works</a>
           <a href="#about">About</a>
           <a href="#blog">Blog</a>
@@ -146,6 +178,43 @@ export default function Home() {
                 <h3>{item.title}</h3>
                 <p>{item.description}</p>
                 <p className="feature-outcome">{item.outcome}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+
+        <section id="compare" className="section fade-in-up">
+          <h2>How ResumeCraft compares to traditional resume builders</h2>
+          <p className="section-lead">
+            We benchmarked our experience against category leaders like MyPerfectResume and focused on going
+            beyond document generation into full job-search execution.
+          </p>
+          <div className="comparison-table-wrap card">
+            <table className="comparison-table">
+              <thead>
+                <tr>
+                  <th>Capability Area</th>
+                  <th>ResumeCraft</th>
+                  <th>Typical Resume Builder</th>
+                </tr>
+              </thead>
+              <tbody>
+                {benchmarkRows.map((row) => (
+                  <tr key={row.area}>
+                    <td>{row.area}</td>
+                    <td>{row.resumecraft}</td>
+                    <td>{row.marketStandard}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="feature-grid">
+            {qualitySignals.map((signal) => (
+              <article key={signal} className="card hover-lift">
+                <h3>Why this matters</h3>
+                <p>{signal}</p>
               </article>
             ))}
           </div>
@@ -244,6 +313,7 @@ export default function Home() {
           <a href="#home">Home</a>
           <a href="#features">Features</a>
           <a href="#pricing">Pricing</a>
+          <a href="#compare">Compare</a>
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
           <a href="#faq">FAQ</a>

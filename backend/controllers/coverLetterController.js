@@ -1,7 +1,9 @@
-const pool = require('../config/db');
 const { generateCoverLetter } = require('../services/aiService');
 const { trackUsage } = require('../services/subscriptionService');
+const { services: { coverLetterService } } = require('../modules/documents');
 const { generatePDF, renderHTML } = require('../templates/utils/pdfGenerator');
+const { validate } = require('../shared/http/validators');
+const { createCoverLetterSchema, updateCoverLetterSchema } = require('../modules/documents/schemas/coverLetterSchemas');
 
 function parseCoverLetterBody(generatedData = {}) {
   return typeof generatedData.body === 'string' ? generatedData.body : '';
@@ -44,11 +46,7 @@ async function createCoverLetterWithAI(req, res, next) {
   const userId = req.user.id;
 
   try {
-    const { personal = {}, experience = [], education = [], projects = [], job = {}, style = 'modern' } = req.body || {};
-
-    if (!job.company || !job.position) {
-      return res.status(400).json({ error: 'Job company and position are required.' });
-    }
+    const { personal, experience, education, projects, job, style } = validate(createCoverLetterSchema, req.body || {});
 
 
     const generatedData = await generateCoverLetter({
@@ -62,31 +60,26 @@ async function createCoverLetterWithAI(req, res, next) {
 
     const body = parseCoverLetterBody(generatedData);
 
-    const result = await pool.query(
-      `INSERT INTO cover_letters
-      (user_id, title, full_name, email, phone_e164, address_text, company_name, position_title, hiring_manager, body_paragraphs, generated_text)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *`,
-      [
-        userId,
-        `${job.position} - ${job.company}`,
-        personal.fullName || null,
-        personal.email || null,
-        personal.phoneNumber || null,
-        personal.address || personal.location || null,
-        job.company,
-        job.position,
-        job.manager || null,
-        body || null,
-        JSON.stringify({ body }),
-      ]
-    );
-
+    const createdCoverLetter = await coverLetterService.createCoverLetter({
+      userId,
+      title: `${job.position} - ${job.company}`,
+      fullName: personal.fullName || null,
+      email: personal.email || null,
+      phone: personal.phoneNumber || null,
+      address: personal.address || personal.location || null,
+      company: job.company,
+      position: job.position,
+      hiringManager: job.manager || null,
+      opening: null,
+      body: body || null,
+      closing: null,
+      generatedText: JSON.stringify({ body }),
+    });
 
     await trackUsage(userId, 'cover_letter');
 
     return res.status(201).json({
-      coverLetterId: result.rows[0].id,
+      coverLetterId: createdCoverLetter.id,
       coverLetterText: body,
       coverLetterData: { body },
     });
@@ -98,12 +91,9 @@ async function createCoverLetterWithAI(req, res, next) {
 
 async function getCoverLettersByUser(req, res, next) {
   try {
-    const result = await pool.query(
-      'SELECT * FROM cover_letters WHERE user_id = $1 ORDER BY last_edited_at DESC, created_at DESC',
-      [req.user.id]
-    );
+    const coverLetters = await coverLetterService.listUserCoverLetters(req.user.id);
 
-    return res.json(result.rows);
+    return res.json(coverLetters);
   } catch (error) {
     return next(error);
   }
@@ -111,16 +101,13 @@ async function getCoverLettersByUser(req, res, next) {
 
 async function getCoverLetterById(req, res, next) {
   try {
-    const result = await pool.query('SELECT * FROM cover_letters WHERE id = $1 AND user_id = $2', [
-      req.params.id,
-      req.user.id,
-    ]);
+    const coverLetter = await coverLetterService.getUserCoverLetter(req.params.id, req.user.id);
 
-    if (!result.rows.length) {
+    if (!coverLetter) {
       return res.status(404).json({ error: 'Cover letter not found' });
     }
 
-    return res.json(result.rows[0]);
+    return res.json(coverLetter);
   } catch (error) {
     return next(error);
   }
@@ -141,7 +128,7 @@ async function updateCoverLetter(req, res, next) {
       body_paragraphs,
       closing_paragraph,
       generated_text,
-    } = req.body || {};
+    } = validate(updateCoverLetterSchema, req.body || {});
 
     const safeGenerated =
       generated_text === undefined
@@ -150,47 +137,26 @@ async function updateCoverLetter(req, res, next) {
           ? generated_text
           : JSON.stringify(generated_text);
 
-    const result = await pool.query(
-      `UPDATE cover_letters
-       SET title = COALESCE($1, title),
-           full_name = COALESCE($2, full_name),
-           email = COALESCE($3, email),
-           phone_e164 = COALESCE($4, phone_e164),
-           address_text = COALESCE($5, address_text),
-           company_name = COALESCE($6, company_name),
-           position_title = COALESCE($7, position_title),
-           hiring_manager = COALESCE($8, hiring_manager),
-           opening_paragraph = COALESCE($9, opening_paragraph),
-           body_paragraphs = COALESCE($10, body_paragraphs),
-           closing_paragraph = COALESCE($11, closing_paragraph),
-           generated_text = COALESCE($12, generated_text),
-           updated_at = NOW(),
-           last_edited_at = NOW()
-       WHERE id = $13 AND user_id = $14
-       RETURNING *`,
-      [
-        title,
-        full_name,
-        email,
-        phone_e164,
-        address_text,
-        company_name,
-        position_title,
-        hiring_manager,
-        opening_paragraph,
-        body_paragraphs,
-        closing_paragraph,
-        safeGenerated,
-        req.params.id,
-        req.user.id,
-      ]
-    );
+    const updatedCoverLetter = await coverLetterService.updateUserCoverLetter(req.params.id, req.user.id, {
+      title,
+      full_name,
+      email,
+      phone_e164,
+      address_text,
+      company_name,
+      position_title,
+      hiring_manager,
+      opening_paragraph,
+      body_paragraphs,
+      closing_paragraph,
+      generated_text: safeGenerated,
+    });
 
-    if (!result.rows.length) {
+    if (!updatedCoverLetter) {
       return res.status(404).json({ error: 'Cover letter not found' });
     }
 
-    return res.json(result.rows[0]);
+    return res.json(updatedCoverLetter);
   } catch (error) {
     return next(error);
   }
@@ -198,12 +164,9 @@ async function updateCoverLetter(req, res, next) {
 
 async function deleteCoverLetter(req, res, next) {
   try {
-    const result = await pool.query('DELETE FROM cover_letters WHERE id = $1 AND user_id = $2 RETURNING id', [
-      req.params.id,
-      req.user.id,
-    ]);
+    const deleted = await coverLetterService.deleteUserCoverLetter(req.params.id, req.user.id);
 
-    if (!result.rows.length) {
+    if (!deleted) {
       return res.status(404).json({ error: 'Cover letter not found' });
     }
 
@@ -218,16 +181,11 @@ async function previewCoverLetter(req, res, next) {
     const allowedStyles = ['modern', 'corporate', 'creative'];
     const style = allowedStyles.includes(req.query.style) ? req.query.style : 'modern';
 
-    const result = await pool.query('SELECT * FROM cover_letters WHERE id = $1 AND user_id = $2', [
-      req.params.id,
-      req.user.id,
-    ]);
+    const row = await coverLetterService.getUserCoverLetter(req.params.id, req.user.id);
 
-    if (!result.rows.length) {
+    if (!row) {
       return res.status(404).json({ error: 'Cover letter not found' });
     }
-
-    const row = result.rows[0];
     const templateData = toCoverLetterTemplateData(row);
     const html = renderHTML(style, 'cover-letter', templateData, {
       fullName: row.full_name,
@@ -249,16 +207,11 @@ async function downloadCoverLetter(req, res, next) {
     const allowedStyles = ['modern', 'corporate', 'creative'];
     const style = allowedStyles.includes(req.query.style) ? req.query.style : 'modern';
 
-    const result = await pool.query('SELECT * FROM cover_letters WHERE id = $1 AND user_id = $2', [
-      req.params.id,
-      req.user.id,
-    ]);
+    const row = await coverLetterService.getUserCoverLetter(req.params.id, req.user.id);
 
-    if (!result.rows.length) {
+    if (!row) {
       return res.status(404).json({ error: 'Cover letter not found' });
     }
-
-    const row = result.rows[0];
     const templateData = toCoverLetterTemplateData(row);
 
     const pdfBuffer = await generatePDF(style, 'cover-letter', templateData, {

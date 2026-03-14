@@ -40,11 +40,18 @@ const validateAndNormalizeConnectionString = (value) => {
 };
 
 const connectionString = validateAndNormalizeConnectionString(process.env.DATABASE_URL);
+const sslConfig =
+  process.env.PG_SSL === 'true'
+    ? {
+        rejectUnauthorized: true,
+        ca: process.env.DB_CA_CERT,
+      }
+    : undefined;
 
 const poolConfig = connectionString
   ? {
       connectionString,
-      ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+      ssl: sslConfig,
     }
   : {
       host: process.env.PG_HOST || process.env.PGHOST || 'localhost',
@@ -60,7 +67,7 @@ const poolConfig = connectionString
         process.env.USER ||
         process.env.USERNAME,
       password: process.env.PG_PASSWORD || process.env.PGPASSWORD || '',
-      ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+      ssl: sslConfig,
     };
 
 const pool = new Pool(poolConfig);

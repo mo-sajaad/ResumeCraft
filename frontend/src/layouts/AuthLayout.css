@@ -266,3 +266,16 @@
     padding: 1.5rem;
   }
 }
+
+
+.auth-google-btn:hover,
+.auth-submit-btn:hover {
+  filter: brightness(0.98);
+}
+
+.auth-google-btn:focus-visible,
+.auth-submit-btn:focus-visible,
+.auth-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

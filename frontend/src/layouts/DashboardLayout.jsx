@@ -9,6 +9,7 @@ import {
   FaGem,
   FaRegAddressCard,
   FaRegEnvelope,
+  FaShieldAlt,
   FaTh,
   FaTimes,
 } from "react-icons/fa";
@@ -42,6 +43,7 @@ const NAV_GROUPS = [
     links: [
       { to: ROUTES.PAYMENT, label: "Billing", icon: <FaGem /> },
       { to: ROUTES.SETTINGS, label: "Settings", icon: <FaCog /> },
+      { to: ROUTES.ADMIN, label: "Admin", icon: <FaShieldAlt />, adminOnly: true },
     ],
   },
 ];
@@ -93,6 +95,11 @@ function buildBreadcrumbs(pathname) {
 
   if (section === "settings") {
     crumbs.push({ label: "Settings", to: ROUTES.SETTINGS });
+    return crumbs;
+  }
+
+  if (section === "admin") {
+    crumbs.push({ label: "Admin", to: ROUTES.ADMIN });
     return crumbs;
   }
 
@@ -185,7 +192,7 @@ export default function DashboardLayout() {
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>
               <div className="sidebar-section-label">{group.label}</div>
-              {group.links.map((link) => (
+              {group.links.filter((link) => !link.adminOnly || profile?.is_admin).map((link) => (
                 <NavLink key={link.to} to={link.to} end={link.end} className="sidebar-link" title={link.label}>
                   <span className="nav-icon">{link.icon}</span>
                   <span className="sidebar-link-text">{link.label}</span>

@@ -9,6 +9,7 @@ const {
   estimateConfidence,
   clamp,
 } = require('./utils');
+const { buildAiEnhancedResponse } = require('./aiEnhancement');
 
 function inferRoleSignals(targetRole = '') {
   const role = normalizeText(targetRole);
@@ -32,13 +33,23 @@ async function parseJobDescription(req, res, next) {
 
     const skills = extractSkillsFromText(jobDescription);
 
-    return res.json({
+    const baselineResponse = {
       requiredSkills: skills.slice(0, Math.ceil(skills.length * 0.7)),
       preferredSkills: skills.slice(Math.ceil(skills.length * 0.7)),
       softSkills: ['communication', 'problem solving'].filter((skill) => normalizeText(jobDescription).includes(skill)),
       seniority: inferSeniority(jobDescription),
       responsibilities: splitResponsibilities(jobDescription),
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'job_parser',
+      input: { jobDescription },
+      baselineResponse,
+      requiredKeys: ['requiredSkills', 'preferredSkills', 'responsibilities'],
+      outputRequirements: 'Return keys: requiredSkills (string[]), preferredSkills (string[]), softSkills (string[]), seniority (string), responsibilities (string[]).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -65,7 +76,7 @@ async function analyzeAts(req, res, next) {
     const impactScore = clamp(25 + measurableBullets * 12);
     const atsScore = clamp(Math.round((matchPercent * 0.6) + (keywordDensityScore * 0.2) + (impactScore * 0.2)));
 
-    return res.json({
+    const baselineResponse = {
       atsScore,
       matchPercent,
       keywordDensityScore,
@@ -77,7 +88,17 @@ async function analyzeAts(req, res, next) {
         ...(measurableBullets < 3 ? ['Use measurable outcomes (%, $, time saved) in key bullet points.'] : []),
         'Mirror exact job terminology in one summary line and 2-3 core bullets.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'ats_analysis',
+      input: { resumeText, jobDescription },
+      baselineResponse,
+      requiredKeys: ['atsScore', 'matchPercent', 'recommendations'],
+      outputRequirements: 'Return keys: atsScore (0-100), matchPercent (0-100), keywordDensityScore (0-100), impactScore (0-100), matchedSkills (string[]), missingSkills (string[]), recommendations (string[]).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -97,7 +118,7 @@ async function recruiterScan(req, res, next) {
     if (buzzwords.length) redFlags.push(`Buzzword overuse detected: ${buzzwords.join(', ')}.`);
     if (resumeText.split(/\s+/).length > 900) redFlags.push('Resume may be too long for a 6-second recruiter skim.');
 
-    return res.json({
+    const baselineResponse = {
       skimScore,
       sixSecondReadiness: skimScore,
       measurableBullets,
@@ -106,7 +127,17 @@ async function recruiterScan(req, res, next) {
       recruiterSummary: skimScore >= 75
         ? 'Strong first-pass recruiter readability.'
         : 'Needs clearer impact bullets and tighter wording for recruiter skim.',
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'recruiter_scan',
+      input: { resumeText },
+      baselineResponse,
+      requiredKeys: ['skimScore', 'redFlags', 'recruiterSummary'],
+      outputRequirements: 'Return keys: skimScore (0-100), sixSecondReadiness (0-100), measurableBullets (number), buzzwords (string[]), redFlags (string[]), recruiterSummary (string).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -131,14 +162,24 @@ async function competitiveAnalysis(req, res, next) {
       ? Math.round((sharedSkills.length / benchmarkSkills.length) * 100)
       : 0;
 
-    return res.json({
+    const baselineResponse = {
       benchmarkAlignment,
       sharedSkills,
       missingComparedToBenchmark,
       rewriteSuggestions: missingComparedToBenchmark
         .slice(0, 5)
         .map((skill) => `Add a concrete bullet that demonstrates ${skill}.`),
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'competitive_analysis',
+      input: { resumeText, benchmarkText },
+      baselineResponse,
+      requiredKeys: ['benchmarkAlignment', 'rewriteSuggestions'],
+      outputRequirements: 'Return keys: benchmarkAlignment (0-100), sharedSkills (string[]), missingComparedToBenchmark (string[]), rewriteSuggestions (string[]).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -161,7 +202,7 @@ async function interviewPrep(req, res, next) {
 
     const confidenceScore = estimateConfidence(answerText);
 
-    return res.json({
+    const baselineResponse = {
       interviewQuestions,
       weaknessDetection,
       answerGrading: answerText ? (confidenceScore >= 75 ? 'strong' : confidenceScore >= 50 ? 'average' : 'weak') : 'not_provided',
@@ -174,7 +215,17 @@ async function interviewPrep(req, res, next) {
       suggestion: answerText
         ? 'Use STAR format and include measurable outcomes in every answer.'
         : 'Provide a sample answer to receive grading and confidence scoring.',
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'interview_prep',
+      input: { resumeText, jobDescription, answerText },
+      baselineResponse,
+      requiredKeys: ['interviewQuestions', 'coachingPriorities', 'confidenceScore'],
+      outputRequirements: "Return keys: interviewQuestions (string[]), weaknessDetection (string[]), answerGrading ('strong'|'average'|'weak'|'not_provided'), confidenceScore (0-100), coachingPriorities (string[]), suggestion (string).",
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -192,7 +243,7 @@ async function salaryEstimate(req, res, next) {
 
     const band = estimateSalaryBand({ targetRole, location, yearsExperience });
 
-    return res.json({
+    const baselineResponse = {
       targetRole,
       location: location || 'unspecified',
       yearsExperience,
@@ -201,7 +252,17 @@ async function salaryEstimate(req, res, next) {
         'Use this estimate as a negotiation anchor, not a guarantee.',
         'Compare with local market data and company stage for better accuracy.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'salary_estimate',
+      input: { targetRole, location, yearsExperience },
+      baselineResponse,
+      requiredKeys: ['salaryBand', 'tips'],
+      outputRequirements: 'Return keys: targetRole (string), location (string), yearsExperience (number), salaryBand ({currency,minAnnual,maxAnnual}), tips (string[]).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -226,7 +287,7 @@ async function roleFitAnalysis(req, res, next) {
     const quantifiedImpactScore = clamp(20 + measurableBullets * 10);
     const roleFitScore = clamp(Math.round((roleMatchPercent * 0.7) + (quantifiedImpactScore * 0.3)));
 
-    return res.json({
+    const baselineResponse = {
       roleFitScore,
       roleMatchPercent,
       quantifiedImpactScore,
@@ -237,7 +298,17 @@ async function roleFitAnalysis(req, res, next) {
         'Highlight ownership and cross-functional collaboration outcomes.',
         ...(measurableBullets < 3 ? ['Add one systems-level bullet with measurable business impact.'] : []),
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'role_fit',
+      input: { resumeText, targetRole },
+      baselineResponse,
+      requiredKeys: ['roleFitScore', 'recommendations'],
+      outputRequirements: 'Return keys: roleFitScore (0-100), roleMatchPercent (0-100), quantifiedImpactScore (0-100), trendingSkillsSuggestions (string[]), remoteReadinessScore (0-100), promotionReadinessScore (0-100), recommendations (string[]).',
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
