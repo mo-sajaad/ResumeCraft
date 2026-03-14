@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   safeParseJson,
-  mergeAiIntoBaseline,
+  aiOverridesBaseline,
   buildAiEnhancedResponse,
 } = require('../controllers/careerTools/aiEnhancement');
 
@@ -13,24 +13,24 @@ test('safeParseJson returns parsed object and null for invalid payload', () => {
   assert.equal(safeParseJson(''), null);
 });
 
-test('mergeAiIntoBaseline preserves baseline fields while adding AI keys', () => {
+test('aiOverridesBaseline allows AI to replace key values while retaining untouched fields', () => {
   const baseline = {
     score: 82,
     nested: { a: 1, b: 2 },
     list: ['x'],
   };
   const aiPayload = {
-    score: 99,
+    score: 91,
     nested: { a: 9, c: 3 },
     list: ['y'],
     advice: ['do this'],
   };
 
-  const merged = mergeAiIntoBaseline(baseline, aiPayload);
+  const merged = aiOverridesBaseline(baseline, aiPayload);
 
-  assert.equal(merged.score, 82);
-  assert.deepEqual(merged.nested, { a: 1, b: 2, c: 3 });
-  assert.deepEqual(merged.list, ['x']);
+  assert.equal(merged.score, 91);
+  assert.deepEqual(merged.nested, { a: 9, b: 2, c: 3 });
+  assert.deepEqual(merged.list, ['y']);
   assert.deepEqual(merged.advice, ['do this']);
 });
 
@@ -41,6 +41,7 @@ test('buildAiEnhancedResponse returns api_key_missing when no key is configured'
     toolName: 'test_tool',
     input: { foo: 'bar' },
     baselineResponse: { base: true },
+    requiredKeys: ['base'],
   });
 
   assert.equal(response.base, true);

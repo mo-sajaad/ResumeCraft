@@ -37,6 +37,8 @@ async function offerNegotiationPrep(req, res, next) {
       toolName: 'offer_negotiation',
       input: { targetRole, location, yearsExperience },
       baselineResponse,
+      requiredKeys: ['salaryBand', 'negotiationAnchor', 'script'],
+      outputRequirements: 'Return keys: salaryBand ({currency,minAnnual,maxAnnual}), negotiationAnchor (number), script (string[]), concessions (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -77,6 +79,8 @@ async function jobSearchSprint(req, res, next) {
       toolName: 'sprint_planning',
       input: { targetRole, location, resumeText },
       baselineResponse,
+      requiredKeys: ['executionReadiness', 'weeklyPlan', 'dailyChecklist'],
+      outputRequirements: 'Return keys: executionReadiness (0-100), weeklyPlan ({tailoredApplications,networkingTouches,recruiterMessages,interviewPracticeSessions}), dailyChecklist (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -115,6 +119,8 @@ async function personalBrandAudit(req, res, next) {
       toolName: 'personal_brand_audit',
       input: { resumeText, targetRole },
       baselineResponse,
+      requiredKeys: ['clarityScore', 'positioningStatement', 'improvements'],
+      outputRequirements: 'Return keys: targetRole (string), clarityScore (0-100), positioningStatement (string), improvements (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -154,6 +160,8 @@ async function careerPivotPlan(req, res, next) {
       toolName: 'pivot_plan',
       input: { resumeText, targetRole, jobDescription },
       baselineResponse,
+      requiredKeys: ['transferabilityScore', 'pivotTrack', 'skillGaps'],
+      outputRequirements: 'Return keys: transferabilityScore (0-100), pivotTrack (string[]), skillGaps (string[]), narrative (string).',
     });
 
     return res.json(enhancedResponse);
@@ -186,6 +194,8 @@ async function outreachMessageGenerator(req, res, next) {
       toolName: 'outreach_messages',
       input: { targetRole, location, resumeText },
       baselineResponse,
+      requiredKeys: ['credibilitySignal', 'coldMessage', 'warmFollowUp', 'referralAsk'],
+      outputRequirements: 'Return keys: credibilitySignal (0-100), coldMessage (string), warmFollowUp (string), referralAsk (string).',
     });
 
     return res.json(enhancedResponse);
@@ -222,6 +232,8 @@ async function interviewDrillPlan(req, res, next) {
       toolName: 'interview_drill_plan',
       input: { jobDescription, targetRole, answerText },
       baselineResponse,
+      requiredKeys: ['confidenceScore', 'drillQuestions', 'cadence', 'focus'],
+      outputRequirements: 'Return keys: confidenceScore (0-100), drillQuestions (string[]), cadence ({sessionsPerWeek,mockInterviewsPerWeek,retrospectiveMinutes}), focus (string).',
     });
 
     return res.json(enhancedResponse);

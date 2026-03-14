@@ -38,6 +38,8 @@ async function marketDemandAnalysis(req, res, next) {
       toolName: 'market_demand',
       input: { targetRole, location },
       baselineResponse,
+      requiredKeys: ['demandScore', 'marketOutlook'],
+      outputRequirements: "Return keys: demandScore (0-100), marketOutlook ('high'|'moderate'|'emerging'), topSignals (string[]).",
     });
 
     return res.json(enhancedResponse);
@@ -73,6 +75,8 @@ async function learningRoadmap(req, res, next) {
       toolName: 'learning_roadmap',
       input: { resumeText, jobDescription },
       baselineResponse,
+      requiredKeys: ['prioritySkills', 'roadmap'],
+      outputRequirements: 'Return keys: prioritySkills (string[]), roadmap ({week,focus,action}[]), note (string).',
     });
 
     return res.json(enhancedResponse);
@@ -108,6 +112,8 @@ async function visaGuidance(req, res, next) {
       toolName: 'visa_guidance',
       input: { targetRole, location, resumeText },
       baselineResponse,
+      requiredKeys: ['profileStrength', 'guidance'],
+      outputRequirements: 'Return keys: profileStrength (0-100), guidance (string[]), disclaimer (string).',
     });
 
     return res.json(enhancedResponse);
@@ -156,6 +162,8 @@ async function applicationReadiness(req, res, next) {
       toolName: 'application_readiness',
       input: { resumeText, jobDescription, targetRole },
       baselineResponse,
+      requiredKeys: ['readinessScore', 'actionPlan14Days'],
+      outputRequirements: 'Return keys: targetRole (string), readinessScore (0-100), skillMatchScore (0-100), quantifiedImpactScore (0-100), blockers (string[]), actionPlan14Days (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -196,6 +204,8 @@ async function networkingStrategy(req, res, next) {
       toolName: 'networking_strategy',
       input: { targetRole, location, resumeText },
       baselineResponse,
+      requiredKeys: ['profileSignal', 'targetChannels', 'messageTemplate'],
+      outputRequirements: 'Return keys: profileSignal (0-100), targetChannels (string[]), outreachCadence ({weeklyNewContacts,weeklyFollowUps,referralRequestsPerWeek}), messageTemplate (string).',
     });
 
     return res.json(enhancedResponse);
@@ -236,6 +246,8 @@ async function portfolioAudit(req, res, next) {
       toolName: 'portfolio_audit',
       input: { resumeText, targetRole },
       baselineResponse,
+      requiredKeys: ['proofCoverageScore', 'missingEvidence', 'portfolioBacklog'],
+      outputRequirements: 'Return keys: targetRole (string), proofCoverageScore (0-100), missingEvidence (string[]), portfolioBacklog (string[]).',
     });
 
     return res.json(enhancedResponse);
