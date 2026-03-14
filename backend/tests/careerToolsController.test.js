@@ -5,7 +5,7 @@ const {
   analyzeAts,
   roleFitAnalysis,
   interviewPrep,
-} = require('../controllers/careerToolsController');
+} = require('../modules/career-intelligence/controllers/careerToolsController');
 
 function createRes() {
   return {

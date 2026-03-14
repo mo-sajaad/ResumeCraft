@@ -17,12 +17,18 @@ CREATE TABLE users (
   location_text TEXT,
   linkedin_url TEXT,
   avatar_url TEXT,
+  token_version INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_users_firebase_uid ON users(firebase_uid);
+
+
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
+
 
 CREATE TABLE auth_identities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -148,6 +154,21 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
 
 CREATE INDEX IF NOT EXISTS idx_payment_transactions_user_id 
 ON payment_transactions(user_id);
+
+
+CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id TEXT UNIQUE NOT NULL,
+  event_type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'processing' CHECK (status IN ('processing', 'processed', 'failed')),
+  received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  processed_at TIMESTAMPTZ,
+  error_message TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_stripe_webhook_events_received_at
+ON stripe_webhook_events(received_at DESC);
+
 
 ALTER TABLE subscriptions
   ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
@@ -339,3 +360,54 @@ CREATE TABLE ai_generations (
 
 CREATE INDEX idx_ai_generations_user_id ON ai_generations(user_id);
 CREATE INDEX idx_ai_generations_document_lookup ON ai_generations(document_type, document_id);
+
+-- =========================
+-- Phase 8: SaaS Maturity Systems
+-- =========================
+
+CREATE TABLE IF NOT EXISTS feature_flags (
+  key TEXT PRIMARY KEY,
+  description TEXT,
+  enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  rollout_percent INTEGER NOT NULL DEFAULT 100 CHECK (rollout_percent >= 0 AND rollout_percent <= 100),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  actor_firebase_uid TEXT,
+  action TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id TEXT,
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_user_id ON audit_logs(actor_user_id);
+
+CREATE TABLE IF NOT EXISTS usage_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  firebase_uid TEXT,
+  event_type TEXT NOT NULL,
+  route TEXT,
+  method TEXT,
+  status_code INTEGER,
+  duration_ms INTEGER,
+  metadata JSONB,
+  occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_usage_events_occurred_at ON usage_events(occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_events_user_id ON usage_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_usage_events_event_type ON usage_events(event_type);
+
+INSERT INTO feature_flags (key, description, enabled, rollout_percent)
+VALUES
+  ('admin_dashboard', 'Enables the admin dashboard UI and APIs', TRUE, 100),
+  ('usage_analytics', 'Collects and surfaces usage analytics', TRUE, 100),
+  ('audit_logs', 'Persists audit log entries for sensitive actions', TRUE, 100)
+ON CONFLICT (key) DO NOTHING;
