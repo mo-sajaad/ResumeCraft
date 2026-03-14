@@ -3,7 +3,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import { AuthContext } from "./AuthContext.jsx";
 import { auth, signOut } from "../firebase.js";
-import { clearAppJwt, getAuthHeaders, getAuthToken, logoutSession } from "../utils/auth";
+import { authFetch, clearAppJwt, getAuthToken, logoutSession } from "../utils/auth";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Firebase Auth user
@@ -20,10 +20,7 @@ export function AuthProvider({ children }) {
     await getAuthToken();
 
     // Fetch the profile from your backend
-    const res = await fetch(`/api/users/${firebaseUser.uid}`, {
-      credentials: "include",
-      headers: await getAuthHeaders(),
-    });
+    const res = await authFetch(`/api/users/${firebaseUser.uid}`);
 
     if (!res.ok) {
       throw new Error("Failed to fetch profile");
