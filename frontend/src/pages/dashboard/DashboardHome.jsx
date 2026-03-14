@@ -37,14 +37,11 @@ function getCoverLetterPreviewText(coverLetter) {
   if (coverLetter?.generated_text?.trim()) {
     try {
       const parsed = JSON.parse(coverLetter.generated_text);
-      if (typeof parsed?.body === "string" && parsed.body.trim()) {
-        return truncateText(parsed.body);
-      }
+      if (typeof parsed?.body === "string" && parsed.body.trim()) return truncateText(parsed.body);
     } catch {
       return truncateText(coverLetter.generated_text);
     }
   }
-
   return "No cover letter content available.";
 }
 
@@ -108,11 +105,7 @@ export default function DashboardHome() {
   const activePlanCode = (profile?.plan_code || "free").toLowerCase();
   const isPaidPlan = activePlanCode === "premium" || activePlanCode === "pro";
 
-  const resumeCountLabel = useMemo(
-    () => `${resumes.length} resume${resumes.length === 1 ? "" : "s"}`,
-    [resumes.length]
-  );
-
+  const resumeCountLabel = useMemo(() => `${resumes.length} resume${resumes.length === 1 ? "" : "s"}`, [resumes.length]);
   const coverLetterCountLabel = useMemo(
     () => `${coverLetters.length} cover letter${coverLetters.length === 1 ? "" : "s"}`,
     [coverLetters.length]
@@ -197,9 +190,7 @@ export default function DashboardHome() {
         {!isPaidPlan && (
           <div className="promo-card">
             <div className="promo-details">
-              <div className="promo-icon">
-                <FaCrown size={40} />
-              </div>
+              <div className="promo-icon"><FaCrown size={40} /></div>
               <div>
                 <h3>Unlock Premium Features</h3>
                 <p>Get unlimited downloads, advanced templates, and AI-powered suggestions.</p>
