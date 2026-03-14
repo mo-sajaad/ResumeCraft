@@ -41,6 +41,7 @@ export default function CoverLetterNew() {
 
   // UI STATE
   const [style, setStyle] = useState("modern");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +50,12 @@ export default function CoverLetterNew() {
   const [previewHtml, setPreviewHtml] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const styles = [
+    { value: "modern", label: "Modern" },
+    { value: "corporate", label: "Corporate" },
+    { value: "creative", label: "Creative" },
+  ];
 
   // Fetch latest resume on mount to prefill personal info
   useEffect(() => {
@@ -257,30 +264,46 @@ export default function CoverLetterNew() {
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">{requestedCoverLetterId ? "Open Cover Letter" : "Create Cover Letter"}</h1>
-        <div className="header-actions">
-          <select
-            value={style}
-            onChange={(e) => setStyle(e.target.value)}
-            className="btn"
-          >
-            <option value="modern">Modern</option>
-            <option value="corporate">Corporate</option>
-            <option value="creative">Creative</option>
-          </select>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div className="dropdown">
+            <button className="btn dropdown-toggle" onClick={() => setDropdownOpen(!dropdownOpen)} type="button">
+              {styles.find((s) => s.value === style)?.label}
+              <span className="dropdown-arrow">▾</span>
+            </button>
+
+            {dropdownOpen && (
+              <div className="dropdown-menu">
+                {styles.map((s) => (
+                  <div
+                    key={s.value}
+                    className={`dropdown-item ${style === s.value ? "active" : ""}`}
+                    onClick={() => {
+                      setStyle(s.value);
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <button
             className="btn btn-dark"
             onClick={handleGenerateCoverLetter}
             disabled={loading}
+            type="button"
           >
             {loading ? "Generating..." : "Generate Cover Letter"}
           </button>
 
           {coverLetterId ? (
             <button
-              className="btn btn-outline"
+              className="btn btn-secondary"
               onClick={handleDownloadPDF}
               disabled={downloadingPdf}
+              type="button"
             >
               {downloadingPdf ? "Downloading..." : "Download PDF"}
             </button>
