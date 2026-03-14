@@ -10,7 +10,7 @@ export function getStoredAppJwt() {
   return null;
 }
 
-export async function exchangeFirebaseTokenForJwt() {
+export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   const firebaseUser = auth?.currentUser;
 
   if (!firebaseUser) {
@@ -19,7 +19,8 @@ export async function exchangeFirebaseTokenForJwt() {
   }
 
   const firebaseToken = await firebaseUser.getIdToken();
-  const fullName = firebaseUser.displayName || null;
+  const sanitizedPreferredName = typeof preferredFullName === "string" ? preferredFullName.trim() : "";
+  const fullName = sanitizedPreferredName || firebaseUser.displayName || null;
 
   const response = await fetch("/api/auth/exchange", {
     method: "POST",
