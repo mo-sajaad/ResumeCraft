@@ -4,6 +4,7 @@ const {
   estimateSalaryBand,
   estimateConfidence,
 } = require('./utils');
+const { buildAiEnhancedResponse } = require('./aiEnhancement');
 
 async function offerNegotiationPrep(req, res, next) {
   try {
@@ -18,7 +19,7 @@ async function offerNegotiationPrep(req, res, next) {
     const salaryBand = estimateSalaryBand({ targetRole, location, yearsExperience });
     const anchor = Math.round(salaryBand.maxAnnual * 1.08);
 
-    return res.json({
+    const baselineResponse = {
       salaryBand,
       negotiationAnchor: anchor,
       script: [
@@ -30,7 +31,15 @@ async function offerNegotiationPrep(req, res, next) {
         '6-month performance review tied to comp adjustment.',
         'Additional PTO or professional development budget.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'offer_negotiation',
+      input: { targetRole, location, yearsExperience },
+      baselineResponse,
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -49,7 +58,7 @@ async function jobSearchSprint(req, res, next) {
     const measurableBullets = countMeasurableBullets(resumeText);
     const executionReadiness = Math.min(100, 42 + measurableBullets * 8);
 
-    return res.json({
+    const baselineResponse = {
       executionReadiness,
       weeklyPlan: {
         tailoredApplications: 18,
@@ -62,7 +71,15 @@ async function jobSearchSprint(req, res, next) {
         'Send 5 outreach/follow-up messages.',
         'Refine one resume bullet or portfolio artifact based on role signals.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'sprint_planning',
+      input: { targetRole, location, resumeText },
+      baselineResponse,
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -81,7 +98,7 @@ async function personalBrandAudit(req, res, next) {
     const buzzwords = ['synergy', 'go-getter', 'ninja', 'rockstar', 'hardworking', 'passionate'].filter((word) => resumeText.toLowerCase().includes(word));
     const clarityScore = Math.max(0, Math.min(100, 50 + measurableBullets * 7 - buzzwords.length * 6));
 
-    return res.json({
+    const baselineResponse = {
       targetRole: targetRole || 'unspecified',
       clarityScore,
       positioningStatement: targetRole
@@ -92,7 +109,15 @@ async function personalBrandAudit(req, res, next) {
         'Replace generic adjectives with quantified wins.',
         'Keep a consistent narrative from resume to portfolio to outreach.',
       ],
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'personal_brand_audit',
+      input: { resumeText, targetRole },
+      baselineResponse,
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -113,7 +138,7 @@ async function careerPivotPlan(req, res, next) {
     const missingSignals = targetSignals.filter((skill) => !resumeSkills.includes(skill));
     const transferabilityScore = Math.max(25, Math.min(100, 45 + resumeSkills.length * 4 - missingSignals.length * 6));
 
-    return res.json({
+    const baselineResponse = {
       transferabilityScore,
       pivotTrack: [
         'Week 1: Reframe resume summary around transferable outcomes.',
@@ -123,7 +148,15 @@ async function careerPivotPlan(req, res, next) {
       ],
       skillGaps: missingSignals.slice(0, 6),
       narrative: `Position your background as immediately relevant to ${targetRole} through outcomes, ownership, and speed-to-ramp evidence.`,
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'pivot_plan',
+      input: { resumeText, targetRole, jobDescription },
+      baselineResponse,
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -142,12 +175,20 @@ async function outreachMessageGenerator(req, res, next) {
     const measurableBullets = countMeasurableBullets(resumeText);
     const credibilitySignal = Math.min(100, 38 + measurableBullets * 10);
 
-    return res.json({
+    const baselineResponse = {
       credibilitySignal,
       coldMessage: `Hi <Name> — I’m exploring ${targetRole} opportunities${location ? ` in ${location}` : ''}. I’ve delivered measurable impact on production systems and would value a short chat on what your team prioritizes for this role.`,
       warmFollowUp: 'Wanted to follow up in case this got buried — happy to send a concise portfolio summary with outcomes and relevance to your current hiring needs.',
       referralAsk: 'If there is a fit, would you be open to referring me or suggesting the best way to align my application with your team expectations?',
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'outreach_messages',
+      input: { targetRole, location, resumeText },
+      baselineResponse,
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
@@ -166,7 +207,7 @@ async function interviewDrillPlan(req, res, next) {
     const skillSignals = extractSkillsFromText(`${jobDescription} ${targetRole}`);
     const confidenceScore = estimateConfidence(answerText);
 
-    return res.json({
+    const baselineResponse = {
       confidenceScore,
       drillQuestions: (skillSignals.length ? skillSignals : ['system design', 'leadership', 'debugging']).slice(0, 6).map((skill) => `Drill: Explain a high-impact example demonstrating ${skill}.`),
       cadence: {
@@ -175,7 +216,15 @@ async function interviewDrillPlan(req, res, next) {
         retrospectiveMinutes: 20,
       },
       focus: confidenceScore < 55 ? 'Strengthen structured storytelling and quantified outcomes.' : 'Raise depth and precision under follow-up pressure.',
+    };
+
+    const enhancedResponse = await buildAiEnhancedResponse({
+      toolName: 'interview_drill_plan',
+      input: { jobDescription, targetRole, answerText },
+      baselineResponse,
     });
+
+    return res.json(enhancedResponse);
   } catch (error) {
     return next(error);
   }
