@@ -159,7 +159,7 @@ export default function CareerLabLayout() {
         <div className="career-lab-group-header">
           <h2>Feature Pages</h2>
           <div className="career-lab-top-actions">
-            <span>Move from analysis to action</span>
+            <span className="career-lab-top-actions-copy">Move from analysis to action</span>
             <button type="button" className="career-lab-toggle-all" onClick={toggleAllGroups}>
               {openGroupIds.length === TOOL_CATEGORIES.length ? "Collapse all" : "Expand all"}
             </button>
@@ -235,7 +235,7 @@ export default function CareerLabLayout() {
       <section className="content-card career-lab-inputs">
         <div className="career-lab-group-header">
           <h3>Start a Tool Flow</h3>
-          <span>Open any tool for focused inputs + result output</span>
+          <span className="career-lab-group-subtext">Open any tool for focused inputs + result output</span>
         </div>
         <div className="career-lab-cta-row">
           <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">
