@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { NavLink, useOutletContext, useParams } from "react-router-dom";
-import { FaArrowRight, FaCheckCircle, FaPlay, FaSpinner, FaSyncAlt } from "react-icons/fa";
+import { FaArrowRight, FaCheckCircle, FaPlay, FaSpinner } from "react-icons/fa";
 
 import Button from "../../../components/ui/Button";
 import { TOOL_MAP } from "./careerLabTools";
@@ -13,7 +13,7 @@ function prettyResult(value) {
 
 export default function CareerLabToolPage() {
   const { toolId } = useParams();
-  const { inputs, setInputs, results, running, runTool } = useOutletContext();
+  const { results, running, runTool } = useOutletContext();
 
   const tool = TOOL_MAP[toolId];
   const [draftInputsByTool, setDraftInputsByTool] = useState({});
@@ -22,16 +22,15 @@ export default function CareerLabToolPage() {
     if (!tool) return {};
     const drafts = draftInputsByTool[tool.id] || {};
     return tool.fields.reduce((acc, field) => {
-      acc[field.key] = drafts[field.key] ?? inputs[field.key] ?? "";
+      acc[field.key] = drafts[field.key] ?? "";
       return acc;
     }, {});
-  }, [tool, draftInputsByTool, inputs]);
+  }, [tool, draftInputsByTool]);
 
-  const mergedInputs = useMemo(() => ({ ...inputs, ...toolInputs }), [inputs, toolInputs]);
   const validationState = useMemo(() => {
     if (!tool) return "invalid";
-    return tool.disabled(mergedInputs) ? "blocked" : "ready";
-  }, [tool, mergedInputs]);
+    return tool.disabled(toolInputs) ? "blocked" : "ready";
+  }, [tool, toolInputs]);
 
   if (!tool) {
     return (
@@ -57,19 +56,12 @@ export default function CareerLabToolPage() {
 
   const handleRun = async () => {
     try {
-      await runTool(tool, mergedInputs);
+      await runTool(tool, toolInputs);
     } catch {
       // Error handled elsewhere
     }
   };
 
-  const restoreSharedDefaults = () => {
-    setDraftInputsByTool((prev) => ({ ...prev, [tool.id]: {} }));
-  };
-
-  const saveToSharedDefaults = () => {
-    setInputs((prev) => ({ ...prev, ...toolInputs }));
-  };
 
   return (
     <section className="content-card career-lab-tool-card">
@@ -110,17 +102,9 @@ export default function CareerLabToolPage() {
       </div>
 
       <div className="career-lab-tool-actions">
-        <Button type="button" onClick={handleRun} disabled={isRunning || tool.disabled(mergedInputs)} className="career-lab-action-btn">
+        <Button type="button" onClick={handleRun} disabled={isRunning || tool.disabled(toolInputs)} className="career-lab-action-btn">
           {isRunning ? <FaSpinner className="spin" /> : <FaPlay />}
           <span className="career-lab-action-label">{isRunning ? tool.runningLabel : tool.buttonLabel}</span>
-        </Button>
-        <Button type="button" variant="secondary" onClick={restoreSharedDefaults} className="career-lab-action-btn">
-          <FaSyncAlt />
-          <span className="career-lab-action-label">Use shared defaults</span>
-        </Button>
-        <Button type="button" variant="secondary" onClick={saveToSharedDefaults} className="career-lab-action-btn">
-          <FaCheckCircle />
-          <span className="career-lab-action-label">Save to shared defaults</span>
         </Button>
         <Button as={NavLink} to="/dashboard/career-lab" variant="secondary" className="career-lab-action-btn">
           <FaArrowRight />
