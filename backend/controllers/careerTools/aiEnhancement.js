@@ -1,12 +1,17 @@
-const { getOpenAIClient } = require('../../config/openai');
+const { z } = require('zod');
+const { createChatCompletion, getOpenAIClient } = require('../../services/ai/client');
 
 const AI_MODEL = process.env.OPENAI_CAREER_LAB_MODEL || 'gpt-4o-mini';
 
 function safeParseJson(value) {
-  if (!value || typeof value !== 'string') return null;
+  const parsed = z.string().min(1).safeParse(value);
+  if (!parsed.success) return null;
 
   try {
-    return JSON.parse(value);
+    const obj = JSON.parse(parsed.data);
+    const objectSchema = z.record(z.string(), z.unknown());
+    const validated = objectSchema.safeParse(obj);
+    return validated.success ? validated.data : null;
   } catch {
     return null;
   }
@@ -16,9 +21,31 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function hasRequiredKeys(candidate, requiredKeys = []) {
-  if (!isPlainObject(candidate)) return false;
-  return requiredKeys.every((key) => candidate[key] !== undefined && candidate[key] !== null);
+function buildResponseSchema(requiredKeys = [], baselineResponse = {}) {
+  return z.record(z.string(), z.unknown()).superRefine((obj, ctx) => {
+    requiredKeys.forEach((key) => {
+      if (obj[key] === undefined || obj[key] === null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `${key} is required`,
+        });
+        return;
+      }
+
+      if (baselineResponse[key] !== undefined && baselineResponse[key] !== null) {
+        const expectedType = Array.isArray(baselineResponse[key]) ? 'array' : typeof baselineResponse[key];
+        const actualType = Array.isArray(obj[key]) ? 'array' : typeof obj[key];
+        if (expectedType !== actualType) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} should be ${expectedType}`,
+          });
+        }
+      }
+    });
+  });
 }
 
 function aiOverridesBaseline(baseline, aiPayload) {
@@ -71,10 +98,10 @@ async function buildAiEnhancedResponse({
   }
 
   try {
-    const completion = await client.chat.completions.create({
+    const completion = await createChatCompletion({
       model: AI_MODEL,
       temperature: 0.2,
-      response_format: { type: 'json_object' },
+      responseFormat: { type: 'json_object' },
       messages: [
         {
           role: 'system',
@@ -94,8 +121,9 @@ async function buildAiEnhancedResponse({
 
     const content = completion?.choices?.[0]?.message?.content;
     const parsed = safeParseJson(content);
+    const schema = buildResponseSchema(requiredKeys, baselineResponse);
 
-    if (!parsed || !hasRequiredKeys(parsed, requiredKeys)) {
+    if (!parsed || !schema.safeParse(parsed).success) {
       return {
         ...baselineResponse,
         aiEnhancementStatus: 'invalid_ai_json',

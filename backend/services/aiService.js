@@ -1,22 +1,5 @@
-const OpenAI = require('openai');
-
-let openaiClient = null;
-
-function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) {
-    const error = new Error('AI features are unavailable because OPENAI_API_KEY is not configured.');
-    error.status = 503;
-    throw error;
-  }
-
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  }
-
-  return openaiClient;
-}
+const { z } = require('zod');
+const { createChatCompletion } = require('./ai/client');
 
 /* ================================
    RESUME BASE PROMPT
@@ -226,12 +209,17 @@ function buildCoverLetterPrompt({ personal = {}, experience = [], education = []
 ================================ */
 
 function parseAIJson(aiText) {
+  const textResult = z.string().min(1).safeParse(aiText);
+  if (!textResult.success) return {};
+
   try {
-    const jsonStart = aiText.indexOf('{');
-    const jsonEnd = aiText.lastIndexOf('}');
+    const jsonStart = textResult.data.indexOf('{');
+    const jsonEnd = textResult.data.lastIndexOf('}');
     if (jsonStart === -1 || jsonEnd === -1) return {};
-    const jsonString = aiText.slice(jsonStart, jsonEnd + 1);
-    return JSON.parse(jsonString);
+    const jsonString = textResult.data.slice(jsonStart, jsonEnd + 1);
+    const parsed = JSON.parse(jsonString);
+    const objectResult = z.record(z.string(), z.unknown()).safeParse(parsed);
+    return objectResult.success ? objectResult.data : {};
   } catch (err) {
     console.error('Error parsing AI JSON:', err);
     return {};
@@ -244,15 +232,13 @@ function parseAIJson(aiText) {
 
 async function generateResumeText(data) {
   const prompt = buildResumePrompt(data);
-  const openai = getOpenAIClient();
-
-  const completion = await openai.chat.completions.create({
+  const completion = await createChatCompletion({
     model: 'gpt-4o-mini',
+    temperature: 0.7,
     messages: [
       { role: 'system', content: 'You are a professional resume writing assistant.' },
       { role: 'user', content: prompt },
     ],
-    temperature: 0.7,
   });
 
   const text = completion.choices[0].message.content.trim();
@@ -261,15 +247,13 @@ async function generateResumeText(data) {
 
 async function generateCoverLetter(data) {
   const prompt = buildCoverLetterPrompt(data);
-  const openai = getOpenAIClient();
-
-  const completion = await openai.chat.completions.create({
+  const completion = await createChatCompletion({
     model: 'gpt-4o-mini',
+    temperature: 0.7,
     messages: [
       { role: 'system', content: 'You are a professional cover letter writing assistant.' },
       { role: 'user', content: prompt },
     ],
-    temperature: 0.7,
   });
 
   const text = completion.choices[0].message.content.trim();
@@ -279,10 +263,10 @@ async function generateCoverLetter(data) {
 
 async function rewriteDocumentText({ type, currentText, instruction }) {
   const normalizedType = type === 'resume' ? 'resume' : 'cover letter';
-  const openai = getOpenAIClient();
 
-  const completion = await openai.chat.completions.create({
+  const completion = await createChatCompletion({
     model: 'gpt-4o-mini',
+    temperature: 0.4,
     messages: [
       {
         role: 'system',
@@ -294,7 +278,6 @@ async function rewriteDocumentText({ type, currentText, instruction }) {
         content: `Document type: ${normalizedType}\n\nCurrent document:\n${currentText}\n\nRevision request: ${instruction}`
       },
     ],
-    temperature: 0.4,
   });
 
   return completion.choices[0].message.content.trim();

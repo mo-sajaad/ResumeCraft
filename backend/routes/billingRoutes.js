@@ -1,7 +1,9 @@
 const express = require('express');
-const pool = require('../config/db');
 const authenticateJWT = require('../middleware/authMiddleware');
 const { getStripeClient } = require('../config/stripe');
+const { getLatestStripeCustomerId } = require('../services/subscriptionService');
+const { validate } = require('../shared/http/validators');
+const { checkoutSchema } = require('../modules/billing/schemas/billingSchemas');
 
 const router = express.Router();
 
@@ -24,12 +26,7 @@ function getPlanPriceId(plan) {
 
 router.post('/checkout-session', authenticateJWT, async (req, res, next) => {
   try {
-    const rawPlan = req.body?.plan;
-    const plan = typeof rawPlan === 'string' ? rawPlan.trim().toLowerCase() : '';
-
-    if (!Object.prototype.hasOwnProperty.call(PLAN_PRICE_ENV_ALIASES, plan)) {
-      return res.status(400).json({ error: 'Invalid plan. Expected premium or pro.' });
-    }
+    const { plan } = validate(checkoutSchema, { plan: String(req.body?.plan || '').trim().toLowerCase() });
 
     const priceId = getPlanPriceId(plan);
     if (!priceId) {
@@ -61,19 +58,7 @@ router.post('/checkout-session', authenticateJWT, async (req, res, next) => {
 
 router.post('/portal-session', authenticateJWT, async (req, res, next) => {
   try {
-    const subResult = await pool.query(
-      `
-      SELECT stripe_customer_id
-      FROM subscriptions
-      WHERE user_id = $1
-        AND stripe_customer_id IS NOT NULL
-      ORDER BY created_at DESC
-      LIMIT 1
-      `,
-      [req.user.id]
-    );
-
-    const stripeCustomerId = subResult.rows[0]?.stripe_customer_id;
+    const stripeCustomerId = await getLatestStripeCustomerId(req.user.id);
 
     if (!stripeCustomerId) {
       return res.status(400).json({

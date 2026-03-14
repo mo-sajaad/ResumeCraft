@@ -5,7 +5,7 @@ const {
   safeParseJson,
   aiOverridesBaseline,
   buildAiEnhancedResponse,
-} = require('../controllers/careerTools/aiEnhancement');
+} = require('../modules/career-intelligence/controllers/careerTools/aiEnhancement');
 
 test('safeParseJson returns parsed object and null for invalid payload', () => {
   assert.deepEqual(safeParseJson('{"ok":true}'), { ok: true });

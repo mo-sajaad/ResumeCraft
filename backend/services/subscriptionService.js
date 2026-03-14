@@ -1,36 +1,11 @@
-const pool = require('../config/db');
+const { interfaces: { subscriptionRepository } } = require('../modules/billing');
 
 async function getActiveSubscription(userId) {
-  const result = await pool.query(
-    `
-    SELECT p.*
-    FROM subscriptions s
-    JOIN plans p ON s.plan_id = p.id
-    WHERE s.user_id = $1
-      AND s.status = 'active'
-      AND (s.current_period_end IS NULL OR s.current_period_end > NOW())
-    ORDER BY s.created_at DESC
-    LIMIT 1
-    `,
-    [userId]
-  );
-
-  return result.rows[0] || null;
+  return subscriptionRepository.getActiveSubscriptionPlan(userId);
 }
 
 async function getMonthlyUsage(userId, type) {
-  const result = await pool.query(
-    `
-    SELECT COUNT(*)
-    FROM ai_usage
-    WHERE user_id = $1
-      AND type = $2
-      AND created_at >= date_trunc('month', CURRENT_DATE)
-    `,
-    [userId, type]
-  );
-
-  return parseInt(result.rows[0].count);
+  return subscriptionRepository.getMonthlyUsageCount(userId, type);
 }
 
 async function checkLimit(userId, type) {
@@ -59,14 +34,16 @@ async function checkLimit(userId, type) {
 }
 
 async function trackUsage(userId, type) {
-  await pool.query(
-    `INSERT INTO ai_usage (user_id, type) VALUES ($1, $2)`,
-    [userId, type]
-  );
+  await subscriptionRepository.insertUsage(userId, type);
+}
+
+async function getLatestStripeCustomerId(userId) {
+  return subscriptionRepository.getLatestStripeCustomerId(userId);
 }
 
 module.exports = {
   getActiveSubscription,
   checkLimit,
   trackUsage,
+  getLatestStripeCustomerId,
 };

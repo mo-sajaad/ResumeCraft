@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
@@ -13,13 +13,12 @@ import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const destination = location.state?.from?.pathname || "/dashboard";
+  const destination = "/dashboard";
 
   const requireFirebase = () => {
     if (!hasFirebaseConfig || !auth) {
@@ -109,7 +108,7 @@ export default function Login() {
           <input id="remember-me" type="checkbox" />
           <span>Remember me</span>
         </label>
-        <Link className="auth-link" to="/auth/forgot-password">Forgot password?</Link>
+        <button type="button" className="auth-link auth-link-btn" onClick={() => setError("Use the Reset password option in Settings after signing in.")}>Forgot password?</button>
       </div>
 
       <button type="submit" className="auth-submit-btn" disabled={loading}>

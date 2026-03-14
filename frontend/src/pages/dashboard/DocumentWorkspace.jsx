@@ -415,8 +415,8 @@ export default function DocumentWorkspace() {
         </div>
       </div>
 
-      {error ? <div className="content-card error-message">{error}</div> : null}
-      {feedback ? <div className="content-card">{feedback}</div> : null}
+      {error ? <div className="content-card error-message workspace-feedback">{error}</div> : null}
+      {feedback ? <div className="content-card workspace-feedback">{feedback}</div> : null}
 
       <div className="workspace-layout workspace-layout-single-editor">
         <section className="workspace-panel workspace-chat-panel">

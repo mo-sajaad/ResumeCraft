@@ -1,20 +1,6 @@
-const OpenAI = require('openai');
-
-let cachedClient;
-
-function getOpenAIClient() {
-  if (cachedClient !== undefined) return cachedClient;
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    cachedClient = null;
-    return cachedClient;
-  }
-
-  cachedClient = new OpenAI({ apiKey });
-  return cachedClient;
-}
+const { getOpenAIClient, createChatCompletion } = require('../services/ai/client');
 
 module.exports = {
   getOpenAIClient,
+  createChatCompletion,
 };

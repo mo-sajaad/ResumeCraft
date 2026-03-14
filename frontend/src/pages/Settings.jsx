@@ -48,9 +48,6 @@ export default function Settings() {
     }
 
     const headers = await getAuthHeaders({ "Content-Type": "application/json" });
-    if (!headers.Authorization) {
-      throw new Error("Missing auth token. Please log in again.");
-    }
 
     const response = await fetch(`/api/users/${user.uid}/preferences`, {
       method: "PATCH",
@@ -234,6 +231,7 @@ export default function Settings() {
             type="button"
             onClick={handleSaveChanges}
             disabled={isSaving}
+            aria-busy={isSaving}
           >
             {isSaving ? "Saving..." : "Save changes"}
           </button>
