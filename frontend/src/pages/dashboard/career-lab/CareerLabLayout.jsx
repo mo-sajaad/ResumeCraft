@@ -7,7 +7,6 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaFlask,
-  FaSearch,
 } from "react-icons/fa";
 
 import Button from "../../../components/ui/Button";
@@ -15,10 +14,6 @@ import { getAuthHeaders } from "../../../utils/auth";
 import { CAREER_LAB_TOOLS, TOOL_CATEGORIES } from "./careerLabTools";
 import "../DashboardShared.css";
 import "../CareerLab.css";
-
-function countPopulatedInputs(inputs) {
-  return Object.values(inputs).filter((value) => String(value || "").trim().length > 0).length;
-}
 
 function resolveCareerToolEndpoint(endpoint) {
   if (!endpoint) return endpoint;
@@ -39,16 +34,6 @@ function resolveCareerToolEndpoint(endpoint) {
 export default function CareerLabLayout() {
   const location = useLocation();
 
-  const [inputs, setInputs] = useState({
-    jobDescription: "",
-    resumeText: "",
-    benchmarkText: "",
-    targetRole: "",
-    targetLocation: "",
-    yearsExperience: "",
-    answerText: "",
-  });
-
   const [results, setResults] = useState({});
   const [running, setRunning] = useState({});
   const [error, setError] = useState("");
@@ -65,9 +50,8 @@ export default function CareerLabLayout() {
   const progress = useMemo(() => {
     const total = CAREER_LAB_TOOLS.length;
     const completed = CAREER_LAB_TOOLS.filter((tool) => Boolean(results[tool.id])).length;
-    const inputCoverage = countPopulatedInputs(inputs);
-    return { completed, total, inputCoverage };
-  }, [results, inputs]);
+    return { completed, total };
+  }, [results]);
 
   const interviewPrepPath = "/dashboard/career-lab/tools/interview-prep";
   const isInterviewPrepOpen = location.pathname === interviewPrepPath;
@@ -80,8 +64,7 @@ export default function CareerLabLayout() {
     setOpenGroupIds((prev) => (prev.length === TOOL_CATEGORIES.length ? [] : TOOL_CATEGORIES.map((category) => category.id)));
   };
 
-  const runTool = async (tool, overrideInputs = null) => {
-    const payloadInputs = overrideInputs || inputs;
+  const runTool = async (tool, payloadInputs = {}) => {
     const endpoint = resolveCareerToolEndpoint(tool.endpoint);
 
     setRunning((prev) => ({ ...prev, [tool.id]: true }));
@@ -103,9 +86,6 @@ export default function CareerLabLayout() {
       }
 
       setResults((prev) => ({ ...prev, [tool.id]: data }));
-      if (overrideInputs) {
-        setInputs((prev) => ({ ...prev, ...overrideInputs }));
-      }
     } catch (err) {
       setError(err.message || `Unable to run ${tool.title}.`);
       throw err;
@@ -115,8 +95,6 @@ export default function CareerLabLayout() {
   };
 
   const contextValue = {
-    inputs,
-    setInputs,
     results,
     running,
     runTool,
@@ -132,7 +110,7 @@ export default function CareerLabLayout() {
           <p className="career-lab-eyebrow">Career Lab</p>
           <h1 className="page-title">AI-Powered Career Command Center</h1>
           <p className="career-lab-hero-description">
-            Hybrid workflow: every tool has a dedicated input form, while optional shared defaults keep your repeated context in sync.
+            Every tool has dedicated inputs and output so you can run focused checks, compare results, and move step-by-step through your job search workflow.
           </p>
         </div>
         <div className="career-lab-metrics">
@@ -144,10 +122,10 @@ export default function CareerLabLayout() {
             </div>
           </div>
           <div className="career-lab-metric">
-            <FaSearch />
+            <FaBullseye />
             <div>
-              <strong>{progress.inputCoverage}/7</strong>
-              <span>shared defaults set</span>
+              <strong>{Math.max(progress.total - progress.completed, 0)}</strong>
+              <span>tools remaining</span>
             </div>
           </div>
         </div>
@@ -159,7 +137,7 @@ export default function CareerLabLayout() {
         <div className="career-lab-group-header">
           <h2>Feature Pages</h2>
           <div className="career-lab-top-actions">
-            <span>Move from analysis to action</span>
+            <span className="career-lab-top-actions-copy">Move from analysis to action</span>
             <button type="button" className="career-lab-toggle-all" onClick={toggleAllGroups}>
               {openGroupIds.length === TOOL_CATEGORIES.length ? "Collapse all" : "Expand all"}
             </button>
@@ -199,43 +177,19 @@ export default function CareerLabLayout() {
         </div>
       </section>
 
-      <details className="content-card career-lab-shared-defaults">
-        <summary>
-          <span>Shared Defaults (Optional)</span>
-          <FaChevronDown />
-        </summary>
-        <p className="career-lab-tool-description">
-          Tool pages load from these defaults first. You can still override inputs per tool before running.
-        </p>
-        <div className="career-lab-layout compact-grid">
-          <section className="career-lab-panel">
-            <label htmlFor="shared-role">Target Role</label>
-            <input
-              id="shared-role"
-              className="career-lab-input"
-              value={inputs.targetRole}
-              onChange={(e) => setInputs((p) => ({ ...p, targetRole: e.target.value }))}
-              placeholder="e.g. Senior Backend Engineer"
-            />
-          </section>
-
-          <section className="career-lab-panel">
-            <label htmlFor="shared-location">Target Location</label>
-            <input
-              id="shared-location"
-              className="career-lab-input"
-              value={inputs.targetLocation}
-              onChange={(e) => setInputs((p) => ({ ...p, targetLocation: e.target.value }))}
-              placeholder="e.g. London, UK"
-            />
-          </section>
-        </div>
-      </details>
 
       <section className="content-card career-lab-inputs">
         <div className="career-lab-group-header">
           <h3>Start a Tool Flow</h3>
-          <span>Open any tool for focused inputs + result output</span>
+          <span className="career-lab-group-subtext">Open any tool for focused inputs + result output</span>
+        </div>
+        <div className="career-lab-diagnostic-flow">
+          <p><strong>Diagnostic flow:</strong> Start with ATS Analysis to identify gaps, then move to matching and rewrite tools to improve weak sections before interview prep.</p>
+          <ol className="career-lab-diagnostic-steps">
+            <li><strong>Run ATS Analysis</strong> with your resume + job description.</li>
+            <li><strong>Review the output</strong> and pick the next tool based on missing keywords, weak bullets, or role-fit gaps.</li>
+            <li><strong>Apply improvements</strong> in rewrite tools, then re-run diagnostics to confirm progress.</li>
+          </ol>
         </div>
         <div className="career-lab-cta-row">
           <Button as={NavLink} to="/dashboard/career-lab/tools/ats-analysis">

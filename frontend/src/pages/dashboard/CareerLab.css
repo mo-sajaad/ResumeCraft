@@ -524,3 +524,91 @@
     padding: 1.25rem;
   }
 }
+
+
+/* Career Lab visual polish overrides */
+.career-lab-top-actions-copy {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.career-lab-group-subtext {
+  display: inline-block;
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+
+.career-lab-tool-actions .career-lab-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.career-lab-tool-actions .career-lab-action-btn svg {
+  flex: 0 0 auto;
+  font-size: 0.92rem;
+}
+
+.career-lab-action-label {
+  white-space: nowrap;
+}
+
+.career-lab-result-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.career-lab-result-state.generated {
+  color: #166534;
+}
+
+.career-lab-result-state.waiting {
+  color: #64748b;
+}
+
+@media (max-width: 1100px) {
+  .career-lab-top-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .career-lab-tool-actions .career-lab-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+.career-lab-diagnostic-flow {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.career-lab-diagnostic-flow p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.9rem;
+}
+
+.career-lab-diagnostic-steps {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.86rem;
+}
+
+.career-lab-diagnostic-steps li::marker {
+  color: #c7d2fe;
+}
