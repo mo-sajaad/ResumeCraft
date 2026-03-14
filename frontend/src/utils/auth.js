@@ -10,7 +10,7 @@ export function getStoredAppJwt() {
   return null;
 }
 
-export async function exchangeFirebaseTokenForJwt() {
+export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   const firebaseUser = auth?.currentUser;
 
   if (!firebaseUser) {
@@ -19,7 +19,8 @@ export async function exchangeFirebaseTokenForJwt() {
   }
 
   const firebaseToken = await firebaseUser.getIdToken();
-  const fullName = firebaseUser.displayName || null;
+  const sanitizedPreferredName = typeof preferredFullName === "string" ? preferredFullName.trim() : "";
+  const fullName = sanitizedPreferredName || firebaseUser.displayName || null;
 
   const response = await fetch("/api/auth/exchange", {
     method: "POST",
@@ -57,6 +58,32 @@ export async function getAuthHeaders(extraHeaders = {}, options) {
   return {
     ...extraHeaders,
   };
+}
+
+export async function authFetch(input, init = {}, authOptions = {}) {
+  const headers = await getAuthHeaders(init.headers || {}, authOptions);
+
+  const requestInit = {
+    ...init,
+    credentials: "include",
+    headers,
+  };
+
+  let response = await fetch(input, requestInit);
+
+  if (response.status !== 401 || authOptions?.retryOnAuthError === false) {
+    return response;
+  }
+
+  await getAuthToken({ forceRefresh: true });
+
+  const refreshedHeaders = await getAuthHeaders(init.headers || {});
+  response = await fetch(input, {
+    ...requestInit,
+    headers: refreshedHeaders,
+  });
+
+  return response;
 }
 
 export async function logoutSession() {

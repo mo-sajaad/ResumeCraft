@@ -137,8 +137,11 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const userDisplayName = useMemo(() => user?.displayName?.trim() || user?.email || "Guest User", [user]);
-  const userInitials = useMemo(() => getInitials(userDisplayName), [userDisplayName]);
+  const userDisplayName = useMemo(
+    () => profile?.full_name?.trim() || user?.displayName?.trim() || user?.email || profile?.email || "Guest User",
+    [profile?.email, profile?.full_name, user]
+  );
+  const userInitials = useMemo(() => getInitials(userDisplayName, user?.email || profile?.email), [profile?.email, user?.email, userDisplayName]);
   const planLabel = useMemo(() => {
     const code = (profile?.plan_code || "free").toLowerCase();
     return `${code.charAt(0).toUpperCase()}${code.slice(1)} Plan`;
@@ -231,7 +234,7 @@ export default function DashboardLayout() {
             >
               <div className="user-avatar">{userInitials}</div>
               <div className="user-details">
-                <span className="user-name">{profile?.full_name || userDisplayName}</span>
+                <span className="user-name">{userDisplayName}</span>
                 <span className="user-plan">{planLabel}</span>
               </div>
             </button>
