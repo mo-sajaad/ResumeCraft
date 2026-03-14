@@ -110,24 +110,32 @@ export default function CareerLabToolPage() {
       </div>
 
       <div className="career-lab-tool-actions">
-        <Button type="button" onClick={handleRun} disabled={isRunning || tool.disabled(mergedInputs)}>
-          {isRunning ? <FaSpinner className="spin" /> : <FaPlay />} {isRunning ? tool.runningLabel : tool.buttonLabel}
+        <Button type="button" onClick={handleRun} disabled={isRunning || tool.disabled(mergedInputs)} className="career-lab-action-btn">
+          {isRunning ? <FaSpinner className="spin" /> : <FaPlay />}
+          <span className="career-lab-action-label">{isRunning ? tool.runningLabel : tool.buttonLabel}</span>
         </Button>
-        <Button type="button" variant="secondary" onClick={restoreSharedDefaults}>
-          <FaSyncAlt /> Use shared defaults
+        <Button type="button" variant="secondary" onClick={restoreSharedDefaults} className="career-lab-action-btn">
+          <FaSyncAlt />
+          <span className="career-lab-action-label">Use shared defaults</span>
         </Button>
-        <Button type="button" variant="secondary" onClick={saveToSharedDefaults}>
-          Save to shared defaults
+        <Button type="button" variant="secondary" onClick={saveToSharedDefaults} className="career-lab-action-btn">
+          <FaCheckCircle />
+          <span className="career-lab-action-label">Save to shared defaults</span>
         </Button>
-        <Button as={NavLink} to="/dashboard/career-lab" variant="secondary">
-          Explore all tools <FaArrowRight />
+        <Button as={NavLink} to="/dashboard/career-lab" variant="secondary" className="career-lab-action-btn">
+          <FaArrowRight />
+          <span className="career-lab-action-label">Explore all tools</span>
         </Button>
       </div>
 
       <div className="career-lab-result-panel">
         <div className="career-lab-group-header">
           <h4>Result Output</h4>
-          {hasResult ? <span><FaCheckCircle /> Generated</span> : <span>Waiting for run</span>}
+          {hasResult ? (
+            <span className="career-lab-result-state generated"><FaCheckCircle /> Generated</span>
+          ) : (
+            <span className="career-lab-result-state waiting">Waiting for run</span>
+          )}
         </div>
         <pre>{prettyResult(results[tool.id] || { message: tool.emptyMessage })}</pre>
       </div>
