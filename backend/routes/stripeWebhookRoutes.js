@@ -19,6 +19,40 @@ async function getPlanIdByCode(client, planCode) {
   return result.rows[0]?.id || null;
 }
 
+async function registerWebhookEvent(event) {
+  const result = await pool.query(
+    `INSERT INTO stripe_webhook_events (event_id, event_type, status)
+     VALUES ($1, $2, 'processing')
+     ON CONFLICT (event_id) DO NOTHING
+     RETURNING event_id`,
+    [event.id, event.type]
+  );
+
+  return result.rows.length > 0;
+}
+
+async function markWebhookEventProcessed(eventId) {
+  await pool.query(
+    `UPDATE stripe_webhook_events
+     SET status = 'processed',
+         processed_at = NOW(),
+         error_message = NULL
+     WHERE event_id = $1`,
+    [eventId]
+  );
+}
+
+async function markWebhookEventFailed(eventId, error) {
+  await pool.query(
+    `UPDATE stripe_webhook_events
+     SET status = 'failed',
+         processed_at = NOW(),
+         error_message = $2
+     WHERE event_id = $1`,
+    [eventId, String(error?.message || 'unknown error').slice(0, 2000)]
+  );
+}
+
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const signature = req.headers['stripe-signature'];
 
@@ -39,15 +73,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     return res.status(400).send(`Webhook error: ${error.message}`);
   }
 
-  const stripe = getStripeClient();
-
   try {
+    const isFirstDelivery = await registerWebhookEvent(event);
+    if (!isFirstDelivery) {
+      return res.json({ received: true, duplicate: true });
+    }
+
+    const stripe = getStripeClient();
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const userId = session.metadata?.userId || session.client_reference_id;
       const planCode = session.metadata?.plan;
 
       if (!userId || !planCode || !['premium', 'pro'].includes(planCode)) {
+        await markWebhookEventProcessed(event.id);
         return res.json({ received: true, ignored: true });
       }
 
@@ -59,6 +99,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const planId = await getPlanIdByCode(client, planCode);
         if (!planId) {
           await client.query('ROLLBACK');
+          await markWebhookEventProcessed(event.id);
           return res.json({ received: true, ignored: true });
         }
 
@@ -159,10 +200,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       );
     }
 
+    await markWebhookEventProcessed(event.id);
     return res.json({ received: true });
   } catch (error) {
     console.error('[stripe webhook] processing failed', error);
-    return res.status(500).json({ error: 'Webhook processing failed.' });
+    await markWebhookEventFailed(event.id, error).catch(() => {});
+    return res.status(500).json({ message: 'Webhook processing failed.' });
   }
 });
 

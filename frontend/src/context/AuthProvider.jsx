@@ -3,7 +3,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import { AuthContext } from "./AuthContext.jsx";
 import { auth, signOut } from "../firebase.js";
-import { clearAppJwt, getAuthHeaders, getAuthToken } from "../utils/auth";
+import { clearAppJwt, getAuthHeaders, getAuthToken, logoutSession } from "../utils/auth";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Firebase Auth user
@@ -58,6 +58,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     if (!auth) return;
+    await logoutSession();
     await signOut(auth);
     clearAppJwt();
     setProfile(null);

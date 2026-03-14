@@ -1,5 +1,7 @@
-const pool = require('../config/db');
 const { rewriteDocumentText } = require('../services/aiService');
+const { services: { workspaceService } } = require('../modules/documents');
+const { validate } = require('../shared/http/validators');
+const { workspaceReadSchema, workspaceUpdateSchema, workspaceRewriteSchema } = require('../modules/documents/schemas/workspaceSchemas');
 
 function parseType(rawType) {
   const type = String(rawType || '').toLowerCase();
@@ -42,27 +44,19 @@ function extractCoverLetterText(row) {
 
 async function getWorkspaceDocument(req, res, next) {
   try {
-    const type = parseType(req.query.type);
-    const id = req.query.id;
+    const query = validate(workspaceReadSchema, req.query || {});
+    const type = parseType(query.type);
+    const id = query.id;
 
-    if (!type || !id) {
-      return res.status(400).json({ error: 'type and id are required.' });
+    const row = type === 'resume'
+      ? await workspaceService.getResumeForUser(id, req.user.id)
+      : await workspaceService.getCoverLetterForUser(id, req.user.id);
+
+    if (!row) {
+      return res.status(404).json({ error: type === 'resume' ? 'Resume not found.' : 'Cover letter not found.' });
     }
 
     if (type === 'resume') {
-      const result = await pool.query(
-        `SELECT id, title, template_key, summary, generated_text, last_edited_at
-         FROM resumes
-         WHERE id = $1 AND user_id = $2
-         LIMIT 1`,
-        [id, req.user.id]
-      );
-
-      if (!result.rows.length) {
-        return res.status(404).json({ error: 'Resume not found.' });
-      }
-
-      const row = result.rows[0];
       return res.json({
         id: row.id,
         type,
@@ -73,19 +67,6 @@ async function getWorkspaceDocument(req, res, next) {
       });
     }
 
-    const result = await pool.query(
-      `SELECT id, title, body_paragraphs, generated_text, last_edited_at
-       FROM cover_letters
-       WHERE id = $1 AND user_id = $2
-       LIMIT 1`,
-      [id, req.user.id]
-    );
-
-    if (!result.rows.length) {
-      return res.status(404).json({ error: 'Cover letter not found.' });
-    }
-
-    const row = result.rows[0];
     return res.json({
       id: row.id,
       type,
@@ -101,90 +82,47 @@ async function getWorkspaceDocument(req, res, next) {
 
 async function updateWorkspaceDocument(req, res, next) {
   try {
-    const type = parseType(req.body?.type);
-    const id = req.body?.id;
-    const text = typeof req.body?.text === 'string' ? req.body.text : '';
+    const payload = validate(workspaceUpdateSchema, req.body || {});
+    const type = parseType(payload.type);
+    const id = payload.id;
+    const text = payload.text;
 
-    if (!type || !id) {
-      return res.status(400).json({ error: 'type and id are required.' });
-    }
+    const current = type === 'resume'
+      ? await workspaceService.getResumeForUser(id, req.user.id)
+      : await workspaceService.getCoverLetterForUser(id, req.user.id);
 
-    if (type === 'resume') {
-      const currentResult = await pool.query(
-        'SELECT generated_text FROM resumes WHERE id = $1 AND user_id = $2 LIMIT 1',
-        [id, req.user.id]
-      );
-
-      if (!currentResult.rows.length) {
-        return res.status(404).json({ error: 'Resume not found.' });
-      }
-
-      let generated = {};
-      try {
-        generated = JSON.parse(currentResult.rows[0].generated_text || '{}');
-      } catch (_err) {
-        generated = {};
-      }
-
-      generated.summary = text;
-
-      const result = await pool.query(
-        `UPDATE resumes
-         SET summary = $1,
-             generated_text = $2,
-             updated_at = NOW(),
-             last_edited_at = NOW()
-         WHERE id = $3 AND user_id = $4
-         RETURNING id, title, template_key, summary, last_edited_at`,
-        [text, JSON.stringify(generated), id, req.user.id]
-      );
-
-      return res.json({
-        id: result.rows[0].id,
-        type,
-        title: result.rows[0].title,
-        style: result.rows[0].template_key || 'modern',
-        text: result.rows[0].summary || '',
-        lastEditedAt: result.rows[0].last_edited_at,
-      });
-    }
-
-    const currentResult = await pool.query(
-      'SELECT generated_text FROM cover_letters WHERE id = $1 AND user_id = $2 LIMIT 1',
-      [id, req.user.id]
-    );
-
-    if (!currentResult.rows.length) {
-      return res.status(404).json({ error: 'Cover letter not found.' });
+    if (!current) {
+      return res.status(404).json({ error: type === 'resume' ? 'Resume not found.' : 'Cover letter not found.' });
     }
 
     let generated = {};
     try {
-      generated = JSON.parse(currentResult.rows[0].generated_text || '{}');
+      generated = JSON.parse(current.generated_text || '{}');
     } catch (_err) {
       generated = {};
     }
 
-    generated.body = text;
+    if (type === 'resume') {
+      generated.summary = text;
+    } else {
+      generated.body = text;
+    }
 
-    const result = await pool.query(
-      `UPDATE cover_letters
-       SET body_paragraphs = $1,
-           generated_text = $2,
-           updated_at = NOW(),
-           last_edited_at = NOW()
-       WHERE id = $3 AND user_id = $4
-       RETURNING id, title, body_paragraphs, last_edited_at`,
-      [text, JSON.stringify(generated), id, req.user.id]
-    );
+    const updated = type === 'resume'
+      ? await workspaceService.updateResumeForUser(id, req.user.id, text, JSON.stringify(generated))
+      : await workspaceService.updateCoverLetterForUser(id, req.user.id, text, JSON.stringify(generated));
+
+    if (!updated) {
+      return res.status(404).json({ error: type === 'resume' ? 'Resume not found.' : 'Cover letter not found.' });
+    }
 
     return res.json({
-      id: result.rows[0].id,
+      id: updated.id,
       type,
-      title: result.rows[0].title,
-      style: req.body?.style || 'modern',
-      text: result.rows[0].body_paragraphs || '',
-      lastEditedAt: result.rows[0].last_edited_at,
+      title: updated.title,
+      style: type === 'resume' ? (updated.template_key || 'modern') : (req.body?.style || 'modern'),
+      text,
+      lastEditedAt: updated.last_edited_at,
     });
   } catch (error) {
     return next(error);
@@ -193,21 +131,10 @@ async function updateWorkspaceDocument(req, res, next) {
 
 async function rewriteWorkspaceDocument(req, res, next) {
   try {
-    const type = parseType(req.body?.type);
-    const text = typeof req.body?.text === 'string' ? req.body.text : '';
-    const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
-
-    if (!type) {
-      return res.status(400).json({ error: 'type is required.' });
-    }
-
-    if (!text.trim()) {
-      return res.status(400).json({ error: 'text is required.' });
-    }
-
-    if (!prompt) {
-      return res.status(400).json({ error: 'prompt is required.' });
-    }
+    const payload = validate(workspaceRewriteSchema, req.body || {});
+    const type = parseType(payload.type);
+    const text = payload.text;
+    const prompt = payload.prompt;
 
     const rewrittenText = await rewriteDocumentText({
       type,
