@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import {
   GoogleAuthProvider,
@@ -14,10 +14,13 @@ import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const destination = location.state?.from?.pathname || "/dashboard";
 
   const requireFirebase = () => {
     if (!hasFirebaseConfig || !auth) {
@@ -38,7 +41,7 @@ export default function Login() {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
       await exchangeFirebaseTokenForJwt();
-      navigate("/dashboard");
+      navigate(destination, { replace: true });
     } catch {
       setError("Google sign-in failed");
       setLoading(false);
@@ -58,7 +61,7 @@ export default function Login() {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
       await exchangeFirebaseTokenForJwt();
-      navigate("/dashboard");
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(`Failed to sign in: ${err.message}`);
     } finally {
