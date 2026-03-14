@@ -19,6 +19,22 @@ function countPopulatedInputs(inputs) {
   return Object.values(inputs).filter((value) => String(value || "").trim().length > 0).length;
 }
 
+function resolveCareerToolEndpoint(endpoint) {
+  if (!endpoint) return endpoint;
+  if (/^https?:\/\//.test(endpoint)) return endpoint;
+
+  const configuredBase = (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/$/, "");
+  if (configuredBase) {
+    return `${configuredBase}${endpoint}`;
+  }
+
+  if (import.meta.env.DEV && window.location.hostname === "localhost" && window.location.port === "5173") {
+    return `http://localhost:5000${endpoint}`;
+  }
+
+  return endpoint;
+}
+
 export default function CareerLabLayout() {
   const location = useLocation();
 
@@ -65,12 +81,13 @@ export default function CareerLabLayout() {
 
   const runTool = async (tool, overrideInputs = null) => {
     const payloadInputs = overrideInputs || inputs;
+    const endpoint = resolveCareerToolEndpoint(tool.endpoint);
 
     setRunning((prev) => ({ ...prev, [tool.id]: true }));
     setError("");
 
     try {
-      const response = await fetch(tool.endpoint, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: await getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(tool.payload(payloadInputs)),
@@ -78,6 +95,9 @@ export default function CareerLabLayout() {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Endpoint not found for ${tool.title}. Check backend route mounting or VITE_API_BASE_URL.`);
+        }
         throw new Error(data?.error || `Failed to run ${tool.title}.`);
       }
 
