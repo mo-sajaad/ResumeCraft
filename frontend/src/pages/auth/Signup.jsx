@@ -20,10 +20,10 @@ export default function Signup() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) navigate("/dashboard");
   }, [user, navigate]);
@@ -36,14 +36,12 @@ export default function Signup() {
     return true;
   };
 
-  // Handle Firebase Google Sign-In
   const handleGoogleSignIn = async () => {
     if (!requireFirebase()) return;
 
     const provider = new GoogleAuthProvider();
     try {
       setLoading(true);
-
       setError("");
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
@@ -51,7 +49,6 @@ export default function Signup() {
       navigate("/dashboard");
     } catch {
       setError("Google sign-in failed");
-      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -59,18 +56,18 @@ export default function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-     if (!requireFirebase()) return;
+    if (!requireFirebase()) return;
+    if (!acceptedTerms) {
+      setError("Please accept the Terms and Privacy Policy to continue.");
+      return;
+    }
 
     setLoading(true);
     setError("");
     try {
       await setPersistence(auth, browserLocalPersistence);
-
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-      // Update display name
       await updateProfile(userCredential.user, { displayName: fullName });
-
       await exchangeFirebaseTokenForJwt();
       navigate("/dashboard");
     } catch (err) {
@@ -80,70 +77,77 @@ export default function Signup() {
     }
   };
 
-
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      <h1>Create Your Account</h1>
-      <p className="subtitle">Start building your professional resume today</p>
+      <header className="auth-form-header">
+        <h2>Create account</h2>
+        <p>Start building tailored resumes and cover letters with AI support.</p>
+      </header>
 
-      {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
+      {error ? <p className="auth-error">{error}</p> : null}
 
-      {/* Google signup */}
-      <button type="button" className="google-btn" onClick={handleGoogleSignIn} disabled={loading}>
-        {loading ? "Signing in..." : "Continue with Google"}
+      <button type="button" className="auth-google-btn" onClick={handleGoogleSignIn} disabled={loading}>
+        {loading ? "Signing up..." : "Continue with Google"}
       </button>
 
-      <div className="divider">
-        <span>Or continue with email</span>
+      <div className="auth-divider">or sign up with email</div>
+
+      <div className="auth-field">
+        <label htmlFor="signup-name">Full name</label>
+        <input
+          type="text"
+          id="signup-name"
+          placeholder="Jane Doe"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+        />
       </div>
 
-      <label htmlFor="fullName">Full Name</label>
-      <input
-        type="text"
-        id="fullName"
-        placeholder="John Doe"
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-        required
-      />
-
-      <label htmlFor="email">Email</label>
-      <input
-        type="email"
-        id="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-
-      <label htmlFor="password">Password</label>
-      <input
-        type="password"
-        id="password"
-        placeholder="••••••••"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        minLength={8}
-      />
-      <p style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "-0.5rem", marginBottom: "1rem" }}>
-        Must be at least 8 characters long
-      </p>
-
-      <div className="terms">
-        <input type="checkbox" id="terms" required />
-        <label htmlFor="terms">
-          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
-        </label>
+      <div className="auth-field">
+        <label htmlFor="signup-email">Email</label>
+        <input
+          type="email"
+          id="signup-email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
       </div>
 
-      <button type="submit" disabled={loading}>
+      <div className="auth-field">
+        <label htmlFor="signup-password">Password</label>
+        <input
+          type="password"
+          id="signup-password"
+          placeholder="Minimum 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          minLength={8}
+          required
+        />
+      </div>
+      <p className="auth-helper">Use at least 8 characters with a mix of letters and numbers.</p>
+
+      <label className="auth-check" htmlFor="signup-terms">
+        <input
+          id="signup-terms"
+          type="checkbox"
+          checked={acceptedTerms}
+          onChange={(e) => setAcceptedTerms(e.target.checked)}
+        />
+        <span>
+          I agree to the <a className="auth-link" href="#">Terms</a> and <a className="auth-link" href="#">Privacy Policy</a>.
+        </span>
+      </label>
+
+      <button type="submit" className="auth-submit-btn" disabled={loading}>
         {loading ? "Creating account..." : "Create Account"}
       </button>
 
       <p className="auth-footer">
-        Already have an account? <Link to="/auth/login">Sign in</Link>
+        Already have an account? <Link className="auth-link" to="/auth/login">Sign in</Link>
       </p>
     </form>
   );
