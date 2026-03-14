@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
 
     // Fetch the profile from your backend
     const res = await fetch(`/api/users/${firebaseUser.uid}`, {
+      credentials: "include",
       headers: await getAuthHeaders(),
     });
 

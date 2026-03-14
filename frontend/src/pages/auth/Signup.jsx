@@ -45,7 +45,7 @@ export default function Signup() {
       setError("");
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
-      await exchangeFirebaseTokenForJwt();
+      await exchangeFirebaseTokenForJwt(fullName);
       navigate("/dashboard");
     } catch {
       setError("Google sign-in failed");
@@ -68,7 +68,7 @@ export default function Signup() {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: fullName });
-      await exchangeFirebaseTokenForJwt();
+      await exchangeFirebaseTokenForJwt(fullName);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
