@@ -13,6 +13,7 @@ import {
 import Button from "../../../components/ui/Button";
 import { getAuthHeaders } from "../../../utils/auth";
 import { CAREER_LAB_TOOLS, TOOL_CATEGORIES } from "./careerLabTools";
+import "../DashboardShared.css";
 import "../CareerLab.css";
 
 function countPopulatedInputs(inputs) {
