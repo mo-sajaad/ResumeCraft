@@ -59,54 +59,6 @@
   opacity: 0.9;
 }
 
-.career-lab-hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  background: linear-gradient(120deg, #0f172a, #1e1b4b 65%, #312e81);
-  color: #fff;
-}
-
-.career-lab-eyebrow {
-  margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
-
-.career-lab-hero-description {
-  margin: 0.5rem 0 0;
-  color: rgba(255, 255, 255, 0.86);
-  max-width: 700px;
-}
-
-.career-lab-metrics {
-  display: grid;
-  gap: 0.65rem;
-  min-width: 250px;
-}
-
-.career-lab-metric {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 0.8rem;
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.career-lab-metric strong {
-  display: block;
-  font-size: 1.15rem;
-}
-
-.career-lab-metric span {
-  font-size: 0.85rem;
-  opacity: 0.9;
-}
-
 .career-lab-inputs {
   display: flex;
   justify-content: space-between;
@@ -253,6 +205,34 @@
   gap: 0.45rem;
 }
 
+.career-lab-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.career-lab-toggle-all {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+}
+
+.career-lab-toggle-all:hover {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.career-lab-top-nav-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
 .career-lab-groups-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -357,6 +337,10 @@
   .career-lab-tool-header,
   .career-lab-group-header {
     flex-direction: column;
+  }
+
+  .career-lab-hero {
+    padding: 1.25rem;
   }
 }
 
