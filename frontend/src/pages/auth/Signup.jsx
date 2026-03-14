@@ -45,7 +45,7 @@ export default function Signup() {
       setError("");
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
-      await exchangeFirebaseTokenForJwt();
+      await exchangeFirebaseTokenForJwt(fullName);
       navigate("/dashboard");
     } catch {
       setError("Google sign-in failed");
