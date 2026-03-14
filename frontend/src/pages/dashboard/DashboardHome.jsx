@@ -118,8 +118,8 @@ export default function DashboardHome() {
     try {
       const headers = await getAuthHeaders();
       const [resumesResponse, coverLettersResponse] = await Promise.all([
-        fetch("/api/resumes", { headers }),
-        fetch("/api/cover-letters", { headers }),
+        fetch("/api/resumes", { credentials: "include", headers }),
+        fetch("/api/cover-letters", { credentials: "include", headers }),
       ]);
 
       const resumesData = await resumesResponse.json().catch(() => []);
@@ -161,7 +161,7 @@ export default function DashboardHome() {
     try {
       const headers = await getAuthHeaders();
       const endpoint = type === "resume" ? `/api/resumes/${id}` : `/api/cover-letters/${id}`;
-      const response = await fetch(endpoint, { method: "DELETE", headers });
+      const response = await fetch(endpoint, { method: "DELETE", credentials: "include", headers });
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
