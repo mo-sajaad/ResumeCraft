@@ -45,6 +45,8 @@ async function parseJobDescription(req, res, next) {
       toolName: 'job_parser',
       input: { jobDescription },
       baselineResponse,
+      requiredKeys: ['requiredSkills', 'preferredSkills', 'responsibilities'],
+      outputRequirements: 'Return keys: requiredSkills (string[]), preferredSkills (string[]), softSkills (string[]), seniority (string), responsibilities (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -92,6 +94,8 @@ async function analyzeAts(req, res, next) {
       toolName: 'ats_analysis',
       input: { resumeText, jobDescription },
       baselineResponse,
+      requiredKeys: ['atsScore', 'matchPercent', 'recommendations'],
+      outputRequirements: 'Return keys: atsScore (0-100), matchPercent (0-100), keywordDensityScore (0-100), impactScore (0-100), matchedSkills (string[]), missingSkills (string[]), recommendations (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -129,6 +133,8 @@ async function recruiterScan(req, res, next) {
       toolName: 'recruiter_scan',
       input: { resumeText },
       baselineResponse,
+      requiredKeys: ['skimScore', 'redFlags', 'recruiterSummary'],
+      outputRequirements: 'Return keys: skimScore (0-100), sixSecondReadiness (0-100), measurableBullets (number), buzzwords (string[]), redFlags (string[]), recruiterSummary (string).',
     });
 
     return res.json(enhancedResponse);
@@ -169,6 +175,8 @@ async function competitiveAnalysis(req, res, next) {
       toolName: 'competitive_analysis',
       input: { resumeText, benchmarkText },
       baselineResponse,
+      requiredKeys: ['benchmarkAlignment', 'rewriteSuggestions'],
+      outputRequirements: 'Return keys: benchmarkAlignment (0-100), sharedSkills (string[]), missingComparedToBenchmark (string[]), rewriteSuggestions (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -213,6 +221,8 @@ async function interviewPrep(req, res, next) {
       toolName: 'interview_prep',
       input: { resumeText, jobDescription, answerText },
       baselineResponse,
+      requiredKeys: ['interviewQuestions', 'coachingPriorities', 'confidenceScore'],
+      outputRequirements: "Return keys: interviewQuestions (string[]), weaknessDetection (string[]), answerGrading ('strong'|'average'|'weak'|'not_provided'), confidenceScore (0-100), coachingPriorities (string[]), suggestion (string).",
     });
 
     return res.json(enhancedResponse);
@@ -248,6 +258,8 @@ async function salaryEstimate(req, res, next) {
       toolName: 'salary_estimate',
       input: { targetRole, location, yearsExperience },
       baselineResponse,
+      requiredKeys: ['salaryBand', 'tips'],
+      outputRequirements: 'Return keys: targetRole (string), location (string), yearsExperience (number), salaryBand ({currency,minAnnual,maxAnnual}), tips (string[]).',
     });
 
     return res.json(enhancedResponse);
@@ -292,6 +304,8 @@ async function roleFitAnalysis(req, res, next) {
       toolName: 'role_fit',
       input: { resumeText, targetRole },
       baselineResponse,
+      requiredKeys: ['roleFitScore', 'recommendations'],
+      outputRequirements: 'Return keys: roleFitScore (0-100), roleMatchPercent (0-100), quantifiedImpactScore (0-100), trendingSkillsSuggestions (string[]), remoteReadinessScore (0-100), promotionReadinessScore (0-100), recommendations (string[]).',
     });
 
     return res.json(enhancedResponse);

@@ -4,6 +4,7 @@ const AI_MODEL = process.env.OPENAI_CAREER_LAB_MODEL || 'gpt-4o-mini';
 
 function safeParseJson(value) {
   if (!value || typeof value !== 'string') return null;
+
   try {
     return JSON.parse(value);
   } catch {
@@ -11,54 +12,55 @@ function safeParseJson(value) {
   }
 }
 
-function mergeAiIntoBaseline(baseline, aiPayload) {
-  if (!aiPayload || typeof aiPayload !== 'object' || Array.isArray(aiPayload)) {
-    return { ...baseline };
-  }
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
 
-  const mergeRecursively = (base, ai) => {
-    if (Array.isArray(base) || Array.isArray(ai)) return base;
+function hasRequiredKeys(candidate, requiredKeys = []) {
+  if (!isPlainObject(candidate)) return false;
+  return requiredKeys.every((key) => candidate[key] !== undefined && candidate[key] !== null);
+}
 
-    const merged = { ...base };
-    Object.entries(ai || {}).forEach(([key, aiValue]) => {
-      const baseValue = merged[key];
+function aiOverridesBaseline(baseline, aiPayload) {
+  if (!isPlainObject(aiPayload)) return { ...baseline };
 
-      if (baseValue === undefined) {
-        merged[key] = aiValue;
-        return;
-      }
+  const merge = (baseValue, aiValue) => {
+    if (Array.isArray(aiValue)) return aiValue;
+    if (!isPlainObject(aiValue)) return aiValue;
 
-      if (
-        baseValue
-        && aiValue
-        && typeof baseValue === 'object'
-        && typeof aiValue === 'object'
-        && !Array.isArray(baseValue)
-        && !Array.isArray(aiValue)
-      ) {
-        merged[key] = mergeRecursively(baseValue, aiValue);
-      }
+    const baseObject = isPlainObject(baseValue) ? baseValue : {};
+    const merged = { ...baseObject };
+
+    Object.entries(aiValue).forEach(([key, value]) => {
+      merged[key] = merge(baseObject[key], value);
     });
 
     return merged;
   };
 
-  return mergeRecursively(baseline, aiPayload);
+  return merge(baseline, aiPayload);
 }
 
-function buildPrompt({ toolName, input, baseline }) {
+function buildPrompt({ toolName, input, baseline, outputRequirements }) {
   return [
-    'You are an expert career coach and recruiting strategist.',
+    'You are a principal-level career strategist and recruiter advisor.',
     `Tool: ${toolName}`,
-    'Given INPUT and BASELINE JSON, return ONLY a valid JSON object that adds high-quality refinements.',
-    'Do not remove or overwrite existing BASELINE keys. Only add complementary keys.',
-    'Preferred additional keys: executiveSummary (string), priorityActions (string[]), risks (string[]), confidenceRationale (string).',
+    'Return strict JSON only.',
+    'Produce a complete response object that improves on BASELINE while remaining practical and specific.',
+    'Do not include markdown fences or commentary outside JSON.',
+    outputRequirements ? `Output requirements:\n${outputRequirements}` : null,
     `INPUT:\n${JSON.stringify(input)}`,
     `BASELINE:\n${JSON.stringify(baseline)}`,
-  ].join('\n\n');
+  ].filter(Boolean).join('\n\n');
 }
 
-async function buildAiEnhancedResponse({ toolName, input, baselineResponse }) {
+async function buildAiEnhancedResponse({
+  toolName,
+  input,
+  baselineResponse,
+  requiredKeys = [],
+  outputRequirements = '',
+}) {
   const client = getOpenAIClient();
 
   if (!client) {
@@ -76,11 +78,16 @@ async function buildAiEnhancedResponse({ toolName, input, baselineResponse }) {
       messages: [
         {
           role: 'system',
-          content: 'Return strict JSON only. No markdown, no prose outside JSON.',
+          content: 'Return strict JSON only. Be concise, specific, and actionable.',
         },
         {
           role: 'user',
-          content: buildPrompt({ toolName, input, baseline: baselineResponse }),
+          content: buildPrompt({
+            toolName,
+            input,
+            baseline: baselineResponse,
+            outputRequirements,
+          }),
         },
       ],
     });
@@ -88,7 +95,7 @@ async function buildAiEnhancedResponse({ toolName, input, baselineResponse }) {
     const content = completion?.choices?.[0]?.message?.content;
     const parsed = safeParseJson(content);
 
-    if (!parsed) {
+    if (!parsed || !hasRequiredKeys(parsed, requiredKeys)) {
       return {
         ...baselineResponse,
         aiEnhancementStatus: 'invalid_ai_json',
@@ -96,7 +103,7 @@ async function buildAiEnhancedResponse({ toolName, input, baselineResponse }) {
     }
 
     return {
-      ...mergeAiIntoBaseline(baselineResponse, parsed),
+      ...aiOverridesBaseline(baselineResponse, parsed),
       aiEnhancementStatus: 'enhanced',
     };
   } catch {
@@ -109,6 +116,6 @@ async function buildAiEnhancedResponse({ toolName, input, baselineResponse }) {
 
 module.exports = {
   safeParseJson,
-  mergeAiIntoBaseline,
+  aiOverridesBaseline,
   buildAiEnhancedResponse,
 };
