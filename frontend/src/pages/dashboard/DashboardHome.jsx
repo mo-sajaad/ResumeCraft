@@ -8,7 +8,7 @@ import { ErrorState, LoadingState } from "../../components/ui/LoadingState";
 import PageHeader from "../../components/ui/PageHeader";
 import { ROUTES } from "../../constants/routes";
 import { useAuth } from "../../context/useAuth";
-import { getAuthHeaders } from "../../utils/auth";
+import { authFetch } from "../../utils/auth";
 import "./DashboardShared.css";
 
 function formatLastEdited(dateValue) {
@@ -116,17 +116,16 @@ export default function DashboardHome() {
     setDocsError("");
 
     try {
-      const headers = await getAuthHeaders();
       const [resumesResponse, coverLettersResponse] = await Promise.all([
-        fetch("/api/resumes", { credentials: "include", headers }),
-        fetch("/api/cover-letters", { credentials: "include", headers }),
+        authFetch("/api/resumes"),
+        authFetch("/api/cover-letters"),
       ]);
 
       const resumesData = await resumesResponse.json().catch(() => []);
       const coverLettersData = await coverLettersResponse.json().catch(() => []);
 
-      if (!resumesResponse.ok) throw new Error(resumesData?.error || "Failed to load resumes.");
-      if (!coverLettersResponse.ok) throw new Error(coverLettersData?.error || "Failed to load cover letters.");
+      if (!resumesResponse.ok) throw new Error(resumesData?.error || resumesData?.message || "Failed to load resumes.");
+      if (!coverLettersResponse.ok) throw new Error(coverLettersData?.error || coverLettersData?.message || "Failed to load cover letters.");
 
       setResumes(Array.isArray(resumesData) ? resumesData : []);
       setCoverLetters(Array.isArray(coverLettersData) ? coverLettersData : []);
@@ -159,9 +158,8 @@ export default function DashboardHome() {
     setDeletingDocId(`${type}-${id}`);
 
     try {
-      const headers = await getAuthHeaders();
       const endpoint = type === "resume" ? `/api/resumes/${id}` : `/api/cover-letters/${id}`;
-      const response = await fetch(endpoint, { method: "DELETE", credentials: "include", headers });
+      const response = await authFetch(endpoint, { method: "DELETE" });
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {

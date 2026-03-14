@@ -60,6 +60,32 @@ export async function getAuthHeaders(extraHeaders = {}, options) {
   };
 }
 
+export async function authFetch(input, init = {}, authOptions = {}) {
+  const headers = await getAuthHeaders(init.headers || {}, authOptions);
+
+  const requestInit = {
+    ...init,
+    credentials: "include",
+    headers,
+  };
+
+  let response = await fetch(input, requestInit);
+
+  if (response.status !== 401 || authOptions?.retryOnAuthError === false) {
+    return response;
+  }
+
+  await getAuthToken({ forceRefresh: true });
+
+  const refreshedHeaders = await getAuthHeaders(init.headers || {});
+  response = await fetch(input, {
+    ...requestInit,
+    headers: refreshedHeaders,
+  });
+
+  return response;
+}
+
 export async function logoutSession() {
   try {
     await fetch("/api/auth/logout", {
