@@ -8,6 +8,11 @@ const requirePlan = require('../middleware/requirePlan');
 const requireTemplateAccess = require('../middleware/requireTemplateAccess');
 
 const {
+  aiRequestRateLimiter,
+  enforceResumePayloadLength,
+} = require('../middleware/aiAbuseProtection');
+
+const {
   createCoverLetterWithAI,
   getCoverLettersByUser,
   getCoverLetterById,
@@ -18,7 +23,7 @@ const {
 } = require('../controllers/coverLetterController');
 
 
-router.post('/generate', authenticateJWT, attachPlan, enforceUsage('cover_letter'), requireTemplateAccess(), createCoverLetterWithAI);
+router.post('/generate', authenticateJWT, attachPlan, enforceUsage('cover_letter'), requireTemplateAccess(), aiRequestRateLimiter, enforceResumePayloadLength, createCoverLetterWithAI);
 
 router.get('/', authenticateJWT, getCoverLettersByUser);
 router.get('/:id', authenticateJWT, getCoverLetterById);

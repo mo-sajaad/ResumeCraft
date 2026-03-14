@@ -4,6 +4,11 @@ const authenticateJWT = require('../middleware/authMiddleware');
 const attachPlan = require('../middleware/attachPlan');
 const requireFeature = require('../middleware/requireFeature');
 const {
+  aiRequestRateLimiter,
+  careerToolInputGuard,
+  enforceMaxBulletCount,
+} = require('../middleware/aiAbuseProtection');
+const {
   parseJobDescription,
   analyzeAts,
   recruiterScan,
@@ -27,24 +32,24 @@ const {
 
 const router = express.Router();
 
-router.post('/job-parser', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), parseJobDescription);
-router.post('/ats-analysis', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), analyzeAts);
-router.post('/recruiter-scan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), recruiterScan);
-router.post('/competitive-analysis', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), competitiveAnalysis);
-router.post('/interview-prep', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), interviewPrep);
-router.post('/role-fit', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), roleFitAnalysis);
-router.post('/salary-estimate', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), salaryEstimate);
-router.post('/market-demand', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), marketDemandAnalysis);
-router.post('/learning-roadmap', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), learningRoadmap);
-router.post('/visa-guidance', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), visaGuidance);
-router.post('/application-readiness', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), applicationReadiness);
-router.post('/networking-strategy', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), networkingStrategy);
-router.post('/portfolio-audit', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), portfolioAudit);
-router.post('/offer-negotiation', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), offerNegotiationPrep);
-router.post('/job-search-sprint', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), jobSearchSprint);
-router.post('/personal-brand-audit', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), personalBrandAudit);
-router.post('/career-pivot-plan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), careerPivotPlan);
-router.post('/outreach-messages', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), outreachMessageGenerator);
-router.post('/interview-drill-plan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), interviewDrillPlan);
+router.post('/job-parser', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, parseJobDescription);
+router.post('/ats-analysis', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, analyzeAts);
+router.post('/recruiter-scan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, recruiterScan);
+router.post('/competitive-analysis', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, competitiveAnalysis);
+router.post('/interview-prep', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, interviewPrep);
+router.post('/role-fit', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, roleFitAnalysis);
+router.post('/salary-estimate', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, salaryEstimate);
+router.post('/market-demand', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, marketDemandAnalysis);
+router.post('/learning-roadmap', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, learningRoadmap);
+router.post('/visa-guidance', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, visaGuidance);
+router.post('/application-readiness', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, applicationReadiness);
+router.post('/networking-strategy', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, networkingStrategy);
+router.post('/portfolio-audit', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, portfolioAudit);
+router.post('/offer-negotiation', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, offerNegotiationPrep);
+router.post('/job-search-sprint', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, jobSearchSprint);
+router.post('/personal-brand-audit', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, personalBrandAudit);
+router.post('/career-pivot-plan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, careerPivotPlan);
+router.post('/outreach-messages', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, outreachMessageGenerator);
+router.post('/interview-drill-plan', authenticateJWT, attachPlan, requireFeature('has_resume_analysis'), aiRequestRateLimiter, careerToolInputGuard, enforceMaxBulletCount, interviewDrillPlan);
 
 module.exports = router;
