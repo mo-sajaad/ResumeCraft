@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
@@ -14,10 +13,13 @@ import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const destination = location.state?.from?.pathname || "/dashboard";
 
   const requireFirebase = () => {
     if (!hasFirebaseConfig || !auth) {
@@ -27,7 +29,6 @@ export default function Login() {
     return true;
   };
 
-  // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
     if (!requireFirebase()) return;
 
@@ -38,16 +39,14 @@ export default function Login() {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, provider);
       await exchangeFirebaseTokenForJwt();
-      navigate("/dashboard");
+      navigate(destination, { replace: true });
     } catch {
       setError("Google sign-in failed");
-      setLoading(false);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle standard email/password sign-in
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!requireFirebase()) return;
@@ -58,7 +57,7 @@ export default function Login() {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
       await exchangeFirebaseTokenForJwt();
-      navigate("/dashboard");
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(`Failed to sign in: ${err.message}`);
     } finally {
@@ -66,62 +65,60 @@ export default function Login() {
     }
   };
 
-
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      <h1>Welcome Back</h1>
-      <p className="subtitle">Sign in to continue building your resume</p>
+      <header className="auth-form-header">
+        <h2>Sign in</h2>
+        <p>Access your dashboard, resumes, and Career Lab tools.</p>
+      </header>
 
-      {/* Google Sign-In Button */}
-      <button type="button" className="google-btn" onClick={handleGoogleSignIn} disabled={loading}>
+      {error ? <p className="auth-error">{error}</p> : null}
+
+      <button type="button" className="auth-google-btn" onClick={handleGoogleSignIn} disabled={loading}>
         {loading ? "Signing in..." : "Continue with Google"}
       </button>
 
-      <div className="divider">
-        <span>Or continue with email</span>
+      <div className="auth-divider">or use email</div>
+
+      <div className="auth-field">
+        <label htmlFor="login-email">Email</label>
+        <input
+          id="login-email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
       </div>
 
-      {/* Email Input */}
-      <label>Email</label>
-      <input
-        type="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-
-      {/* Password Input */}
-      <label>Password</label>
-      <input
-        type="password"
-        placeholder="••••••••"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-
-      {/* Remember me and Forgot Password */}
-      <div className="options">
-        <div className="remember">
-          <input type="checkbox" />
-          Remember me
-        </div>
-        <Link to="/auth/forgot-password">Forgot password?</Link>
+      <div className="auth-field">
+        <label htmlFor="login-password">Password</label>
+        <input
+          id="login-password"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
       </div>
 
-      {/* Display any error messages */}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <div className="auth-row">
+        <label className="auth-check" htmlFor="remember-me">
+          <input id="remember-me" type="checkbox" />
+          <span>Remember me</span>
+        </label>
+        <Link className="auth-link" to="/auth/forgot-password">Forgot password?</Link>
+      </div>
 
-      {/* Submit Button */}
-      <button type="submit" disabled={loading}>
-        {loading ? "Signing In..." : "Sign In"}
+      <button type="submit" className="auth-submit-btn" disabled={loading}>
+        {loading ? "Signing in..." : "Sign In"}
       </button>
 
-      {/* Footer */}
-      <div className="auth-footer">
-        Don't have an account? <Link to="/auth/signup">Sign up</Link>
-      </div>
+      <p className="auth-footer">
+        New to ResumeCraft? <Link className="auth-link" to="/auth/signup">Create an account</Link>
+      </p>
     </form>
   );
 }

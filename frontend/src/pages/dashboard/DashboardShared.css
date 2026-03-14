@@ -179,6 +179,69 @@
   font-size: 1.1rem;
 }
 
+
+.doc-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.doc-actions-menu {
+  position: relative;
+}
+
+.doc-actions-trigger {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.doc-actions-trigger:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.doc-actions-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 150px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.25rem;
+  z-index: 5;
+}
+
+.doc-action-item {
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.doc-action-item:hover {
+  background: #f1f5f9;
+}
+
+.doc-action-item.danger {
+  color: #b91c1c;
+}
+
 .doc-meta {
   color: #64748b;
   font-size: 0.9rem;
@@ -762,6 +825,69 @@ select.btn:hover {
 .doc-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09);
+}
+
+
+.doc-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.doc-actions-menu {
+  position: relative;
+}
+
+.doc-actions-trigger {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.doc-actions-trigger:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.doc-actions-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 150px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.25rem;
+  z-index: 5;
+}
+
+.doc-action-item {
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.doc-action-item:hover {
+  background: #f1f5f9;
+}
+
+.doc-action-item.danger {
+  color: #b91c1c;
 }
 
 .doc-meta {
