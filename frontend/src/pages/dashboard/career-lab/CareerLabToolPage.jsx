@@ -58,8 +58,8 @@ export default function CareerLabToolPage() {
   const handleRun = async () => {
     try {
       await runTool(tool, mergedInputs);
-    } catch (_error) {
-      // Error state is handled in layout context; avoid unhandled promise rejections in the browser.
+    } catch {
+      // Error handled elsewhere
     }
   };
 
