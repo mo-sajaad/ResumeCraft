@@ -50,13 +50,44 @@ test("Pro career tools reject Premium and allow Pro plans", () => {
   }
 });
 
-test("Premium retains Premium-level ATS analysis", () => {
-  const result = runPlanGate("/ats-analysis", {
-    code: "premium",
-    has_resume_analysis: true,
-  });
+test("Free tools allow all tiers and Premium tools reject Free", () => {
+  for (const path of ["/job-parser", "/ats-analysis"]) {
+    for (const code of ["free", "premium", "pro"]) {
+      const result = runPlanGate(path, { code });
+      assert.equal(result.nextCalled, true, `${path} should allow ${code}`);
+    }
+  }
 
-  assert.equal(result.nextCalled, true);
+  for (const path of [
+    "/role-fit",
+    "/learning-roadmap",
+    "/visa-guidance",
+    "/application-readiness",
+    "/networking-strategy",
+    "/portfolio-audit",
+    "/offer-negotiation",
+    "/job-search-sprint",
+    "/personal-brand-audit",
+    "/career-pivot-plan",
+    "/outreach-messages",
+    "/interview-prep",
+    "/interview-drill-plan",
+  ]) {
+    const freeResult = runPlanGate(path, { code: "free" });
+    assert.equal(
+      freeResult.response.statusCode,
+      403,
+      `${path} should reject Free`,
+    );
+
+    for (const code of ["premium", "pro"]) {
+      const paidResult = runPlanGate(path, {
+        code,
+        has_resume_analysis: true,
+      });
+      assert.equal(paidResult.nextCalled, true, `${path} should allow ${code}`);
+    }
+  }
 });
 
 test("unknown plans fail closed on plan-gated routes", () => {

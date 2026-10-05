@@ -158,6 +158,8 @@ export default function Payment() {
               <span>✓ 1 resume</span>
               <span>✓ 1 cover letter</span>
               <span>✓ 1 basic template</span>
+              <span>✓ Job description parser</span>
+              <span>✓ Basic ATS analysis</span>
               <span>✓ Limited AI suggestions</span>
               <span>✓ PDF download</span>
             </div>
@@ -192,6 +194,7 @@ export default function Payment() {
               <span>✓ Unlimited downloads</span>
               <span>✓ Advanced AI suggestions</span>
               <span>✓ ATS optimization score</span>
+              <span>✓ Premium Career Lab tools</span>
             </div>
           </div>
 

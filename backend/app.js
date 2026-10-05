@@ -34,7 +34,7 @@ function createApp({ sentryEnabled = false } = {}) {
   const app = express();
   app.set('trust proxy', resolveTrustProxySetting());
 
-  const allowedOrigins = [process.env.FRONTEND_URL]
+  const allowedOrigins = [process.env.APP_BASE_URL]
     .filter((origin) => typeof origin === 'string')
     .map((origin) => origin.trim())
     .filter(Boolean);

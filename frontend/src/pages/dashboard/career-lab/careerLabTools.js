@@ -5,11 +5,23 @@ export const TOOL_CATEGORIES = [
 ];
 
 const has = (value) => String(value || "").trim().length > 0;
+const PLAN_RANK = { free: 0, premium: 1, pro: 2 };
+
+export function hasPlanAccess(planCode, minimumPlan = "premium") {
+  const planRank = PLAN_RANK[String(planCode || "").toLowerCase()];
+  const minimumRank = PLAN_RANK[minimumPlan];
+  return (
+    planRank !== undefined &&
+    minimumRank !== undefined &&
+    planRank >= minimumRank
+  );
+}
 
 export const CAREER_LAB_TOOLS = [
   {
     id: "job-parser",
     category: "core",
+    minimumPlan: "free",
     title: "Job Parser",
     description:
       "Extract required and preferred skills, responsibilities, and seniority from a job description.",
@@ -31,6 +43,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "ats-analysis",
     category: "core",
+    minimumPlan: "free",
     title: "ATS Analysis",
     description: "Score ATS alignment between your resume and target job.",
     endpoint: "/api/career-tools/ats-analysis",
@@ -111,6 +124,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "role-fit",
     category: "strategy",
+    minimumPlan: "premium",
     title: "Role Fit",
     description:
       "Score fit against your target role and assess readiness signals.",
@@ -209,6 +223,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "learning-roadmap",
     category: "strategy",
+    minimumPlan: "premium",
     title: "Learning Roadmap",
     description: "Build a practical roadmap to close skill gaps.",
     endpoint: "/api/career-tools/learning-roadmap",
@@ -238,6 +253,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "visa-guidance",
     category: "strategy",
+    minimumPlan: "premium",
     title: "Visa Guidance",
     description:
       "Position profile for visa-oriented roles and sponsorship conversations.",
@@ -275,6 +291,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "application-readiness",
     category: "strategy",
+    minimumPlan: "premium",
     title: "Application Readiness",
     description: "Measure readiness and generate a short execution plan.",
     endpoint: "/api/career-tools/application-readiness",
@@ -311,6 +328,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "networking-strategy",
     category: "strategy",
+    minimumPlan: "premium",
     title: "Networking Strategy",
     description: "Define channels and cadence for networking outreach.",
     endpoint: "/api/career-tools/networking-strategy",
@@ -347,6 +365,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "portfolio-audit",
     category: "execution",
+    minimumPlan: "premium",
     title: "Portfolio Audit",
     description: "Identify proof gaps and next best portfolio artifacts.",
     endpoint: "/api/career-tools/portfolio-audit",
@@ -376,6 +395,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "offer-negotiation",
     category: "execution",
+    minimumPlan: "premium",
     title: "Offer Negotiation",
     description:
       "Prepare negotiation anchors, scripts, and fallback concessions.",
@@ -413,6 +433,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "job-search-sprint",
     category: "execution",
+    minimumPlan: "premium",
     title: "Job Search Sprint",
     description:
       "Generate a weekly execution sprint for applications and outreach.",
@@ -450,6 +471,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "personal-brand-audit",
     category: "execution",
+    minimumPlan: "premium",
     title: "Personal Brand Audit",
     description:
       "Improve narrative clarity and positioning across resume/outreach.",
@@ -480,6 +502,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "career-pivot-plan",
     category: "execution",
+    minimumPlan: "premium",
     title: "Career Pivot Plan",
     description: "Plan a role transition with a focused 4-week strategy.",
     endpoint: "/api/career-tools/career-pivot-plan",
@@ -516,6 +539,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "outreach-messages",
     category: "execution",
+    minimumPlan: "premium",
     title: "Outreach Messages",
     description:
       "Generate messages for cold outreach, follow-up, and referral asks.",
@@ -553,6 +577,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "interview-prep",
     category: "execution",
+    minimumPlan: "premium",
     title: "Interview Prep",
     description: "Get tailored interview questions and coaching priorities.",
     endpoint: "/api/career-tools/interview-prep",
@@ -589,6 +614,7 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "interview-drill-plan",
     category: "execution",
+    minimumPlan: "premium",
     title: "Interview Drill Plan",
     description: "Create a drill cadence and question set for interview reps.",
     endpoint: "/api/career-tools/interview-drill-plan",
