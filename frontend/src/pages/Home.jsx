@@ -100,6 +100,7 @@ const plans = [
     audience: "Great for first-time users",
     features: [
       "Limited rewrites",
+      "Job description parser",
       "Basic ATS score",
       "1 cover letter / week",
       "Community support",
@@ -115,6 +116,7 @@ const plans = [
       "Detailed ATS breakdown",
       "Unlimited cover letters",
       "Interview prep toolkit",
+      "Premium Career Lab tools",
     ],
   },
   {

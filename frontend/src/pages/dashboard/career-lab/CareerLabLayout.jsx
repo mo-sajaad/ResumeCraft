@@ -13,7 +13,11 @@ import {
 import Button from "../../../components/ui/Button";
 import { useAuth } from "../../../context/useAuth";
 import { getAuthHeaders } from "../../../utils/auth";
-import { CAREER_LAB_TOOLS, TOOL_CATEGORIES } from "./careerLabTools";
+import {
+  CAREER_LAB_TOOLS,
+  hasPlanAccess,
+  TOOL_CATEGORIES,
+} from "./careerLabTools";
 import "../DashboardShared.css";
 import "../CareerLab.css";
 
@@ -208,22 +212,29 @@ export default function CareerLabLayout() {
                   <div className="career-lab-dropdown-menu is-open">
                     {group.tools.map((tool) => {
                       const done = Boolean(results[tool.id]);
-                      const requiresPro =
-                        tool.minimumPlan === "pro" && activePlanCode !== "pro";
+                      const hasAccess = hasPlanAccess(
+                        activePlanCode,
+                        tool.minimumPlan,
+                      );
+                      const minimumPlanLabel =
+                        tool.minimumPlan.charAt(0).toUpperCase() +
+                        tool.minimumPlan.slice(1);
                       return (
                         <NavLink
                           key={tool.id}
                           to={`/dashboard/career-lab/tools/${tool.id}`}
                           className="career-lab-tool-link"
                           aria-label={
-                            requiresPro
-                              ? `${tool.title}, Pro plan required`
+                            !hasAccess
+                              ? `${tool.title}, ${minimumPlanLabel} plan required`
                               : undefined
                           }
                         >
                           <span>{tool.title}</span>
-                          {requiresPro ? <small>Pro</small> : null}
-                          {requiresPro ? (
+                          {!hasAccess ? (
+                            <small>{minimumPlanLabel}</small>
+                          ) : null}
+                          {!hasAccess ? (
                             <FaLock aria-hidden="true" />
                           ) : done ? (
                             <FaCheckCircle className="career-lab-tool-done" />

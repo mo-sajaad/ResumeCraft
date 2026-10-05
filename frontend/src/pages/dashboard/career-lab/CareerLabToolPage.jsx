@@ -4,7 +4,7 @@ import { FaArrowRight, FaCheckCircle, FaPlay, FaSpinner } from "react-icons/fa";
 
 import Button from "../../../components/ui/Button";
 import { useAuth } from "../../../context/useAuth";
-import { TOOL_MAP } from "./careerLabTools";
+import { hasPlanAccess, TOOL_MAP } from "./careerLabTools";
 
 function prettyResult(value) {
   if (!value) return "";
@@ -19,7 +19,12 @@ export default function CareerLabToolPage() {
 
   const tool = TOOL_MAP[toolId];
   const activePlanCode = (profile?.plan_code || "free").toLowerCase();
-  const requiresPro = tool?.minimumPlan === "pro" && activePlanCode !== "pro";
+  const hasAccess = tool
+    ? hasPlanAccess(activePlanCode, tool.minimumPlan)
+    : false;
+  const minimumPlanLabel = tool?.minimumPlan
+    ? tool.minimumPlan.charAt(0).toUpperCase() + tool.minimumPlan.slice(1)
+    : "Premium";
   const [draftInputsByTool, setDraftInputsByTool] = useState({});
 
   const toolInputs = useMemo(() => {
@@ -47,15 +52,15 @@ export default function CareerLabToolPage() {
     );
   }
 
-  if (requiresPro) {
+  if (!hasAccess) {
     return (
       <section className="content-card career-lab-tool-card">
-        <h3>Pro Plan Required</h3>
+        <h3>{minimumPlanLabel} Plan Required</h3>
         <p className="career-lab-tool-description">
-          {tool.title} is available on the Pro plan.
+          {tool.title} is available on the {minimumPlanLabel} plan.
         </p>
         <Button as={NavLink} to="/dashboard/payment">
-          View Pro plan
+          View {minimumPlanLabel} plan
         </Button>
       </section>
     );
