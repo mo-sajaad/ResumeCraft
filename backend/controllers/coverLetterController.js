@@ -1,6 +1,6 @@
 const { generateCoverLetter } = require('../services/aiService');
 const { trackUsage } = require('../services/subscriptionService');
-const { services: { coverLetterService } } = require('../modules/documents');
+const coverLetterService = require('../modules/documents/services/coverLetterService');
 const { generatePDF, renderHTML } = require('../templates/utils/pdfGenerator');
 const { validate } = require('../shared/http/validators');
 const { createCoverLetterSchema, updateCoverLetterSchema } = require('../modules/documents/schemas/coverLetterSchemas');

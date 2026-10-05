@@ -1,7 +1,7 @@
 const express = require('express');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-const userRepository = require('./repositories/userRepository');
+const userRepository = require('./repositories/userRepository.js');
 const contracts = require('./services/contracts');
 
 const router = express.Router();

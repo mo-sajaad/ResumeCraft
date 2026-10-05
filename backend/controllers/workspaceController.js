@@ -1,5 +1,5 @@
 const { rewriteDocumentText } = require('../services/aiService');
-const { services: { workspaceService } } = require('../modules/documents');
+const workspaceService = require('../modules/documents/services/workspaceService');
 const { validate } = require('../shared/http/validators');
 const { workspaceReadSchema, workspaceUpdateSchema, workspaceRewriteSchema } = require('../modules/documents/schemas/workspaceSchemas');
 

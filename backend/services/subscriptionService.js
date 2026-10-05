@@ -1,4 +1,4 @@
-const { interfaces: { subscriptionRepository } } = require('../modules/billing');
+const subscriptionRepository = require('../modules/billing/repositories/subscriptionRepository');
 
 async function getActiveSubscription(userId) {
   return subscriptionRepository.getActiveSubscriptionPlan(userId);
