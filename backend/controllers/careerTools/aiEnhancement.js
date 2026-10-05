@@ -1,7 +1,11 @@
-const { z } = require('zod');
-const { createChatCompletion, getOpenAIClient } = require('../../services/ai/client');
+const { z } = require("zod");
+const {
+  createChatCompletion,
+  getOpenAIClient,
+} = require("../../services/ai/client");
+const logger = require("../../observability/logger");
 
-const AI_MODEL = process.env.OPENAI_CAREER_LAB_MODEL || 'gpt-4o-mini';
+const AI_MODEL = process.env.OPENAI_CAREER_LAB_MODEL || "gpt-4o-mini";
 
 function safeParseJson(value) {
   const parsed = z.string().min(1).safeParse(value);
@@ -18,7 +22,7 @@ function safeParseJson(value) {
 }
 
 function isPlainObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function buildResponseSchema(requiredKeys = [], baselineResponse = {}) {
@@ -33,9 +37,14 @@ function buildResponseSchema(requiredKeys = [], baselineResponse = {}) {
         return;
       }
 
-      if (baselineResponse[key] !== undefined && baselineResponse[key] !== null) {
-        const expectedType = Array.isArray(baselineResponse[key]) ? 'array' : typeof baselineResponse[key];
-        const actualType = Array.isArray(obj[key]) ? 'array' : typeof obj[key];
+      if (
+        baselineResponse[key] !== undefined &&
+        baselineResponse[key] !== null
+      ) {
+        const expectedType = Array.isArray(baselineResponse[key])
+          ? "array"
+          : typeof baselineResponse[key];
+        const actualType = Array.isArray(obj[key]) ? "array" : typeof obj[key];
         if (expectedType !== actualType) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -70,15 +79,17 @@ function aiOverridesBaseline(baseline, aiPayload) {
 
 function buildPrompt({ toolName, input, baseline, outputRequirements }) {
   return [
-    'You are a principal-level career strategist and recruiter advisor.',
+    "You are a principal-level career strategist and recruiter advisor.",
     `Tool: ${toolName}`,
-    'Return strict JSON only.',
-    'Produce a complete response object that improves on BASELINE while remaining practical and specific.',
-    'Do not include markdown fences or commentary outside JSON.',
+    "Return strict JSON only.",
+    "Produce a complete response object that improves on BASELINE while remaining practical and specific.",
+    "Do not include markdown fences or commentary outside JSON.",
     outputRequirements ? `Output requirements:\n${outputRequirements}` : null,
     `INPUT:\n${JSON.stringify(input)}`,
     `BASELINE:\n${JSON.stringify(baseline)}`,
-  ].filter(Boolean).join('\n\n');
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 async function buildAiEnhancedResponse({
@@ -86,14 +97,14 @@ async function buildAiEnhancedResponse({
   input,
   baselineResponse,
   requiredKeys = [],
-  outputRequirements = '',
+  outputRequirements = "",
 }) {
   const client = getOpenAIClient();
 
   if (!client) {
     return {
       ...baselineResponse,
-      aiEnhancementStatus: 'api_key_missing',
+      aiEnhancementStatus: "api_key_missing",
     };
   }
 
@@ -101,14 +112,15 @@ async function buildAiEnhancedResponse({
     const completion = await createChatCompletion({
       model: AI_MODEL,
       temperature: 0.2,
-      responseFormat: { type: 'json_object' },
+      responseFormat: { type: "json_object" },
       messages: [
         {
-          role: 'system',
-          content: 'Return strict JSON only. Be concise, specific, and actionable.',
+          role: "system",
+          content:
+            "Return strict JSON only. Be concise, specific, and actionable.",
         },
         {
-          role: 'user',
+          role: "user",
           content: buildPrompt({
             toolName,
             input,
@@ -126,18 +138,37 @@ async function buildAiEnhancedResponse({
     if (!parsed || !schema.safeParse(parsed).success) {
       return {
         ...baselineResponse,
-        aiEnhancementStatus: 'invalid_ai_json',
+        aiEnhancementStatus: "invalid_ai_json",
       };
     }
 
     return {
       ...aiOverridesBaseline(baselineResponse, parsed),
-      aiEnhancementStatus: 'enhanced',
+      aiEnhancementStatus: "enhanced",
     };
-  } catch {
+  } catch (error) {
+    const errorCode = typeof error?.code === "string" ? error.code : "unknown";
+    const httpStatus = Number.isInteger(error?.status)
+      ? error.status
+      : Number.isInteger(error?.statusCode)
+        ? error.statusCode
+        : null;
+
+    logger.warn(
+                { 
+                  toolName, 
+                  errorCode, 
+                  httpStatus,
+                  errorMessage: error?.message || error?.error?.message || "No message" 
+                },
+                "OpenAI career tool enhancement failed",
+              );
+
     return {
       ...baselineResponse,
-      aiEnhancementStatus: 'openai_error',
+      aiEnhancementStatus: "openai_error",
+      aiEnhancementErrorCode: errorCode,
+      aiEnhancementHttpStatus: httpStatus,
     };
   }
 }
