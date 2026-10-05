@@ -7,12 +7,15 @@ const PLAN_RANK = {
 };
 
 function requirePlan(minimumPlan) {
+  const minimumRank = PLAN_RANK[minimumPlan];
+
   return (req, res, next) => {
-    const userPlan = req.plan;
+    const userRank = PLAN_RANK[req.plan?.code];
 
     if (
-      !userPlan ||
-      PLAN_RANK[userPlan.code] < PLAN_RANK[minimumPlan]
+      minimumRank === undefined ||
+      userRank === undefined ||
+      userRank < minimumRank
     ) {
       return res.status(403).json({
         error: `Upgrade to ${minimumPlan} to access this feature.`,
