@@ -220,12 +220,9 @@ export default function Payment() {
 
             <div className="pricing-list">
               <span>✓ Everything in Premium</span>
-              <span>✓ AI resume rewriting</span>
-              <span>✓ AI job match analysis</span>
-              <span>✓ LinkedIn optimization</span>
-              <span>✓ Advanced ATS analytics</span>
-              <span>✓ Early feature access</span>
-              <span>✓ VIP support</span>
+              <span>✓ Recruiter scan</span>
+              <span>✓ Salary estimates and market demand</span>
+              <span>✓ Competitive analysis</span>
             </div>
           </div>
 

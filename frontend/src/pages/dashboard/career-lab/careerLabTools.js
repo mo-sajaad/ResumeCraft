@@ -4,7 +4,6 @@ export const TOOL_CATEGORIES = [
   { id: "execution", label: "Interview & Execution" },
 ];
 
-
 const has = (value) => String(value || "").trim().length > 0;
 
 export const CAREER_LAB_TOOLS = [
@@ -12,9 +11,17 @@ export const CAREER_LAB_TOOLS = [
     id: "job-parser",
     category: "core",
     title: "Job Parser",
-    description: "Extract required and preferred skills, responsibilities, and seniority from a job description.",
+    description:
+      "Extract required and preferred skills, responsibilities, and seniority from a job description.",
     endpoint: "/api/career-tools/job-parser",
-    fields: [{ key: "jobDescription", label: "Job Description", type: "textarea", placeholder: "Paste full job description here..." }],
+    fields: [
+      {
+        key: "jobDescription",
+        label: "Job Description",
+        type: "textarea",
+        placeholder: "Paste full job description here...",
+      },
+    ],
     payload: (v) => ({ jobDescription: v.jobDescription || "" }),
     disabled: (v) => !has(v.jobDescription),
     buttonLabel: "Parse Job Description",
@@ -27,8 +34,24 @@ export const CAREER_LAB_TOOLS = [
     title: "ATS Analysis",
     description: "Score ATS alignment between your resume and target job.",
     endpoint: "/api/career-tools/ats-analysis",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "jobDescription", label: "Job Description", type: "textarea", placeholder: "Paste full job description here..." }],
-    payload: (v) => ({ resumeText: v.resumeText || "", jobDescription: v.jobDescription || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "jobDescription",
+        label: "Job Description",
+        type: "textarea",
+        placeholder: "Paste full job description here...",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      jobDescription: v.jobDescription || "",
+    }),
     disabled: (v) => !has(v.resumeText) || !has(v.jobDescription),
     buttonLabel: "Run ATS Analysis",
     runningLabel: "Analyzing...",
@@ -37,10 +60,18 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "recruiter-scan",
     category: "core",
+    minimumPlan: "pro",
     title: "Recruiter Scan",
     description: "Estimate recruiter skim readiness and detect red flags.",
     endpoint: "/api/career-tools/recruiter-scan",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }],
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+    ],
     payload: (v) => ({ resumeText: v.resumeText || "" }),
     disabled: (v) => !has(v.resumeText),
     buttonLabel: "Run Recruiter Scan",
@@ -50,11 +81,28 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "competitive-analysis",
     category: "core",
+    minimumPlan: "pro",
     title: "Competitive Analysis",
     description: "Compare your profile against a benchmark resume.",
     endpoint: "/api/career-tools/competitive-analysis",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "benchmarkText", label: "Benchmark Resume", type: "textarea", placeholder: "Paste benchmark resume text..." }],
-    payload: (v) => ({ resumeText: v.resumeText || "", benchmarkText: v.benchmarkText || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "benchmarkText",
+        label: "Benchmark Resume",
+        type: "textarea",
+        placeholder: "Paste benchmark resume text...",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      benchmarkText: v.benchmarkText || "",
+    }),
     disabled: (v) => !has(v.resumeText) || !has(v.benchmarkText),
     buttonLabel: "Run Competitive Analysis",
     runningLabel: "Comparing...",
@@ -64,10 +112,27 @@ export const CAREER_LAB_TOOLS = [
     id: "role-fit",
     category: "strategy",
     title: "Role Fit",
-    description: "Score fit against your target role and assess readiness signals.",
+    description:
+      "Score fit against your target role and assess readiness signals.",
     endpoint: "/api/career-tools/role-fit",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }],
-    payload: (v) => ({ resumeText: v.resumeText || "", targetRole: v.targetRole || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      targetRole: v.targetRole || "",
+    }),
     disabled: (v) => !has(v.resumeText) || !has(v.targetRole),
     buttonLabel: "Run Role Fit",
     runningLabel: "Scoring...",
@@ -76,11 +141,36 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "salary-estimate",
     category: "strategy",
+    minimumPlan: "pro",
     title: "Salary Estimate",
-    description: "Estimate compensation range using target role, location, and experience.",
+    description:
+      "Estimate compensation range using target role, location, and experience.",
     endpoint: "/api/career-tools/salary-estimate",
-    fields: [{ key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "targetLocation", label: "Target Location", type: "input", placeholder: "e.g. London, UK" }, { key: "yearsExperience", label: "Years of Experience", type: "input", placeholder: "e.g. 5" }],
-    payload: (v) => ({ targetRole: v.targetRole || "", location: v.targetLocation || "", yearsExperience: Number(v.yearsExperience || 0) }),
+    fields: [
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "targetLocation",
+        label: "Target Location",
+        type: "input",
+        placeholder: "e.g. London, UK",
+      },
+      {
+        key: "yearsExperience",
+        label: "Years of Experience",
+        type: "input",
+        placeholder: "e.g. 5",
+      },
+    ],
+    payload: (v) => ({
+      targetRole: v.targetRole || "",
+      location: v.targetLocation || "",
+      yearsExperience: Number(v.yearsExperience || 0),
+    }),
     disabled: (v) => !has(v.targetRole),
     buttonLabel: "Estimate Salary",
     runningLabel: "Estimating...",
@@ -89,11 +179,28 @@ export const CAREER_LAB_TOOLS = [
   {
     id: "market-demand",
     category: "strategy",
+    minimumPlan: "pro",
     title: "Market Demand",
     description: "Evaluate market demand and outlook for your target role.",
     endpoint: "/api/career-tools/market-demand",
-    fields: [{ key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "targetLocation", label: "Target Location", type: "input", placeholder: "e.g. London, UK" }],
-    payload: (v) => ({ targetRole: v.targetRole || "", location: v.targetLocation || "" }),
+    fields: [
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "targetLocation",
+        label: "Target Location",
+        type: "input",
+        placeholder: "e.g. London, UK",
+      },
+    ],
+    payload: (v) => ({
+      targetRole: v.targetRole || "",
+      location: v.targetLocation || "",
+    }),
     disabled: (v) => !has(v.targetRole),
     buttonLabel: "Analyze Market Demand",
     runningLabel: "Analyzing...",
@@ -105,8 +212,24 @@ export const CAREER_LAB_TOOLS = [
     title: "Learning Roadmap",
     description: "Build a practical roadmap to close skill gaps.",
     endpoint: "/api/career-tools/learning-roadmap",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "jobDescription", label: "Job Description", type: "textarea", placeholder: "Paste full job description here..." }],
-    payload: (v) => ({ resumeText: v.resumeText || "", jobDescription: v.jobDescription || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "jobDescription",
+        label: "Job Description",
+        type: "textarea",
+        placeholder: "Paste full job description here...",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      jobDescription: v.jobDescription || "",
+    }),
     disabled: (v) => !has(v.resumeText) || !has(v.jobDescription),
     buttonLabel: "Generate Learning Roadmap",
     runningLabel: "Generating...",
@@ -116,10 +239,34 @@ export const CAREER_LAB_TOOLS = [
     id: "visa-guidance",
     category: "strategy",
     title: "Visa Guidance",
-    description: "Position profile for visa-oriented roles and sponsorship conversations.",
+    description:
+      "Position profile for visa-oriented roles and sponsorship conversations.",
     endpoint: "/api/career-tools/visa-guidance",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "targetLocation", label: "Target Location", type: "input", placeholder: "e.g. London, UK" }],
-    payload: (v) => ({ targetRole: v.targetRole || "", location: v.targetLocation || "", resumeText: v.resumeText || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "targetLocation",
+        label: "Target Location",
+        type: "input",
+        placeholder: "e.g. London, UK",
+      },
+    ],
+    payload: (v) => ({
+      targetRole: v.targetRole || "",
+      location: v.targetLocation || "",
+      resumeText: v.resumeText || "",
+    }),
     disabled: (v) => !has(v.targetRole) || !has(v.targetLocation),
     buttonLabel: "Run Visa Guidance",
     runningLabel: "Guiding...",
@@ -131,8 +278,31 @@ export const CAREER_LAB_TOOLS = [
     title: "Application Readiness",
     description: "Measure readiness and generate a short execution plan.",
     endpoint: "/api/career-tools/application-readiness",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "jobDescription", label: "Job Description", type: "textarea", placeholder: "Paste full job description here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }],
-    payload: (v) => ({ resumeText: v.resumeText || "", jobDescription: v.jobDescription || "", targetRole: v.targetRole || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "jobDescription",
+        label: "Job Description",
+        type: "textarea",
+        placeholder: "Paste full job description here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      jobDescription: v.jobDescription || "",
+      targetRole: v.targetRole || "",
+    }),
     disabled: (v) => !has(v.resumeText) || !has(v.jobDescription),
     buttonLabel: "Run Application Readiness",
     runningLabel: "Scoring...",
@@ -144,8 +314,31 @@ export const CAREER_LAB_TOOLS = [
     title: "Networking Strategy",
     description: "Define channels and cadence for networking outreach.",
     endpoint: "/api/career-tools/networking-strategy",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "targetLocation", label: "Target Location", type: "input", placeholder: "e.g. London, UK" }],
-    payload: (v) => ({ targetRole: v.targetRole || "", location: v.targetLocation || "", resumeText: v.resumeText || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "targetLocation",
+        label: "Target Location",
+        type: "input",
+        placeholder: "e.g. London, UK",
+      },
+    ],
+    payload: (v) => ({
+      targetRole: v.targetRole || "",
+      location: v.targetLocation || "",
+      resumeText: v.resumeText || "",
+    }),
     disabled: (v) => !has(v.targetRole),
     buttonLabel: "Build Networking Strategy",
     runningLabel: "Planning...",
@@ -157,8 +350,24 @@ export const CAREER_LAB_TOOLS = [
     title: "Portfolio Audit",
     description: "Identify proof gaps and next best portfolio artifacts.",
     endpoint: "/api/career-tools/portfolio-audit",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }],
-    payload: (v) => ({ resumeText: v.resumeText || "", targetRole: v.targetRole || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      targetRole: v.targetRole || "",
+    }),
     disabled: (v) => !has(v.resumeText),
     buttonLabel: "Run Portfolio Audit",
     runningLabel: "Auditing...",
@@ -168,10 +377,34 @@ export const CAREER_LAB_TOOLS = [
     id: "offer-negotiation",
     category: "execution",
     title: "Offer Negotiation",
-    description: "Prepare negotiation anchors, scripts, and fallback concessions.",
+    description:
+      "Prepare negotiation anchors, scripts, and fallback concessions.",
     endpoint: "/api/career-tools/offer-negotiation",
-    fields: [{ key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "targetLocation", label: "Target Location", type: "input", placeholder: "e.g. London, UK" }, { key: "yearsExperience", label: "Years of Experience", type: "input", placeholder: "e.g. 5" }],
-    payload: (v) => ({ targetRole: v.targetRole || "", location: v.targetLocation || "", yearsExperience: Number(v.yearsExperience || 0) }),
+    fields: [
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "targetLocation",
+        label: "Target Location",
+        type: "input",
+        placeholder: "e.g. London, UK",
+      },
+      {
+        key: "yearsExperience",
+        label: "Years of Experience",
+        type: "input",
+        placeholder: "e.g. 5",
+      },
+    ],
+    payload: (v) => ({
+      targetRole: v.targetRole || "",
+      location: v.targetLocation || "",
+      yearsExperience: Number(v.yearsExperience || 0),
+    }),
     disabled: (v) => !has(v.targetRole),
     buttonLabel: "Prepare Offer Negotiation",
     runningLabel: "Preparing...",
@@ -181,10 +414,34 @@ export const CAREER_LAB_TOOLS = [
     id: "job-search-sprint",
     category: "execution",
     title: "Job Search Sprint",
-    description: "Generate a weekly execution sprint for applications and outreach.",
+    description:
+      "Generate a weekly execution sprint for applications and outreach.",
     endpoint: "/api/career-tools/job-search-sprint",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "targetLocation", label: "Target Location", type: "input", placeholder: "e.g. London, UK" }],
-    payload: (v) => ({ targetRole: v.targetRole || "", location: v.targetLocation || "", resumeText: v.resumeText || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "targetLocation",
+        label: "Target Location",
+        type: "input",
+        placeholder: "e.g. London, UK",
+      },
+    ],
+    payload: (v) => ({
+      targetRole: v.targetRole || "",
+      location: v.targetLocation || "",
+      resumeText: v.resumeText || "",
+    }),
     disabled: (v) => !has(v.targetRole),
     buttonLabel: "Build Job Search Sprint",
     runningLabel: "Planning...",
@@ -194,10 +451,27 @@ export const CAREER_LAB_TOOLS = [
     id: "personal-brand-audit",
     category: "execution",
     title: "Personal Brand Audit",
-    description: "Improve narrative clarity and positioning across resume/outreach.",
+    description:
+      "Improve narrative clarity and positioning across resume/outreach.",
     endpoint: "/api/career-tools/personal-brand-audit",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }],
-    payload: (v) => ({ resumeText: v.resumeText || "", targetRole: v.targetRole || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      targetRole: v.targetRole || "",
+    }),
     disabled: (v) => !has(v.resumeText),
     buttonLabel: "Run Personal Brand Audit",
     runningLabel: "Auditing...",
@@ -209,8 +483,31 @@ export const CAREER_LAB_TOOLS = [
     title: "Career Pivot Plan",
     description: "Plan a role transition with a focused 4-week strategy.",
     endpoint: "/api/career-tools/career-pivot-plan",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "jobDescription", label: "Job Description", type: "textarea", placeholder: "Paste full job description here..." }],
-    payload: (v) => ({ resumeText: v.resumeText || "", targetRole: v.targetRole || "", jobDescription: v.jobDescription || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "jobDescription",
+        label: "Job Description",
+        type: "textarea",
+        placeholder: "Paste full job description here...",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      targetRole: v.targetRole || "",
+      jobDescription: v.jobDescription || "",
+    }),
     disabled: (v) => !has(v.resumeText) || !has(v.targetRole),
     buttonLabel: "Generate Career Pivot Plan",
     runningLabel: "Planning...",
@@ -220,10 +517,34 @@ export const CAREER_LAB_TOOLS = [
     id: "outreach-messages",
     category: "execution",
     title: "Outreach Messages",
-    description: "Generate messages for cold outreach, follow-up, and referral asks.",
+    description:
+      "Generate messages for cold outreach, follow-up, and referral asks.",
     endpoint: "/api/career-tools/outreach-messages",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "targetLocation", label: "Target Location", type: "input", placeholder: "e.g. London, UK" }],
-    payload: (v) => ({ targetRole: v.targetRole || "", location: v.targetLocation || "", resumeText: v.resumeText || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "targetLocation",
+        label: "Target Location",
+        type: "input",
+        placeholder: "e.g. London, UK",
+      },
+    ],
+    payload: (v) => ({
+      targetRole: v.targetRole || "",
+      location: v.targetLocation || "",
+      resumeText: v.resumeText || "",
+    }),
     disabled: (v) => !has(v.targetRole),
     buttonLabel: "Generate Outreach Messages",
     runningLabel: "Writing...",
@@ -235,8 +556,31 @@ export const CAREER_LAB_TOOLS = [
     title: "Interview Prep",
     description: "Get tailored interview questions and coaching priorities.",
     endpoint: "/api/career-tools/interview-prep",
-    fields: [{ key: "resumeText", label: "Resume Text", type: "textarea", placeholder: "Paste resume text here..." }, { key: "jobDescription", label: "Job Description", type: "textarea", placeholder: "Paste full job description here..." }, { key: "answerText", label: "Interview Answer (Optional)", type: "textarea", placeholder: "Paste answer for feedback..." }],
-    payload: (v) => ({ resumeText: v.resumeText || "", jobDescription: v.jobDescription || "", answerText: v.answerText || "" }),
+    fields: [
+      {
+        key: "resumeText",
+        label: "Resume Text",
+        type: "textarea",
+        placeholder: "Paste resume text here...",
+      },
+      {
+        key: "jobDescription",
+        label: "Job Description",
+        type: "textarea",
+        placeholder: "Paste full job description here...",
+      },
+      {
+        key: "answerText",
+        label: "Interview Answer (Optional)",
+        type: "textarea",
+        placeholder: "Paste answer for feedback...",
+      },
+    ],
+    payload: (v) => ({
+      resumeText: v.resumeText || "",
+      jobDescription: v.jobDescription || "",
+      answerText: v.answerText || "",
+    }),
     disabled: (v) => !has(v.resumeText) || !has(v.jobDescription),
     buttonLabel: "Run Interview Prep",
     runningLabel: "Preparing...",
@@ -248,8 +592,31 @@ export const CAREER_LAB_TOOLS = [
     title: "Interview Drill Plan",
     description: "Create a drill cadence and question set for interview reps.",
     endpoint: "/api/career-tools/interview-drill-plan",
-    fields: [{ key: "jobDescription", label: "Job Description", type: "textarea", placeholder: "Paste full job description here..." }, { key: "targetRole", label: "Target Role", type: "input", placeholder: "e.g. Senior Backend Engineer" }, { key: "answerText", label: "Interview Answer (Optional)", type: "textarea", placeholder: "Paste answer for feedback..." }],
-    payload: (v) => ({ jobDescription: v.jobDescription || "", targetRole: v.targetRole || "", answerText: v.answerText || "" }),
+    fields: [
+      {
+        key: "jobDescription",
+        label: "Job Description",
+        type: "textarea",
+        placeholder: "Paste full job description here...",
+      },
+      {
+        key: "targetRole",
+        label: "Target Role",
+        type: "input",
+        placeholder: "e.g. Senior Backend Engineer",
+      },
+      {
+        key: "answerText",
+        label: "Interview Answer (Optional)",
+        type: "textarea",
+        placeholder: "Paste answer for feedback...",
+      },
+    ],
+    payload: (v) => ({
+      jobDescription: v.jobDescription || "",
+      targetRole: v.targetRole || "",
+      answerText: v.answerText || "",
+    }),
     disabled: (v) => !has(v.jobDescription) && !has(v.targetRole),
     buttonLabel: "Generate Interview Drill Plan",
     runningLabel: "Drilling...",
@@ -257,4 +624,6 @@ export const CAREER_LAB_TOOLS = [
   },
 ];
 
-export const TOOL_MAP = Object.fromEntries(CAREER_LAB_TOOLS.map((tool) => [tool.id, tool]));
+export const TOOL_MAP = Object.fromEntries(
+  CAREER_LAB_TOOLS.map((tool) => [tool.id, tool]),
+);

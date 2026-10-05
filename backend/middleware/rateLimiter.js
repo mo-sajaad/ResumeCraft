@@ -6,7 +6,7 @@ function getClientIp(req) {
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
-function createInMemoryLimiter({ windowMs, max, keyGenerator }) {
+function createInMemoryLimiter({ windowMs, max, keyGenerator, message }) {
   const store = new Map();
 
   const intervalId = setInterval(() => {
@@ -38,16 +38,21 @@ function createInMemoryLimiter({ windowMs, max, keyGenerator }) {
     if (entry.count > max) {
       const retryAfterSeconds = Math.ceil((entry.expiresAt - now) / 1000);
       res.set('Retry-After', String(Math.max(1, retryAfterSeconds)));
-      return res.status(429).json({ message: 'Too many requests. Please try again shortly.' });
+      return res.status(429).json({ message });
     }
 
     return next();
   };
 }
 
-function createRateLimiter({ windowMs = 60_000, max = 60, keyGenerator } = {}) {
+function createRateLimiter({
+  windowMs = 60_000,
+  max = 60,
+  keyGenerator,
+  message = 'Too many requests. Please try again shortly.',
+} = {}) {
   const redis = getRedisClient();
-  const fallbackLimiter = createInMemoryLimiter({ windowMs, max, keyGenerator });
+  const fallbackLimiter = createInMemoryLimiter({ windowMs, max, keyGenerator, message });
 
   if (!redis) {
     return fallbackLimiter;
@@ -68,7 +73,7 @@ function createRateLimiter({ windowMs = 60_000, max = 60, keyGenerator } = {}) {
         const ttlMs = await redis.pTTL(redisKey);
         const retryAfterSeconds = Math.max(1, Math.ceil(Math.max(0, ttlMs) / 1000));
         res.set('Retry-After', String(retryAfterSeconds));
-        return res.status(429).json({ message: 'Too many requests. Please try again shortly.' });
+        return res.status(429).json({ message });
       }
 
       return next();

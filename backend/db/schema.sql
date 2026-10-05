@@ -207,8 +207,8 @@ INSERT INTO plans
 (code, name, billing_interval, amount_cents, monthly_resume_limit, monthly_cover_letter_limit, has_advanced_ai, has_resume_analysis)
 VALUES
 ('free', 'Free', 'none', 0, 1, 1, FALSE, FALSE),
-('premium', 'Premium', 'monthly', 1999, NULL, NULL, TRUE, TRUE),
-('pro', 'Pro', 'monthly', 3999, NULL, NULL, TRUE, TRUE)
+('premium', 'Premium', 'monthly', 999, NULL, NULL, TRUE, TRUE),
+('pro', 'Pro', 'monthly', 1999, NULL, NULL, TRUE, TRUE)
 ON CONFLICT (code) DO NOTHING;
 
 
