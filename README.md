@@ -1,4 +1,4 @@
-# ResumeCraft AI
+# ResumeCraft AI (Deployment Soon)
 
 ResumeCraft AI is a career-document and job-search application for creating ATS-focused resumes and tailored cover letters. It combines AI-assisted writing and document export with tools for analyzing job fit and planning a job search.
 
