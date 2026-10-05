@@ -1,4 +1,4 @@
-const { interfaces: { auditLogRepository } } = require('../modules/admin');
+const auditLogRepository = require('../modules/admin/repositories/auditLogRepository');
 
 async function createAuditLog({
   actorUserId,
