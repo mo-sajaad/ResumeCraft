@@ -1,6 +1,6 @@
 const { generateResumeText } = require('../services/aiService');
 const { trackUsage } = require('../services/subscriptionService');
-const { services: { resumeService } } = require('../modules/documents');
+const resumeService = require('../modules/documents/services/resumeService');
 const { generatePDF, renderHTML } = require('../templates/utils/pdfGenerator');
 const { validate } = require('../shared/http/validators');
 const { createResumeSchema, updateResumeSchema } = require('../modules/documents/schemas/resumeSchemas');

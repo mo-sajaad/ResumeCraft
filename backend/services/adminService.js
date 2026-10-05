@@ -1,4 +1,4 @@
-const { interfaces: { adminRepository } } = require('../modules/admin');
+const adminRepository = require('../modules/admin/repositories/adminRepository');
 
 function getAdminUidSet() {
   const raw = process.env.ADMIN_FIREBASE_UIDS || '';

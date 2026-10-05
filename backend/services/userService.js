@@ -1,4 +1,4 @@
-const { interfaces: { userRepository } } = require('../modules/identity');
+const userRepository = require('../modules/identity/repositories/userRepository'); 
 
 async function findOrCreateUser(firebaseUid, email, fullName = null) {
   const pool = userRepository.getPool();

@@ -1,4 +1,4 @@
-const { interfaces: { featureFlagRepository } } = require('../modules/admin');
+const featureFlagRepository = require('../modules/admin/repositories/featureFlagRepository');
 
 function hashStringToPercent(input) {
   let hash = 0;
