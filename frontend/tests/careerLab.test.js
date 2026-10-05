@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CAREER_LAB_TOOLS } from "../src/pages/dashboard/career-lab/careerLabTools.js";
+import {
+  CAREER_LAB_TOOLS,
+  hasPlanAccess,
+} from "../src/pages/dashboard/career-lab/careerLabTools.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +60,28 @@ test("Pro-only career tools are explicitly marked in the tool catalog", () => {
     "recruiter-scan",
     "salary-estimate",
   ]);
+});
+
+test("entry Career Lab tools are free and the remaining standard tools are Premium", () => {
+  const freeTools = CAREER_LAB_TOOLS.filter(
+    (tool) => tool.minimumPlan === "free",
+  )
+    .map((tool) => tool.id)
+    .sort();
+  const premiumTools = CAREER_LAB_TOOLS.filter(
+    (tool) => tool.minimumPlan === "premium",
+  );
+
+  assert.deepEqual(freeTools, ["ats-analysis", "job-parser"]);
+  assert.equal(premiumTools.length, 13);
+  assert.ok(CAREER_LAB_TOOLS.every((tool) => tool.minimumPlan));
+  assert.equal(hasPlanAccess("free", "free"), true);
+  assert.equal(hasPlanAccess("free", "premium"), false);
+  assert.equal(hasPlanAccess("premium", "premium"), true);
+  assert.equal(hasPlanAccess("pro", "premium"), true);
+  assert.equal(hasPlanAccess("premium", "pro"), false);
+  assert.equal(hasPlanAccess("pro", "pro"), true);
+  assert.equal(hasPlanAccess("unknown", "premium"), false);
 });
 
 test("career lab layout includes top dropdown navigation sections", () => {
