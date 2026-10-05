@@ -94,3 +94,9 @@ test("career lab layout includes top dropdown navigation sections", () => {
   assert.match(toolsSource, /Market & Strategy/);
   assert.match(toolsSource, /Interview & Execution/);
 });
+
+test("Career Lab requests use the shared cookie-authenticated fetch helper", () => {
+  const layoutSource = read(layoutPath);
+  assert.match(layoutSource, /import \{ authFetch \} from .*utils\/auth/);
+  assert.match(layoutSource, /await authFetch\(endpoint/);
+});

@@ -60,6 +60,8 @@ async function createChatCompletion({
         temperature,
         messages,
         ...(responseFormat ? { response_format: responseFormat } : {}),
+      },
+      {
         signal: controller.signal,
       });
 

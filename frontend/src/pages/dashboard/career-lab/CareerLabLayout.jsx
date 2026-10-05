@@ -12,7 +12,7 @@ import {
 
 import Button from "../../../components/ui/Button";
 import { useAuth } from "../../../context/useAuth";
-import { getAuthHeaders } from "../../../utils/auth";
+import { authFetch } from "../../../utils/auth";
 import {
   CAREER_LAB_TOOLS,
   hasPlanAccess,
@@ -98,9 +98,9 @@ export default function CareerLabLayout() {
     setError("");
 
     try {
-      const response = await fetch(endpoint, {
+      const response = await authFetch(endpoint, {
         method: "POST",
-        headers: await getAuthHeaders({ "Content-Type": "application/json" }),
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(tool.payload(payloadInputs)),
       });
 
