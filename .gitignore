@@ -23,7 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+env.yaml
 seed_admin.sql
 20260307_add_stripe_subscription_columns.sql
 backend/db/migrations/20261004_normalize_paid_plan_prices.sql
 backend/firebase-service-account.json
+firebase.json
+.firebase

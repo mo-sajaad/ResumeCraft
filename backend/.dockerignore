@@ -1,0 +1,29 @@
+# Dependencies (installed fresh inside the container)
+node_modules
+npm-debug.log*
+
+# Git and version control
+.git
+.gitignore
+.github
+
+# Environment secrets and local configurations
+.env
+.env.*
+!.env.example
+firebase-service-account.json
+env.yaml
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts and caches
+dist
+build
+.cache
+
+# Documentation and IDE settings
+README.md
+.vscode
+.idea
+*.DS_Store
