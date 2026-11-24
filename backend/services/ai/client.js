@@ -1,3 +1,4 @@
+require('../../config/testRun');
 const OpenAI = require('openai');
 
 const DEFAULT_MODEL = process.env.OPENAI_CAREER_LAB_MODEL || 'gpt-4o-mini';

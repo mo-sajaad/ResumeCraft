@@ -1,3 +1,5 @@
+require('./testRun');
+
 let stripeClient = null;
 
 function getStripeClient() {

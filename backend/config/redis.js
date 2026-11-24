@@ -1,3 +1,5 @@
+require('./testRun');
+
 let redisClient;
 let redisUnavailable = false;
 

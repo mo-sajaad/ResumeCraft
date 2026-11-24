@@ -1,7 +1,5 @@
+require('./testRun');
 const { Pool } = require('pg');
-const dotenv = require('dotenv');
-
-dotenv.config();
 
 
 const validateAndNormalizeConnectionString = (value) => {

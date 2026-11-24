@@ -1,10 +1,8 @@
-const dotenv = require('dotenv');
+require('./config/env');
 
 const logger = require('./observability/logger');
 const { initSentry } = require('./observability/sentry');
 const { createApp } = require('./app');
-
-dotenv.config();
 
 function assertCriticalSecrets() {
   const jwtSecret = process.env.JWT_SECRET_KEY;
