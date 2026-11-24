@@ -1,5 +1,6 @@
 const { z } = require('zod');
 const { createChatCompletion } = require('./ai/client');
+const logger = require('../observability/logger');
 
 /* ================================
    RESUME BASE PROMPT
@@ -221,7 +222,7 @@ function parseAIJson(aiText) {
     const objectResult = z.record(z.string(), z.unknown()).safeParse(parsed);
     return objectResult.success ? objectResult.data : {};
   } catch (err) {
-    console.error('Error parsing AI JSON:', err);
+    logger.error({ err }, 'AI JSON parsing failed');
     return {};
   }
 }

@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const admin = require('firebase-admin');
+const logger = require('./observability/logger');
 
 let firebaseAdmin = null;
 
@@ -54,7 +55,7 @@ try {
 
   firebaseAdmin = admin;
 } catch (error) {
-  console.warn('[firebaseAdmin] Firebase Admin is not configured:', error.message);
+  logger.warn({ err: error }, 'Firebase Admin is not configured');
 }
 
 module.exports = firebaseAdmin;

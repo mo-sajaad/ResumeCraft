@@ -1,4 +1,5 @@
 const client = require('prom-client');
+const { trackRoute, routeLabel } = require('./routeLabel');
 
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
@@ -18,20 +19,14 @@ const httpRequestsTotal = new client.Counter({
   registers: [register],
 });
 
-function normalizeRoute(req) {
-  if (req.route?.path) {
-    return `${req.baseUrl || ''}${req.route.path}`;
-  }
-  return req.path || req.originalUrl || 'unknown';
-}
-
 function metricsMiddleware(req, res, next) {
+  trackRoute(req);
   const endTimer = httpRequestDurationMs.startTimer();
 
   res.on('finish', () => {
     const labels = {
       method: req.method,
-      route: normalizeRoute(req),
+      route: routeLabel(req, res),
       status_code: String(res.statusCode),
     };
 

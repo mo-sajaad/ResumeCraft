@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { getStripeClient } = require('../config/stripe');
+const logger = require('../observability/logger');
 
 const router = express.Router();
 
@@ -203,7 +204,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     await markWebhookEventProcessed(event.id);
     return res.json({ received: true });
   } catch (error) {
-    console.error('[stripe webhook] processing failed', error);
+    logger.error({ err: error }, 'Stripe webhook processing failed');
     await markWebhookEventFailed(event.id, error).catch(() => {});
     return res.status(500).json({ message: 'Webhook processing failed.' });
   }

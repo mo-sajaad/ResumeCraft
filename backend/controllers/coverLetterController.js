@@ -3,6 +3,7 @@ const { trackUsage } = require('../services/subscriptionService');
 const coverLetterService = require('../modules/documents/services/coverLetterService');
 const { generatePDF, renderHTML } = require('../templates/utils/pdfGenerator');
 const { validate } = require('../shared/http/validators');
+const logger = require('../observability/logger');
 const { createCoverLetterSchema, updateCoverLetterSchema } = require('../modules/documents/schemas/coverLetterSchemas');
 
 function parseCoverLetterBody(generatedData = {}) {
@@ -84,7 +85,7 @@ async function createCoverLetterWithAI(req, res, next) {
       coverLetterData: { body },
     });
   } catch (error) {
-    console.error('Error creating AI cover letter for user:', userId, error);
+    logger.error({ err: error, userId }, 'AI cover letter creation failed');
     return next(error);
   }
 }

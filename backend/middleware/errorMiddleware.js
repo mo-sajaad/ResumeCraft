@@ -1,5 +1,6 @@
 const logger = require('../observability/logger');
 const { Sentry } = require('../observability/sentry');
+const { routeLabel } = require('../observability/routeLabel');
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -11,7 +12,7 @@ const errorHandler = (err, req, res, next) => {
       err,
       statusCode,
       method: req.method,
-      path: req.originalUrl,
+      route: routeLabel(req, res),
       userId: req.user?.id,
     },
     'Request failed'

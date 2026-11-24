@@ -1,4 +1,5 @@
 const pino = require('pino');
+const { CENSOR, serializers, logMethod } = require('./logSerializers');
 
 const level = process.env.LOG_LEVEL || 'info';
 const isProd = process.env.NODE_ENV === 'production';
@@ -9,16 +10,19 @@ const logger = pino({
     service: 'resumecraft-backend',
     env: process.env.NODE_ENV || 'development',
   },
+  serializers,
+  hooks: { logMethod },
+  // Child bindings do not pass through logMethod.
   redact: {
     paths: [
-      'req.headers.authorization',
-      'req.headers.cookie',
       'password',
       '*.password',
       '*.token',
       'token',
+      'firebaseToken',
+      '*.firebaseToken',
     ],
-    censor: '[REDACTED]',
+    censor: CENSOR,
   },
   transport: !isProd
     ? {

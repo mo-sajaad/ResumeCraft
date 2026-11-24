@@ -1,5 +1,6 @@
 require('./testRun');
 const { Pool } = require('pg');
+const logger = require('../observability/logger');
 
 
 const validateAndNormalizeConnectionString = (value) => {
@@ -71,7 +72,7 @@ const poolConfig = connectionString
 const pool = new Pool(poolConfig);
 
 pool.on('error', (error) => {
-  console.error('[db] Unexpected PostgreSQL client error:', error.message);
+  logger.error({ err: error }, 'Unexpected PostgreSQL client error');
 });
 
 module.exports = pool;

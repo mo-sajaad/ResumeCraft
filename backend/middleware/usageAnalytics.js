@@ -1,13 +1,14 @@
 const pool = require('../config/db');
+const { trackRoute, routeLabel } = require('../observability/routeLabel');
 
 function usageAnalytics(req, res, next) {
+  trackRoute(req);
   const startedAt = Date.now();
 
   res.on('finish', async () => {
     if (!req.user?.id) return;
 
     const durationMs = Date.now() - startedAt;
-    const route = req.route?.path ? `${req.baseUrl || ''}${req.route.path}` : req.path;
 
     try {
       await pool.query(
@@ -17,7 +18,7 @@ function usageAnalytics(req, res, next) {
           req.user.id,
           req.user.firebaseUid,
           'api_request',
-          route || 'unknown',
+          routeLabel(req, res),
           req.method,
           res.statusCode,
           durationMs,

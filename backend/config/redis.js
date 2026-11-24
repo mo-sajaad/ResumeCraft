@@ -1,4 +1,5 @@
 require('./testRun');
+const logger = require('../observability/logger');
 
 let redisClient;
 let redisUnavailable = false;
@@ -30,11 +31,11 @@ function getRedisClient() {
 
   redisClient = createClient({ url: redisUrl });
   redisClient.on('error', (error) => {
-    console.error('[redis] Client error:', error.message);
+    logger.error({ err: error }, 'Redis client error');
   });
 
   redisClient.connect().catch((error) => {
-    console.error('[redis] Failed to connect:', error.message);
+    logger.error({ err: error }, 'Redis connection failed');
   });
 
   return redisClient;

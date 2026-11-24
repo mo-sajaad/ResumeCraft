@@ -1,4 +1,5 @@
 const { getRedisClient } = require('../config/redis');
+const logger = require('../observability/logger');
 
 const WINDOW_SWEEP_INTERVAL_MS = 60 * 1000;
 
@@ -78,7 +79,7 @@ function createRateLimiter({
 
       return next();
     } catch (error) {
-      console.error('[rateLimiter] Redis operation failed:', error.message);
+      logger.error({ err: error }, 'Rate limiter Redis operation failed');
       if (process.env.NODE_ENV === 'production') {
         return res.status(503).json({ message: 'Service temporarily unavailable.' });
       }

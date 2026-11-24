@@ -58,7 +58,8 @@ function createApp({ sentryEnabled = false } = {}) {
     app.use(Sentry.Handlers.tracingHandler());
   }
 
-  app.use(pinoHttp({ logger }));
+  // pino-http would otherwise replace the logger's serializers with its own.
+  app.use(pinoHttp({ logger, wrapSerializers: false }));
   app.use(metricsMiddleware);
   app.use(usageAnalytics);
 
