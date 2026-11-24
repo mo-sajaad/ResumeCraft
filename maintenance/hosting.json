@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "resumecraft-510815",
+    "public": "public",
+    "ignore": ["**/.*"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }],
+    "headers": [
+      { "source": "**", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  }
+}
