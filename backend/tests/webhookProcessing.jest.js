@@ -1,15 +1,15 @@
-const poolQuery = jest.fn();
+const mockPoolQuery = jest.fn();
 
 jest.mock('../config/db', () => ({
-  query: (...args) => poolQuery(...args),
+  query: (...args) => mockPoolQuery(...args),
   connect: jest.fn(),
 }));
 
-const constructEventMock = jest.fn();
+const mockConstructEvent = jest.fn();
 
 jest.mock('../config/stripe', () => ({
   getStripeClient: () => ({
-    webhooks: { constructEvent: constructEventMock },
+    webhooks: { constructEvent: (...args) => mockConstructEvent(...args) },
     subscriptions: { retrieve: jest.fn() },
   }),
 }));
@@ -41,13 +41,19 @@ function createRes() {
 }
 
 describe('stripe webhook processing', () => {
+  // Also drops unused mockResolvedValueOnce values, which clearing keeps.
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_synthetic';
+  });
+
+  afterAll(() => {
+    delete process.env.STRIPE_WEBHOOK_SECRET;
   });
 
   it('returns duplicate=true for replayed deliveries', async () => {
-    constructEventMock.mockReturnValue({ id: 'evt_dup', type: 'checkout.session.completed', data: { object: {} } });
-    poolQuery.mockResolvedValueOnce({ rows: [] });
+    mockConstructEvent.mockReturnValue({ id: 'evt_dup', type: 'checkout.session.completed', data: { object: {} } });
+    mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
     const handler = getWebhookHandler();
     const req = { headers: { 'stripe-signature': 'sig' }, body: Buffer.from('{}') };
@@ -57,16 +63,18 @@ describe('stripe webhook processing', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ received: true, duplicate: true });
+    expect(mockConstructEvent).toHaveBeenCalledWith(req.body, 'sig', 'whsec_synthetic');
+    expect(mockPoolQuery).toHaveBeenCalledTimes(1);
   });
 
-  it('maps past_due to canceled for subscription updates', async () => {
-    constructEventMock.mockReturnValue({
+  it('current behavior (known bug BILLING-011): maps past_due to canceled for subscription updates', async () => {
+    mockConstructEvent.mockReturnValue({
       id: 'evt_sub_update',
       type: 'customer.subscription.updated',
       data: { object: { id: 'sub_1', status: 'past_due', current_period_end: 1730000000 } },
     });
 
-    poolQuery
+    mockPoolQuery
       .mockResolvedValueOnce({ rows: [{ event_id: 'evt_sub_update' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] });
@@ -78,7 +86,8 @@ describe('stripe webhook processing', () => {
     await handler(req, res);
 
     expect(res.statusCode).toBe(200);
-    const statusUpdateCall = poolQuery.mock.calls.find(([sql]) => String(sql).includes('UPDATE subscriptions'));
+    const statusUpdateCall = mockPoolQuery.mock.calls.find(([sql]) => String(sql).includes('UPDATE subscriptions'));
     expect(statusUpdateCall[1][0]).toBe('canceled');
+    expect(statusUpdateCall[1][2]).toBe('sub_1');
   });
 });

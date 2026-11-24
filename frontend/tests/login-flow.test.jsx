@@ -12,6 +12,7 @@ vi.mock('firebase/auth', () => ({
   signInWithPopup: vi.fn(),
 }));
 
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import Login from '../src/pages/auth/Login.jsx';
 
 describe('login flow', () => {
@@ -22,8 +23,12 @@ describe('login flow', () => {
       </MemoryRouter>
     );
 
+    // Both fields are required; the browser blocks an empty submit.
+    fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'synthetic-password' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     expect(await screen.findByText(/firebase is not configured/i)).toBeInTheDocument();
+    expect(signInWithEmailAndPassword).not.toHaveBeenCalled();
   });
 });

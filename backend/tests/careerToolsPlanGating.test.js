@@ -1,6 +1,21 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
+// Clears REDIS_URL and replaces DATABASE_URL, however this file is run.
+require("./support/isolate");
+
+// Counted from before the router loads, because Redis connects at load time.
+const net = require("node:net");
+const originalConnect = net.Socket.prototype.connect;
+let connectionAttempts = 0;
+net.Socket.prototype.connect = function countedConnect(...args) {
+  connectionAttempts += 1;
+  return originalConnect.apply(this, args);
+};
+test.after(() => {
+  net.Socket.prototype.connect = originalConnect;
+});
+
 const careerToolsRouter = require("../routes/careerToolsRoutes");
 
 function runPlanGate(path, plan) {
@@ -94,4 +109,19 @@ test("unknown plans fail closed on plan-gated routes", () => {
   const result = runPlanGate("/recruiter-scan", { code: "custom" });
 
   assert.equal(result.response.statusCode, 403);
+});
+
+test("loading and running the plan gates opens no Redis or database connection", async () => {
+  runPlanGate("/recruiter-scan", { code: "pro" });
+  // A client that connects does so on a later turn of the event loop.
+  await new Promise((resolve) => setImmediate(resolve));
+
+  // Closed first so that a failure is reported instead of hanging the run.
+  const redisClient = require("../config/redis").getRedisClient();
+  if (redisClient) await redisClient.disconnect().catch(() => {});
+
+  // Compared as a boolean: formatting a whole client for a diff is very slow.
+  assert.equal(redisClient === null, true, "a Redis client was created");
+  assert.equal(require("../config/db").totalCount, 0);
+  assert.equal(connectionAttempts, 0);
 });

@@ -1,8 +1,7 @@
-import test from "node:test";
-import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { expect, test } from "vitest";
 import {
   CAREER_LAB_TOOLS,
   hasPlanAccess,
@@ -37,16 +36,16 @@ function read(filePath) {
 
 test("career lab nested routes are mounted in router", () => {
   const routerSource = read(routerPath);
-  assert.match(routerSource, /path:\s*"career-lab"/);
-  assert.match(routerSource, /CareerLabLayout/);
-  assert.match(routerSource, /path:\s*"tools\/:toolId"/);
+  expect(routerSource).toMatch(/path:\s*"career-lab"/);
+  expect(routerSource).toMatch(/CareerLabLayout/);
+  expect(routerSource).toMatch(/path:\s*"tools\/:toolId"/);
 });
 
 test("career lab tools config includes high-use endpoints", () => {
   const toolsSource = read(toolsPath);
-  assert.match(toolsSource, /"\/api\/career-tools\/ats-analysis"/);
-  assert.match(toolsSource, /"\/api\/career-tools\/role-fit"/);
-  assert.match(toolsSource, /"\/api\/career-tools\/interview-prep"/);
+  expect(toolsSource).toMatch(/"\/api\/career-tools\/ats-analysis"/);
+  expect(toolsSource).toMatch(/"\/api\/career-tools\/role-fit"/);
+  expect(toolsSource).toMatch(/"\/api\/career-tools\/interview-prep"/);
 });
 
 test("Pro-only career tools are explicitly marked in the tool catalog", () => {
@@ -54,7 +53,7 @@ test("Pro-only career tools are explicitly marked in the tool catalog", () => {
     .map((tool) => tool.id)
     .sort();
 
-  assert.deepEqual(proTools, [
+  expect(proTools).toEqual([
     "competitive-analysis",
     "market-demand",
     "recruiter-scan",
@@ -72,31 +71,31 @@ test("entry Career Lab tools are free and the remaining standard tools are Premi
     (tool) => tool.minimumPlan === "premium",
   );
 
-  assert.deepEqual(freeTools, ["ats-analysis", "job-parser"]);
-  assert.equal(premiumTools.length, 13);
-  assert.ok(CAREER_LAB_TOOLS.every((tool) => tool.minimumPlan));
-  assert.equal(hasPlanAccess("free", "free"), true);
-  assert.equal(hasPlanAccess("free", "premium"), false);
-  assert.equal(hasPlanAccess("premium", "premium"), true);
-  assert.equal(hasPlanAccess("pro", "premium"), true);
-  assert.equal(hasPlanAccess("premium", "pro"), false);
-  assert.equal(hasPlanAccess("pro", "pro"), true);
-  assert.equal(hasPlanAccess("unknown", "premium"), false);
+  expect(freeTools).toEqual(["ats-analysis", "job-parser"]);
+  expect(premiumTools).toHaveLength(13);
+  expect(CAREER_LAB_TOOLS.every((tool) => tool.minimumPlan)).toBe(true);
+  expect(hasPlanAccess("free", "free")).toBe(true);
+  expect(hasPlanAccess("free", "premium")).toBe(false);
+  expect(hasPlanAccess("premium", "premium")).toBe(true);
+  expect(hasPlanAccess("pro", "premium")).toBe(true);
+  expect(hasPlanAccess("premium", "pro")).toBe(false);
+  expect(hasPlanAccess("pro", "pro")).toBe(true);
+  expect(hasPlanAccess("unknown", "premium")).toBe(false);
 });
 
 test("career lab layout includes top dropdown navigation sections", () => {
   const layoutSource = read(layoutPath);
   const toolsSource = read(toolsPath);
-  assert.match(layoutSource, /career-lab-top-nav/);
-  assert.match(layoutSource, /career-lab-dropdown-menu/);
-  assert.match(layoutSource, /Feature Pages/);
-  assert.match(toolsSource, /Core Analysis/);
-  assert.match(toolsSource, /Market & Strategy/);
-  assert.match(toolsSource, /Interview & Execution/);
+  expect(layoutSource).toMatch(/career-lab-top-nav/);
+  expect(layoutSource).toMatch(/career-lab-dropdown-menu/);
+  expect(layoutSource).toMatch(/Feature Pages/);
+  expect(toolsSource).toMatch(/Core Analysis/);
+  expect(toolsSource).toMatch(/Market & Strategy/);
+  expect(toolsSource).toMatch(/Interview & Execution/);
 });
 
 test("Career Lab requests use the shared cookie-authenticated fetch helper", () => {
   const layoutSource = read(layoutPath);
-  assert.match(layoutSource, /import \{ authFetch \} from .*utils\/auth/);
-  assert.match(layoutSource, /await authFetch\(endpoint/);
+  expect(layoutSource).toMatch(/import \{ authFetch \} from .*utils\/auth/);
+  expect(layoutSource).toMatch(/await authFetch\(endpoint/);
 });
