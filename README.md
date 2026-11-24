@@ -2,7 +2,7 @@
 
 ResumeCraft AI is a career-document and job-search application for creating ATS-focused resumes and tailored cover letters. It combines AI-assisted writing and document export with tools for analyzing job fit and planning a job search.
 
-[Click here to view the live application](https://your-app-domain.com)
+> **Note:** The live application is temporarily offline while I make security and reliability improvements. If you followed a link from one of my job applications, thank you for your interest. The full source code is available here, and you can run the project with the [local setup instructions](#local-setup).
 
 ![React](https://img.shields.io/badge/React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite_7-646CFF?style=for-the-badge&logo=vite&logoColor=white)
@@ -67,7 +67,7 @@ Both paid plans are seeded with advanced AI and resume-analysis features. Resume
 
 The AI endpoint limiter defaults to 30 requests per minute per user (or IP for unauthenticated requests) and can be changed with `MAX_AI_REQUESTS_PER_MINUTE`. A shared deployment-wide cutoff allows 25 AI requests in each rolling 24-hour window by default; configure it with `MAX_GLOBAL_AI_REQUESTS_PER_DAY`. This is a request-count cap, not a dollar-spend cap. Production counters use Redis and fail closed if Redis is unavailable; development can fall back to in-memory limiters.
 
-The database seeds Premium at $19.99/month and Pro at $39.99/month, but Stripe charges the Price IDs configured in environment variables. **The displayed prices currently disagree:** the homepage shows $19/$39, while the payment page shows $9.99/$19.99. Confirm and align the UI, seeded metadata, and Stripe Price IDs before publishing prices or enabling production billing.
+The database seeds, homepage and payment page all use $9.99/month for Premium and $19.99/month for Pro. Stripe charges the Price IDs configured in environment variables, so keep those in line with the displayed prices.
 
 ## API Overview
 
@@ -107,7 +107,6 @@ JWT_SECRET_KEY=replace-with-a-long-random-secret
 DATABASE_URL=postgresql://postgres:password@localhost:5432/resumecraft_db
 OPENAI_API_KEY=replace-with-your-openai-key
 FIREBASE_PROJECT_ID=your-firebase-project-id
-FRONTEND_URL=http://localhost:5173
 APP_BASE_URL=http://localhost:5173
 ```
 
