@@ -90,7 +90,7 @@ All routes are mounted under `/api`.
 - Node.js and npm
 - PostgreSQL
 - A Firebase project with Firebase Authentication enabled
-- Firebase Admin service-account credentials for the backend
+- The Firebase project ID for the backend
 - An OpenAI API key for AI features
 - Redis for production (optional in local development)
 - Stripe secret, webhook secret, and Price IDs to test subscription billing
@@ -106,12 +106,12 @@ PORT=5000
 JWT_SECRET_KEY=replace-with-a-long-random-secret
 DATABASE_URL=postgresql://postgres:password@localhost:5432/resumecraft_db
 OPENAI_API_KEY=replace-with-your-openai-key
-FIREBASE_SERVICE_ACCOUNT_JSON=replace-with-complete-single-line-service-account-json
+FIREBASE_PROJECT_ID=your-firebase-project-id
 FRONTEND_URL=http://localhost:5173
 APP_BASE_URL=http://localhost:5173
 ```
 
-The Firebase Admin JSON must be the complete service-account credential. Alternatively, set `FIREBASE_PRIVATE_KEY_PATH` to its file path. Keep credentials private and out of version control.
+Verifying sign-in tokens needs only the Firebase project ID, so no service-account key is required. To use one anyway, set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PRIVATE_KEY_PATH`; these take precedence. Keep credentials private and out of version control.
 
 Create a PostgreSQL database, then apply the schema from the repository root:
 

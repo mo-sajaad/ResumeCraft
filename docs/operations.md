@@ -6,7 +6,7 @@
 | --- | --- |
 | Server | `PORT`, `NODE_ENV`, `APP_BASE_URL`, `TRUST_PROXY`, `LOG_LEVEL` |
 | Sessions | `JWT_SECRET_KEY` (required to start) |
-| Firebase | `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PRIVATE_KEY_PATH` |
+| Firebase | `FIREBASE_PROJECT_ID` (keyless), or `FIREBASE_SERVICE_ACCOUNT_JSON` / `FIREBASE_PRIVATE_KEY_PATH`, which take precedence |
 | Database | `DATABASE_URL`, or `PG_*` / `PG*` connection settings; `PG_SSL`, `DB_CA_CERT` |
 | Redis | `REDIS_URL` (required in production) |
 | OpenAI | `OPENAI_API_KEY`, `OPENAI_CAREER_LAB_MODEL`, `OPENAI_REQUEST_TIMEOUT_MS`, `OPENAI_MAX_RETRIES`, `OPENAI_RETRY_BASE_DELAY_MS` |

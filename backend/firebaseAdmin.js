@@ -34,16 +34,22 @@ function readServiceAccountFromPath() {
 try {
   const serviceAccount = readServiceAccountFromEnv() || readServiceAccountFromPath();
 
-  if (!serviceAccount) {
+  const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
+
+  if (!serviceAccount && !projectId) {
     throw new Error(
-      'Missing Firebase Admin credentials. Configure FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PRIVATE_KEY_PATH.'
+      'Configure FIREBASE_PROJECT_ID (keyless), FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PRIVATE_KEY_PATH.'
     );
   }
 
   if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
+    // Keyless mode uses Application Default Credentials. Verifying ID tokens
+    // needs only the project ID and Google's public certificates.
+    admin.initializeApp(
+      serviceAccount
+        ? { credential: admin.credential.cert(serviceAccount) }
+        : { credential: admin.credential.applicationDefault(), projectId }
+    );
   }
 
   firebaseAdmin = admin;
