@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { FaCircleCheck, FaFileLines, FaShieldHalved, FaWandMagicSparkles } from "react-icons/fa6";
+import { FaFileLines, FaShieldHalved, FaWandMagicSparkles } from "react-icons/fa6";
 
 import "./AuthLayout.css";
 
@@ -7,17 +7,17 @@ const BENEFITS = [
   {
     icon: <FaWandMagicSparkles />,
     title: "AI-Guided Writing",
-    text: "Generate strong bullets and polished summaries in seconds.",
+    text: "Draft resumes and cover letters with AI.",
   },
   {
     icon: <FaFileLines />,
-    title: "ATS-Friendly Templates",
-    text: "Use recruiter-trusted layouts built for modern applicant systems.",
+    title: "Resume Templates",
+    text: "Choose from Modern, Corporate, and Creative layouts.",
   },
   {
     icon: <FaShieldHalved />,
-    title: "Secure Workspace",
-    text: "Your profile and documents stay private inside your account.",
+    title: "Your Own Workspace",
+    text: "Your documents are tied to your account.",
   },
 ];
 
@@ -53,7 +53,6 @@ export default function AuthLayout() {
           ))}
         </div>
 
-        <p className="auth-proof"><FaCircleCheck /> Trusted by professionals building better applications.</p>
       </aside>
 
       <main className="auth-form-panel">

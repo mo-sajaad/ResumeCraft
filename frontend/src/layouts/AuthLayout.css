@@ -87,15 +87,6 @@
   font-size: 0.9rem;
 }
 
-.auth-proof {
-  margin-top: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 0.9rem;
-}
-
 .auth-form-panel {
   display: flex;
   align-items: center;

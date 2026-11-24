@@ -140,8 +140,7 @@ export default function CareerLabLayout() {
           <h1 className="page-title">AI-Powered Career Command Center</h1>
           <p className="career-lab-hero-description">
             Every tool has dedicated inputs and output so you can run focused
-            checks, compare results, and move step-by-step through your job
-            search workflow.
+            checks and move step-by-step through your job search workflow.
           </p>
         </div>
         <div className="career-lab-metrics">
@@ -262,8 +261,8 @@ export default function CareerLabLayout() {
         <div className="career-lab-diagnostic-flow">
           <p>
             <strong>Diagnostic flow:</strong> Start with ATS Analysis to
-            identify gaps, then move to matching and rewrite tools to improve
-            weak sections before interview prep.
+            identify gaps, check Role Fit, then update your documents before
+            interview prep.
           </p>
           <ol className="career-lab-diagnostic-steps">
             <li>
@@ -275,8 +274,8 @@ export default function CareerLabLayout() {
               missing keywords, weak bullets, or role-fit gaps.
             </li>
             <li>
-              <strong>Apply improvements</strong> in rewrite tools, then re-run
-              diagnostics to confirm progress.
+              <strong>Apply improvements</strong> in the document editor, then
+              re-run ATS Analysis with the updated text.
             </li>
           </ol>
         </div>

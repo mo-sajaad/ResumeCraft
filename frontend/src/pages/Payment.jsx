@@ -155,13 +155,11 @@ export default function Payment() {
             <p className="page-subtitle">Perfect for getting started</p>
 
             <div className="pricing-list">
-              <span>✓ 1 resume</span>
-              <span>✓ 1 cover letter</span>
-              <span>✓ 1 basic template</span>
+              <span>✓ 1 AI resume per month</span>
+              <span>✓ 1 AI cover letter per month</span>
+              <span>✓ Modern template</span>
               <span>✓ Job description parser</span>
-              <span>✓ Basic ATS analysis</span>
-              <span>✓ Limited AI suggestions</span>
-              <span>✓ PDF download</span>
+              <span>✓ ATS analysis</span>
             </div>
           </div>
 
@@ -172,11 +170,9 @@ export default function Payment() {
 
         {/* PREMIUM */}
         <div
-          className={`pricing-card ${isPremiumPlan ? "featured" : "with-badge"}`}
+          className={`pricing-card ${isPremiumPlan ? "featured" : ""}`}
         >
-          <span className="pricing-badge">
-            {isPremiumPlan ? "Current Plan" : "Most Popular"}
-          </span>
+          {isPremiumPlan && <span className="pricing-badge">Current Plan</span>}
 
           <div className="pricing-features">
             <h3>Premium</h3>
@@ -188,13 +184,12 @@ export default function Payment() {
             <p className="page-subtitle">For serious job seekers</p>
 
             <div className="pricing-list">
-              <span>✓ Unlimited resumes</span>
-              <span>✓ Unlimited cover letters</span>
-              <span>✓ 50+ premium templates</span>
-              <span>✓ Unlimited downloads</span>
-              <span>✓ Advanced AI suggestions</span>
-              <span>✓ ATS optimization score</span>
-              <span>✓ Premium Career Lab tools</span>
+              <span>✓ No monthly resume limit*</span>
+              <span>✓ No monthly cover letter limit*</span>
+              <span>✓ Modern, Corporate and Creative templates</span>
+              <span>✓ PDF download</span>
+              <span>✓ AI rewriting in the document editor</span>
+              <span>✓ 13 more Career Lab tools</span>
             </div>
           </div>
 
@@ -224,7 +219,7 @@ export default function Payment() {
             <div className="pricing-list">
               <span>✓ Everything in Premium</span>
               <span>✓ Recruiter scan</span>
-              <span>✓ Salary estimates and market demand</span>
+              <span>✓ Salary and market demand estimates</span>
               <span>✓ Competitive analysis</span>
             </div>
           </div>
@@ -239,6 +234,10 @@ export default function Payment() {
           </button>
         </div>
       </div>
+
+      <p className="page-subtitle">
+        * AI features also share a daily usage limit across all users.
+      </p>
 
       {isPaidPlan && (
         <div className="content-section">

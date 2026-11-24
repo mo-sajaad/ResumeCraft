@@ -6,30 +6,30 @@ const featureItems = [
     id: "resume-optimization",
     title: "Resume Optimization",
     description:
-      "ATS scoring, bullet rewrites, and role-specific resume improvements.",
+      "Resume drafting, estimated ATS scoring, and AI-assisted rewriting on paid plans.",
     tag: "Core",
-    outcome: "Raise match confidence before every application",
+    outcome: "See how your resume lines up before applying",
   },
   {
     id: "cover-letter",
     title: "Cover Letter Generator",
     description:
-      "Generate job-tailored cover letters instantly from your resume + target JD.",
+      "Draft a cover letter for a specific company and position with AI.",
     tag: "Writing",
-    outcome: "Ship personalized letters in minutes",
+    outcome: "Start from a draft instead of a blank page",
   },
   {
     id: "job-parser",
     title: "Job Description Parser",
     description:
-      "Extract must-have skills, responsibilities, and match signals.",
+      "Extract required and preferred skills, responsibilities, and seniority.",
     tag: "Matching",
-    outcome: "Prioritize what recruiters actually grade",
+    outcome: "Focus on what the job description asks for",
   },
   {
-    id: "github-portfolio",
-    title: "GitHub & Portfolio Optimization",
-    description: "Improve README narratives and infer missing stack signals.",
+    id: "portfolio-audit",
+    title: "Portfolio Audit",
+    description: "Identify proof gaps in your resume and plan portfolio pieces.",
     tag: "Portfolio",
     outcome: "Tell a stronger technical story",
   },
@@ -37,59 +37,50 @@ const featureItems = [
     id: "interview-prep",
     title: "Interview Prep",
     description:
-      "Question banks, STAR response coaching, and mock interview flow.",
+      "Suggested questions, STAR coaching priorities, and drill plans.",
     tag: "Interview",
-    outcome: "Practice with high-signal feedback loops",
+    outcome: "Know what to practice next",
   },
   {
     id: "career-strategy",
     title: "Career Strategy Tools",
     description:
-      "Salary estimates, market demand insights, and role-fit analyzers.",
+      "Role-fit scoring, plus general salary and market estimates.",
     tag: "Strategy",
-    outcome: "Choose smarter roles and timelines",
+    outcome: "Compare roles and plan your search",
   },
   {
-    id: "competitive-intelligence",
-    title: "Competitive Intelligence",
-    description: "Benchmark your resume against top candidate patterns.",
+    id: "competitive-analysis",
+    title: "Competitive Analysis",
+    description: "Compare your resume with a benchmark resume you provide.",
     tag: "Benchmark",
-    outcome: "See where your profile beats or lags",
+    outcome: "See which skills overlap and which are missing",
   },
   {
     id: "ats-simulation",
     title: "ATS & Recruiter Simulation",
     description:
-      "Keyword match, ATS scoring, red flag detection, and recruiter skim view.",
+      "Keyword matching, estimated ATS scoring, and recruiter red-flag checks.",
     tag: "Simulation",
-    outcome: "Preview recruiter reaction before applying",
+    outcome: "Catch weak spots before applying",
   },
-];
-
-const socialProof = [
-  "Google",
-  "Meta",
-  "Microsoft",
-  "Amazon",
-  "Stripe",
-  "Atlassian",
 ];
 
 const useCases = [
   {
     title: "Students applying for internships",
     description:
-      "Turn class projects into outcomes recruiters understand, and target roles with clearer requirements.",
+      "Present class projects clearly, and target roles with clearer requirements.",
   },
   {
     title: "Early-career developers",
     description:
-      "Find keyword gaps, improve impact bullets, and build confidence for recruiter and hiring-manager screens.",
+      "Find keyword gaps, spot weak bullets, and prepare for recruiter and hiring-manager screens.",
   },
   {
     title: "Career-switching engineers",
     description:
-      "Translate previous experience into role-relevant narratives and focus on highest-probability openings.",
+      "Frame previous experience for a new role and plan the transition.",
   },
 ];
 
@@ -99,11 +90,11 @@ const plans = [
     price: "$0",
     audience: "Great for first-time users",
     features: [
-      "Limited rewrites",
+      "1 AI resume per month",
+      "1 AI cover letter per month",
+      "Modern template",
       "Job description parser",
-      "Basic ATS score",
-      "1 cover letter / week",
-      "Community support",
+      "ATS analysis",
     ],
   },
   {
@@ -112,66 +103,23 @@ const plans = [
     audience: "Students & early-career devs",
     featured: true,
     features: [
-      "Unlimited resume rewrites",
-      "Detailed ATS breakdown",
-      "Unlimited cover letters",
-      "Interview prep toolkit",
-      "Premium Career Lab tools",
+      "No monthly resume or cover letter limit*",
+      "All 3 templates and PDF download",
+      "AI rewriting in the document editor",
+      "13 more Career Lab tools, including interview prep",
     ],
   },
   {
     name: "Pro",
     price: "$19.99/mo",
-    audience: "Serious job hunters & FAANG aspirants",
+    audience: "Serious job hunters",
     features: [
+      "Everything in Premium",
       "Recruiter scan",
-      "Salary estimates + market demand",
+      "Salary and market demand estimates",
       "Competitive analysis",
     ],
   },
-];
-
-const stats = [
-  { value: "82%", label: "Average ATS score lift" },
-  { value: "3.1x", label: "More interview callbacks" },
-  { value: "12k+", label: "Tech job seekers supported" },
-];
-
-const benchmarkRows = [
-  {
-    area: "Resume builder guidance",
-    resumecraft:
-      "Role-specific AI guidance with ATS, recruiter skim, and interview tie-in.",
-    marketStandard:
-      "Strong template + wizard experience, but limited full-loop coaching.",
-  },
-  {
-    area: "Job-match intelligence",
-    resumecraft:
-      "Live role-fit, ATS diagnostics, and keyword gap analysis from your target JD.",
-    marketStandard:
-      "Often focused on resume writing quality without deep JD-to-resume matching.",
-  },
-  {
-    area: "Interview & execution",
-    resumecraft:
-      "Built-in interview prep, outreach planning, and sprint execution tools.",
-    marketStandard: "Usually offered as separate products or add-ons.",
-  },
-  {
-    area: "Career strategy depth",
-    resumecraft:
-      "Salary, market demand, negotiation, pivot planning, and application readiness in one workspace.",
-    marketStandard:
-      "More document-centric than end-to-end job-search strategy.",
-  },
-];
-
-const qualitySignals = [
-  "ATS-focused language checks and keyword targeting",
-  "Actionable rewrites tied to measurable outcomes",
-  "One workspace from resume polish to interview prep",
-  "AI enhancement fallbacks for reliability in all environments",
 ];
 
 export default function Home() {
@@ -197,10 +145,8 @@ export default function Home() {
             </div>
           </div>
           <a href="#pricing">Pricing</a>
-          <a href="#compare">Compare</a>
           <a href="#how-it-works">How It Works</a>
           <a href="#about">About</a>
-          <a href="#blog">Blog</a>
           <a href="#contact">Contact</a>
           <a href="#faq">FAQ</a>
         </nav>
@@ -209,7 +155,7 @@ export default function Home() {
             Log In
           </Link>
           <Link to="/auth/signup" className="btn btn-dark">
-            Start Free Trial
+            Sign Up Free
           </Link>
         </div>
       </header>
@@ -220,11 +166,11 @@ export default function Home() {
             <p className="kicker">
               AI Career Copilot for Tech Students & Developers
             </p>
-            <h1>Land Tech Jobs Faster with AI</h1>
+            <h1>Plan Your Tech Job Search with AI</h1>
             <p>
-              Optimize your resume, decode job descriptions, simulate ATS +
-              recruiter scans, and build a data-backed job search strategy from
-              internship to offer.
+              Draft resumes and cover letters, break down job descriptions, run
+              estimated ATS and recruiter scans, and plan your job search in one
+              place.
             </p>
             <div className="hero-ctas">
               <Link to="/auth/signup" className="btn btn-dark">
@@ -236,7 +182,7 @@ export default function Home() {
             </div>
           </div>
           <div className="hero-panel floating">
-            <h3>Live Analysis Snapshot</h3>
+            <h3>Example Analysis (Sample Data)</h3>
             <p>
               <strong>Target role:</strong> Backend Engineer (Node.js)
             </p>
@@ -256,49 +202,21 @@ export default function Home() {
 
         <section
           className="section section-tight fade-in-up"
-          aria-label="Social proof"
-        >
-          <p className="logo-strip-title">
-            Trusted by candidates targeting teams at
-          </p>
-          <div
-            className="logo-strip"
-            role="list"
-            aria-label="Company logos represented as text labels"
-          >
-            {socialProof.map((logo) => (
-              <span key={logo} role="listitem" className="logo-pill">
-                {logo}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <section
-          className="section section-tight fade-in-up"
           aria-label="Product overview"
         >
           <h2>Overview</h2>
           <p>
-            ResumeCraft combines resume optimization, ATS diagnostics, interview
-            prep, and market intelligence into one workflow-focused platform for
-            developers and tech students.
+            ResumeCraft combines resume and cover letter drafting, ATS-style
+            checks, interview prep, and job-search planning for developers and
+            tech students.
           </p>
-          <div className="stat-strip">
-            {stats.map((stat) => (
-              <article key={stat.label} className="stat-item card">
-                <p className="stat-value">{stat.value}</p>
-                <p>{stat.label}</p>
-              </article>
-            ))}
-          </div>
         </section>
 
         <section id="features" className="section fade-in-up">
           <h2>Features</h2>
           <p className="section-lead">
-            Everything you need from first draft to final interview, in one
-            workflow.
+            Tools for each step from first draft to interview. Scores and
+            estimates are guidance, not real ATS or market data.
           </p>
           <div className="feature-grid">
             {featureItems.map((item) => (
@@ -312,45 +230,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="compare" className="section fade-in-up">
-          <h2>How ResumeCraft compares to traditional resume builders</h2>
-          <p className="section-lead">
-            We benchmarked our experience against category leaders like
-            MyPerfectResume and focused on going beyond document generation into
-            full job-search execution.
-          </p>
-          <div className="comparison-table-wrap card">
-            <table className="comparison-table">
-              <thead>
-                <tr>
-                  <th>Capability Area</th>
-                  <th>ResumeCraft</th>
-                  <th>Typical Resume Builder</th>
-                </tr>
-              </thead>
-              <tbody>
-                {benchmarkRows.map((row) => (
-                  <tr key={row.area}>
-                    <td>{row.area}</td>
-                    <td>{row.resumecraft}</td>
-                    <td>{row.marketStandard}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="feature-grid">
-            {qualitySignals.map((signal) => (
-              <article key={signal} className="card hover-lift">
-                <h3>Why this matters</h3>
-                <p>{signal}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section id="use-cases" className="section fade-in-up">
-          <h2>Built for every stage of the tech job search</h2>
+          <h2>Who it can help</h2>
           <div className="testimonial-grid">
             {useCases.map((useCase) => (
               <article key={useCase.title} className="card">
@@ -369,7 +250,6 @@ export default function Home() {
                 key={plan.name}
                 className={`card price-card hover-lift ${plan.featured ? "featured" : ""}`}
               >
-                {plan.featured && <p className="badge">Most Popular</p>}
                 <h3>{plan.name}</h3>
                 <p className="price">{plan.price}</p>
                 <p>{plan.audience}</p>
@@ -384,94 +264,41 @@ export default function Home() {
               </article>
             ))}
           </div>
+          <p className="section-lead">
+            * AI features also share a daily usage limit across all users.
+          </p>
         </section>
 
         <section id="how-it-works" className="section fade-in-up">
           <h2>How It Works</h2>
           <ol className="steps-list card">
-            <li>Sign up and choose your target role.</li>
-            <li>Upload or paste your resume + target job description.</li>
-            <li>Run ATS, role-fit, and interview prep tools.</li>
-            <li>Apply improvements and track outcomes with your dashboard.</li>
+            <li>Sign up for a free account.</li>
+            <li>Enter your details to draft a resume or cover letter.</li>
+            <li>Paste your resume and a job description into Career Lab tools.</li>
+            <li>Use the results to improve your documents and plan next steps.</li>
           </ol>
-          <div className="card demo-box hover-lift">
-            <h3>Interactive Demo Preview</h3>
-            <p>
-              Upload a sample resume and instantly preview ATS gap analysis +
-              improved bullets.
-            </p>
-            <Link to="/auth/signup" className="btn btn-dark">
-              Launch Demo
-            </Link>
-          </div>
-          <div className="testimonial-grid">
-            <article className="card hover-lift">
-              <p>“I improved my ATS score from 54 to 82 in one night.”</p>
-              <small>- CS Student, UK</small>
-            </article>
-            <article className="card hover-lift">
-              <p>
-                “The recruiter simulation caught weak bullets before I applied.”
-              </p>
-              <small>- Backend Developer</small>
-            </article>
-          </div>
         </section>
 
         <section id="about" className="section fade-in-up">
           <h2>About</h2>
           <p>
-            Built by a tech student, ResumeCraft exists to make the job search
-            less random and more strategic for developers. Our mission is to
-            help candidates go from resume to offer with clarity and confidence.
+            Built by a tech student, ResumeCraft aims to make the job search
+            less random and more strategic for developers.
           </p>
-        </section>
-
-        <section id="blog" className="section fade-in-up">
-          <h2>Blog (SEO)</h2>
-          <div className="feature-grid">
-            <article className="card hover-lift">
-              <h3>Tech Career Advice</h3>
-              <p>
-                ATS tactics, interview prep frameworks, and search strategy
-                playbooks.
-              </p>
-            </article>
-            <article className="card hover-lift">
-              <h3>Resume Tips</h3>
-              <p>
-                Role-specific optimization guides for FAANG, startups, and
-                product teams.
-              </p>
-            </article>
-            <article className="card hover-lift">
-              <h3>Success Stories</h3>
-              <p>Real journeys from students and devs who improved outcomes.</p>
-            </article>
-            <article className="card hover-lift">
-              <h3>Market Trends</h3>
-              <p>
-                Emerging skills, salary movement, and hiring outlook updates.
-              </p>
-            </article>
-          </div>
         </section>
 
         <section id="contact" className="section fade-in-up">
           <h2>Contact</h2>
           <p>
-            Need support, want to share feedback, or request a feature? Reach
-            out below.
+            Found a problem, or want to share feedback or request a feature? Use
+            the GitHub repository.
           </p>
           <div className="contact-links card">
-            <a href="mailto:support@resumecraft.ai">support@resumecraft.ai</a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer">
-              LinkedIn
-            </a>
-            <a href="https://twitter.com" target="_blank" rel="noreferrer">
-              Twitter
-            </a>
-            <a href="https://github.com" target="_blank" rel="noreferrer">
+            <a
+              href="https://github.com/mo-sajaad/ResumeCraft"
+              target="_blank"
+              rel="noreferrer"
+            >
               GitHub
             </a>
           </div>
@@ -480,18 +307,10 @@ export default function Home() {
         <section id="faq" className="section fade-in-up">
           <h2>FAQ</h2>
           <details className="card">
-            <summary>Should I expect separate pages for every feature?</summary>
-            <p>
-              Not required for a high-converting SaaS homepage. Keep one focused
-              landing page first, then add dedicated feature pages later for
-              SEO, ads, and deeper product education.
-            </p>
-          </details>
-          <details className="card">
             <summary>Is there a free plan?</summary>
             <p>
-              Yes. Start free and upgrade once you need unlimited rewrites and
-              advanced analytics.
+              Yes. It includes one AI resume and one AI cover letter per month,
+              the job description parser, and ATS analysis.
             </p>
           </details>
           <details className="card">
@@ -502,9 +321,10 @@ export default function Home() {
             </p>
           </details>
           <details className="card">
-            <summary>Can I cancel anytime?</summary>
+            <summary>How do I manage a paid plan?</summary>
             <p>
-              Yes, you can cancel paid plans at any time from billing settings.
+              Use Manage Billing on the payment page to open the Stripe billing
+              portal.
             </p>
           </details>
         </section>
@@ -516,16 +336,9 @@ export default function Home() {
           <a href="#home">Home</a>
           <a href="#features">Features</a>
           <a href="#pricing">Pricing</a>
-          <a href="#compare">Compare</a>
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
           <a href="#faq">FAQ</a>
-        </div>
-        <div>
-          <h4>Legal</h4>
-          <a href="#">Terms of Service</a>
-          <a href="#">Privacy Policy</a>
-          <a href="#">Cookie Policy</a>
         </div>
         <div>
           <h4>Account</h4>

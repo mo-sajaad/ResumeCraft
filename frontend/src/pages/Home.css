@@ -201,35 +201,9 @@ h2 {
   line-height: 1.65;
 }
 
-.logo-strip-title {
-  margin: 0 0 0.9rem;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.logo-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-}
-
-.logo-pill {
-  border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.62);
-  color: #cbd5e1;
-  border-radius: 999px;
-  padding: 0.45rem 0.8rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-
 .feature-grid,
 .pricing-grid,
-.testimonial-grid,
-.stat-strip {
+.testimonial-grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -288,17 +262,6 @@ h2 {
   font-weight: 600;
 }
 
-.stat-item {
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 1.85rem;
-  font-weight: 800;
-  margin: 0;
-  color: #bfdbfe;
-}
-
 .price-card.featured {
   border-color: rgba(96, 165, 250, 0.85);
   transform: scale(1.02);
@@ -323,31 +286,6 @@ h2 {
 }
 
 
-.comparison-table-wrap {
-  overflow-x: auto;
-}
-
-.comparison-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.comparison-table th,
-.comparison-table td {
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem;
-  text-align: left;
-  vertical-align: top;
-  color: #cbd5e1;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.comparison-table th {
-  color: #f8fafc;
-  font-weight: 700;
-}
-
 .steps-list {
   margin: 0 0 1rem;
   padding-left: 1.4rem;
@@ -355,13 +293,6 @@ h2 {
 
 .steps-list li {
   margin-bottom: 0.55rem;
-}
-
-.demo-box {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
 }
 
 .contact-links {
@@ -530,20 +461,6 @@ details p {
 
 .top-nav-ctas .btn {
   min-height: 40px;
-}
-
-.comparison-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.comparison-table {
-  min-width: 720px;
-}
-
-.comparison-table th,
-.comparison-table td {
-  line-height: 1.5;
 }
 
 @media (max-width: 1200px) {

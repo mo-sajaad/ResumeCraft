@@ -1,6 +1,6 @@
 # ResumeCraft AI
 
-ResumeCraft AI is a career-document and job-search application for creating ATS-focused resumes and tailored cover letters. It combines AI-assisted writing and document export with tools for analyzing job fit and planning a job search.
+ResumeCraft AI is a career-document and job-search application for creating resumes and cover letters. It combines AI-assisted writing and document export with tools for analyzing job fit and planning a job search.
 
 > **Note:** The live application is temporarily offline while I make security and reliability improvements. If you followed a link from one of my job applications, thank you for your interest. The full source code is available here, and you can run the project with the [local setup instructions](#local-setup).
 
@@ -15,7 +15,7 @@ ResumeCraft AI is a career-document and job-search application for creating ATS-
 
 ## Features
 
-- Generate and edit AI-assisted resumes and job-tailored cover letters.
+- Generate and edit AI-assisted resumes, and cover letters for a specific company and position.
 - Preview documents using Modern, Corporate, and Creative templates.
 - Export resumes and cover letters as PDFs.
 - Use Career Lab tools for job-description parsing, ATS analysis, recruiter scans, competitive analysis, interview preparation, role fit, salary and market insights, and job-search planning.
@@ -65,7 +65,7 @@ The backend seeds these plan limits in `backend/db/schema.sql`:
 
 Both paid plans are seeded with advanced AI and resume-analysis features. Resume and cover-letter PDF downloads require at least the Premium plan.
 
-The AI endpoint limiter defaults to 30 requests per minute per user (or IP for unauthenticated requests) and can be changed with `MAX_AI_REQUESTS_PER_MINUTE`. A shared deployment-wide cutoff allows 25 AI requests in each rolling 24-hour window by default; configure it with `MAX_GLOBAL_AI_REQUESTS_PER_DAY`. This is a request-count cap, not a dollar-spend cap. Production counters use Redis and fail closed if Redis is unavailable; development can fall back to in-memory limiters.
+The AI endpoint limiter defaults to 30 requests per minute per user (or IP for unauthenticated requests) and can be changed with `MAX_AI_REQUESTS_PER_MINUTE`. A shared deployment-wide cutoff allows 25 AI requests in each fixed 24-hour window by default; configure it with `MAX_GLOBAL_AI_REQUESTS_PER_DAY`. This is a request-count cap, not a dollar-spend cap. Production counters use Redis; development can use in-memory limiters.
 
 The database seeds, homepage and payment page all use $9.99/month for Premium and $19.99/month for Pro. Stripe charges the Price IDs configured in environment variables, so keep those in line with the displayed prices.
 
@@ -126,7 +126,7 @@ npm ci
 npm start
 ```
 
-For Stripe billing, also set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PREMIUM_PRICE_ID` / `STRIPE_PRO_PRICE_ID` (or their `STRIPE_PRICE_ID_PREMIUM` / `STRIPE_PRICE_ID_PRO` aliases). For Redis, set `REDIS_URL`. `OPENAI_CAREER_LAB_MODEL` can override the shared AI client’s default model; resume and cover-letter generation explicitly select `gpt-4o-mini`.
+For Stripe billing, also set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PREMIUM_PRICE_ID` / `STRIPE_PRO_PRICE_ID` (or their `STRIPE_PRICE_ID_PREMIUM` / `STRIPE_PRICE_ID_PRO` aliases). For Redis, set `REDIS_URL`. Set `NODE_ENV=production` in deployment, and `TRUST_PROXY` to match your proxy setup. `OPENAI_CAREER_LAB_MODEL` can override the shared AI client’s default model; resume and cover-letter generation explicitly select `gpt-4o-mini`.
 
 ### 2. Configure and start the frontend
 

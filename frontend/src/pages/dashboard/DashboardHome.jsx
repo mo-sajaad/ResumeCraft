@@ -191,7 +191,7 @@ export default function DashboardHome() {
               <div className="promo-icon"><FaCrown size={40} /></div>
               <div>
                 <h3>Unlock Premium Features</h3>
-                <p>Get unlimited downloads, advanced templates, and AI-powered suggestions.</p>
+                <p>Get PDF downloads, all three templates, and AI rewriting.</p>
               </div>
             </div>
             <Button variant="secondary" onClick={() => navigate(ROUTES.PAYMENT)}>
