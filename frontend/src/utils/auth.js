@@ -1,5 +1,8 @@
 import { auth } from "../firebase";
 
+// Error code of an exchange refused because the email is not verified.
+export const EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED";
+
 let sessionEstablished = false;
 
 export function clearAppJwt() {
@@ -8,6 +11,17 @@ export function clearAppJwt() {
 
 export function getStoredAppJwt() {
   return null;
+}
+
+async function postExchange(firebaseToken, fullName) {
+  const response = await fetch("/api/auth/exchange", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ firebaseToken, fullName }),
+  });
+
+  return { response, data: await response.json().catch(() => ({})) };
 }
 
 export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
@@ -22,22 +36,25 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   const sanitizedPreferredName = typeof preferredFullName === "string" ? preferredFullName.trim() : "";
   const fullName = sanitizedPreferredName || firebaseUser.displayName || null;
 
-  const response = await fetch("/api/auth/exchange", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ firebaseToken, fullName }),
-  });
+  let { response, data } = await postExchange(firebaseToken, fullName);
 
-  const data = await response.json().catch(() => ({}));
+  // A token issued before the email was verified, such as in another tab, is out of date.
+  if (data?.code === EMAIL_NOT_VERIFIED && firebaseUser.emailVerified) {
+    const freshToken = await firebaseUser.getIdToken(true);
+    if (auth.currentUser?.uid === firebaseUser.uid) {
+      ({ response, data } = await postExchange(freshToken, fullName));
+    }
+  }
 
   if (!response.ok) {
     const error = new Error(data?.message || data?.error || "Failed to exchange Firebase token");
     error.status = response.status;
+    error.code = data?.code;
     throw error;
   }
 
-  sessionEstablished = true;
+  // If another user has signed in meanwhile, their next request must exchange again.
+  sessionEstablished = auth.currentUser?.uid === firebaseUser.uid;
   return "cookie_session";
 }
 

@@ -43,7 +43,7 @@ beforeEach(() => {
   db.addUser({ id: 1, firebaseUid: ADMIN_UID });
   capturedLines.length = 0;
   register.resetMetrics();
-  mockVerifyIdToken.mockResolvedValue({ uid: ADMIN_UID, email: 'admin@example.test' });
+  mockVerifyIdToken.mockResolvedValue({ uid: ADMIN_UID, email: 'admin@example.test', email_verified: true });
 });
 
 const asAdmin = () => ({ headers: { cookie: sessionCookie(ADMIN_UID) } });

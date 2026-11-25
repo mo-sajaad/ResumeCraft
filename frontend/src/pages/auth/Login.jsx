@@ -54,7 +54,9 @@ export default function Login() {
     setError("");
     try {
       await setPersistence(auth, browserLocalPersistence);
-      await signInWithEmailAndPassword(auth, email, password);
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      // RedirectIfAuth shows the check-your-email page instead.
+      if (!user.emailVerified) return;
       await exchangeFirebaseTokenForJwt();
       navigate(destination, { replace: true });
     } catch (err) {

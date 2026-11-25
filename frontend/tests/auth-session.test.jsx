@@ -1,241 +1,105 @@
 // IDENTITY-002 and 003 in the browser: profile after sign-up, refused exchanges.
 // Firebase and the API are fakes; all data is synthetic.
 import process from 'node:process';
-import { useState } from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 
-const firebase = vi.hoisted(() => ({
-  auth: { currentUser: null },
-  listener: null,
-  // Set by each test: the user the next sign-in or sign-up produces.
-  nextUser: null,
-  signOut: null,
-  updateProfile: null,
-}));
+vi.mock('../src/firebase', async () => (await import('./support/fakeFirebase.js')).appModule());
+vi.mock('firebase/auth', async () => (await import('./support/fakeFirebase.js')).sdkModule());
 
-vi.mock('../src/firebase', () => ({
-  auth: firebase.auth,
-  hasFirebaseConfig: true,
-  signOut: (...args) => firebase.signOut(...args),
-}));
-vi.mock('firebase/auth', () => {
-  const signIn = async () => {
-    firebase.auth.currentUser = firebase.nextUser;
-    firebase.listener?.(firebase.nextUser);
-    return { user: firebase.nextUser };
-  };
-  return {
-    GoogleAuthProvider: vi.fn(),
-    browserLocalPersistence: {},
-    setPersistence: async () => {},
-    signInWithPopup: signIn,
-    signInWithEmailAndPassword: signIn,
-    createUserWithEmailAndPassword: signIn,
-    updateProfile: (...args) => firebase.updateProfile(...args),
-    onAuthStateChanged: (_auth, listener) => {
-      firebase.listener = listener;
-      queueMicrotask(() => listener(firebase.auth.currentUser));
-      return () => { firebase.listener = null; };
-    },
-  };
-});
-
-import { AuthProvider } from '../src/context/AuthProvider.jsx';
-import { useAuth } from '../src/context/useAuth';
-import Login from '../src/pages/auth/Login.jsx';
-import Signup from '../src/pages/auth/Signup.jsx';
-import ProtectedRoute from '../src/routes/ProtectedRoute.jsx';
-import RedirectIfAuth from '../src/routes/RedirectIfAuth.jsx';
-import { clearAppJwt, exchangeFirebaseTokenForJwt } from '../src/utils/auth';
+import { exchangeFirebaseTokenForJwt } from '../src/utils/auth';
+import {
+  CONFIRM,
+  NAME,
+  api,
+  callsTo,
+  click,
+  deferred,
+  findVerifyPage,
+  profileText,
+  renderApp,
+  reply,
+  seen,
+  settle,
+  setUpSignInTest,
+  submitLogin,
+  submitSignup,
+  tearDownSignInTest,
+} from './support/authHarness.jsx';
+import { createUser, firebase, setCurrentUser } from './support/fakeFirebase.js';
 
 const CONFLICT = 'Synthetic conflict message';
-const NAME = 'Jane Doe';
 
-let api;
+beforeEach(setUpSignInTest);
+afterEach(tearDownSignInTest);
 
-const reply = (status, body = {}) => ({
-  ok: status >= 200 && status < 300,
-  status,
-  json: async () => body,
-});
-
-function deferred() {
-  let resolve;
-  const promise = new Promise((done) => { resolve = done; });
-  return { promise, resolve };
-}
-
-function createUser(uid) {
-  return { uid, displayName: null, getIdToken: async () => `token-${uid}` };
-}
-
-// Lets promise chains that start from resolved fakes run to completion.
-async function settle() {
-  await act(async () => {
-    for (let i = 0; i < 5; i += 1) await new Promise((resolve) => setTimeout(resolve, 0));
-  });
-}
-
-function setCurrentUser(user) {
-  firebase.auth.currentUser = user;
-  firebase.listener?.(user);
-}
-
-function callsTo(suffix) {
-  return globalThis.fetch.mock.calls.filter(([url]) => url.endsWith(suffix));
-}
-
-beforeEach(() => {
-  clearAppJwt();
-  firebase.auth.currentUser = null;
-  firebase.nextUser = createUser('uid-one');
-  firebase.signOut = vi.fn(async () => setCurrentUser(null));
-  firebase.updateProfile = vi.fn(async (user, { displayName }) => { user.displayName = displayName; });
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-  // Default API: stores names per user and, like the server, keeps a stored
-  // name when the exchange has none. Tests replace single handlers.
-  const names = {};
-  api = {
-    exchange: async ({ uid, fullName }) => {
-      names[uid] = fullName || names[uid] || null;
-      return reply(200);
-    },
-    profile: async (uid) => reply(200, { firebase_uid: uid, full_name: names[uid] }),
-    logout: async () => reply(204),
-  };
-  vi.stubGlobal('fetch', vi.fn(async (url, init = {}) => {
-    if (url === '/api/auth/exchange') {
-      const { firebaseToken, fullName } = JSON.parse(init.body);
-      return api.exchange({ uid: firebaseToken.replace('token-', ''), fullName });
-    }
-    if (url === '/api/auth/logout') return api.logout();
-    if (url.startsWith('/api/users/')) return api.profile(url.replace('/api/users/', ''));
-    throw new Error(`Unexpected request: ${url}`);
-  }));
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-});
-
-function Dashboard() {
-  const { profile, logout, refreshProfile } = useAuth();
-  const [refreshFailed, setRefreshFailed] = useState(false);
-  return (
-    <main aria-label="Dashboard">
-      <p data-testid="profile">{profile ? `${profile.firebase_uid}: ${profile.full_name}` : 'no profile'}</p>
-      {refreshFailed ? <p>Refresh failed</p> : null}
-      <button type="button" onClick={() => refreshProfile().catch(() => setRefreshFailed(true))}>Refresh</button>
-      <button type="button" onClick={logout}>Sign out</button>
-    </main>
-  );
-}
-
-function renderApp(path) {
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <Routes>
-          <Route element={<RedirectIfAuth />}>
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/signup" element={<Signup />} />
-          </Route>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </MemoryRouter>
-  );
-}
-
-async function submitSignup() {
-  fireEvent.change(await screen.findByLabelText(/full name/i), { target: { value: NAME } });
-  fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'jane@example.test' } });
-  fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'synthetic-password-1' } });
-  fireEvent.click(screen.getByRole('checkbox'));
-  await act(async () => { fireEvent.click(screen.getByRole('button', { name: /create account/i })); });
-}
-
-async function submitLogin() {
-  fireEvent.change(await screen.findByLabelText(/^email$/i), { target: { value: 'jane@example.test' } });
-  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'synthetic-password-1' } });
-  await act(async () => { fireEvent.click(screen.getByRole('button', { name: /^sign in$/i })); });
-}
-
-const profileText = async (text) => {
-  await waitFor(() => expect(screen.getByTestId('profile')).toHaveTextContent(text));
-};
-
-// As in the Firebase SDK, updateProfile is a round trip that ends after the
-// auth event, so the provider's own exchange has no name.
-function holdUpdateProfile(finish = async (user, { displayName }) => { user.displayName = displayName; }) {
-  const gate = deferred();
-  firebase.updateProfile = vi.fn(async (...args) => {
-    await gate.promise;
-    return finish(...args);
-  });
-  return gate;
+// A realistic sign-up: the new user is not verified until they open the link.
+async function signUpAndVerify() {
+  firebase.nextUser = createUser('uid-new', { verified: false });
+  renderApp('/auth/signup');
+  await submitSignup();
+  await findVerifyPage();
+  firebase.accounts['uid-new'].verified = true;
 }
 
 describe('IDENTITY-002: email sign-up ends with a named profile', () => {
-  it('when the provider first loads the profile without a name', async () => {
-    const gate = holdUpdateProfile();
-    renderApp('/auth/signup');
-    await submitSignup();
-    await profileText('uid-one: null');
+  it('and never creates a nameless session before the email is verified', async () => {
+    await signUpAndVerify();
+    await settle();
+    expect(seen.exchanges).toEqual([]);
 
-    await act(async () => gate.resolve());
+    await click(CONFIRM);
 
-    await profileText(`uid-one: ${NAME}`);
+    await profileText(`uid-new: ${NAME}`);
+    // The first profile on screen is already the named one.
+    expect(seen.exchanges).toEqual([{ uid: 'uid-new', verified: true, fullName: NAME }]);
+    expect(callsTo('/users/uid-new')).toHaveLength(1);
   });
 
-  it('when the exchange without a name fails', async () => {
+  it('when the first exchange fails and is tried again', async () => {
     const accept = api.exchange;
-    api.exchange = async (request) => (request.fullName ? accept(request) : reply(400, { message: 'no name' }));
-    const gate = holdUpdateProfile();
-    renderApp('/auth/signup');
-    await submitSignup();
-    await waitFor(() => expect(console.warn).toHaveBeenCalled());
-    await profileText('no profile');
+    api.exchange = async () => reply(400, { message: 'synthetic failure' });
+    await signUpAndVerify();
+    await click(CONFIRM);
+    await screen.findByRole('alert');
+    expect(seen.dashboardMounts).toBe(0);
 
-    await act(async () => gate.resolve());
+    api.exchange = accept;
+    await click(CONFIRM);
 
-    await profileText(`uid-one: ${NAME}`);
+    await profileText(`uid-new: ${NAME}`);
+    expect(seen.exchanges.map(({ fullName }) => fullName)).toEqual([NAME, NAME]);
   });
 
-  it('when the first, nameless profile response arrives last', async () => {
+  it('when an older, nameless profile response arrives after a newer one', async () => {
     const slow = deferred();
-    const slowRead = vi.fn(async () => ({ firebase_uid: 'uid-one', full_name: null }));
+    const slowRead = vi.fn(async () => ({ firebase_uid: 'uid-new', full_name: null }));
     const load = api.profile;
+    // The first request is the one made while confirming.
     api.profile = vi.fn(load).mockImplementationOnce(() => slow.promise);
-    const gate = holdUpdateProfile();
-    renderApp('/auth/signup');
-    await submitSignup();
+    await signUpAndVerify();
+    await click(CONFIRM);
     await waitFor(() => expect(api.profile).toHaveBeenCalledTimes(1));
-    await act(async () => gate.resolve());
-    await profileText(`uid-one: ${NAME}`);
+    // An auth event for the same, now verified, user loads the profile again.
+    await act(async () => setCurrentUser(firebase.auth.currentUser));
+    await profileText(`uid-new: ${NAME}`);
 
     await act(async () => slow.resolve({ ok: true, status: 200, json: slowRead }));
     await settle();
 
     expect(slowRead).toHaveBeenCalled();
-    await profileText(`uid-one: ${NAME}`);
+    await profileText(`uid-new: ${NAME}`);
   });
 
   it('when updateProfile rejects', async () => {
-    const gate = holdUpdateProfile(async () => { throw new Error('synthetic updateProfile failure'); });
-    renderApp('/auth/signup');
-    await submitSignup();
-    await profileText('uid-one: null');
+    firebase.updateProfile = vi.fn(async () => { throw new Error('synthetic updateProfile failure'); });
+    await signUpAndVerify();
+    expect(firebase.updateProfile).toHaveBeenCalledTimes(1);
+    expect(firebase.auth.currentUser.displayName).toBeNull();
 
-    await act(async () => gate.resolve());
+    await click(CONFIRM);
 
-    await profileText(`uid-one: ${NAME}`);
+    await profileText(`uid-new: ${NAME}`);
   });
 
   it('still applies an older response when the newer refresh fails', async () => {
@@ -270,10 +134,10 @@ describe('IDENTITY-003: a 409 exchange', () => {
     await act(async () => gate.resolve());
   }
 
-  async function expectRefused() {
+  async function expectRefused(form = /^sign in$/i) {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(CONFLICT);
-    expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: form })).toBeInTheDocument();
     await settle();
     expect(firebase.auth.currentUser).toBeNull();
     expect(screen.getByRole('alert')).toHaveTextContent(CONFLICT);
@@ -294,11 +158,18 @@ describe('IDENTITY-003: a 409 exchange', () => {
     expect(firebase.signOut).toHaveBeenCalledTimes(1);
   });
 
-  it('is also explained after sign-up', async () => {
-    renderApp('/auth/signup');
-    await refuseExchangeDuring(submitSignup);
+  it('is also explained after sign-up, when the email is confirmed', async () => {
+    api.exchange = async () => reply(409, { message: CONFLICT });
+    await signUpAndVerify();
+    expect(seen.exchanges).toEqual([]);
 
-    await expectRefused();
+    await click(CONFIRM);
+
+    // The user is still on the sign-up route.
+    await expectRefused(/create account/i);
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
+    expect(callsTo('/logout')).toHaveLength(1);
+    expect(seen.dashboardMounts).toBe(0);
   });
 
   it('clears the message on the next sign-in', async () => {

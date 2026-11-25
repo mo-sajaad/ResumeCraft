@@ -59,6 +59,7 @@ describe('auth flow', () => {
     mockVerifyIdToken.mockResolvedValue({
       uid: 'firebase-uid-1',
       email: 'user@example.com',
+      email_verified: true,
       name: 'Resume Tester',
     });
     findOrCreateUser.mockResolvedValue({ id: 1 });

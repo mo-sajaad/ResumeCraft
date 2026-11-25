@@ -14,8 +14,13 @@ const { SESSION_COOKIE_NAME } = require('../modules/identity/sessionCookie');
 
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const EMAIL_IN_USE_MESSAGE =
-  'This email address already belongs to another ResumeCraft account. Sign in the way you originally did, '
-  + 'or with a method that verifies this email address, such as Google.';
+  'This email address already belongs to another ResumeCraft account. '
+  + 'Sign in to that account the way you originally did.';
+// The frontend matches this code; keep it stable.
+const EMAIL_NOT_VERIFIED = {
+  code: 'EMAIL_NOT_VERIFIED',
+  message: 'Verify your email address to continue.',
+};
 
 function jwtSecretOrThrow() {
   const secret = process.env.JWT_SECRET_KEY;
@@ -74,6 +79,11 @@ async function exchangeFirebaseToken(req, res, next) {
 
     if (!decodedToken.uid || !decodedToken.email) {
       return res.status(400).json({ message: 'Firebase token must include uid and email' });
+    }
+
+    // Applies to every sign-in provider and comes before any account lookup.
+    if (decodedToken.email_verified !== true) {
+      return res.status(403).json(EMAIL_NOT_VERIFIED);
     }
 
     const fullName = typeof requestFullName === 'string' ? requestFullName : decodedToken.name || null;

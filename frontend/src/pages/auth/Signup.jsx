@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   GoogleAuthProvider,
@@ -6,7 +6,6 @@ import {
   createUserWithEmailAndPassword,
   setPersistence,
   signInWithPopup,
-  updateProfile,
 } from "firebase/auth";
 
 import { useAuth } from "../../context/useAuth";
@@ -14,7 +13,7 @@ import { auth, hasFirebaseConfig } from "../../firebase";
 import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Signup() {
-  const { user, refreshProfile } = useAuth();
+  const { completeSignUp } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState("");
@@ -23,10 +22,6 @@ export default function Signup() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (user) navigate("/dashboard");
-  }, [user, navigate]);
 
   const requireFirebase = () => {
     if (!hasFirebaseConfig || !auth) {
@@ -67,12 +62,8 @@ export default function Signup() {
     try {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // Optional: the exchange below stores the name even if this fails.
-      await updateProfile(userCredential.user, { displayName: fullName }).catch(() => {});
-      await exchangeFirebaseTokenForJwt(fullName);
-      navigate("/dashboard");
-      // AuthProvider may have loaded the profile before the name was saved.
-      await refreshProfile();
+      // RedirectIfAuth now shows the check-your-email page.
+      await completeSignUp(userCredential.user, fullName);
     } catch (err) {
       setError(err.message);
     } finally {

@@ -1,4 +1,5 @@
-// IDENTITY-001 to 003 over HTTP: session cookie, names and reused emails.
+// IDENTITY-001 to 003 and 006 over HTTP: session cookie, names, reused emails
+// and unverified emails.
 // All credentials and personal data below are synthetic.
 delete process.env.LOG_LEVEL;
 
@@ -25,6 +26,16 @@ const UID = 'synthetic-uid-one';
 const NEW_UID = 'synthetic-uid-two';
 const EMAIL = 'private.person@example.test';
 const EXCHANGE = '/api/auth/exchange';
+const ID_TOKEN = 'synthetic-id-token';
+
+// Everything that does not prove the email was verified.
+const UNVERIFIED = [
+  ['false', { email_verified: false }],
+  ['missing', {}],
+  ['the string "true"', { email_verified: 'true' }],
+  ['1', { email_verified: 1 }],
+  ['null', { email_verified: null }],
+];
 
 let store;
 let server;
@@ -39,7 +50,7 @@ afterAll(() => server.close());
 beforeEach(() => {
   store.reset();
   capturedLines.length = 0;
-  signedInAs({ uid: UID, email: EMAIL });
+  signedInAs({ uid: UID, email: EMAIL, email_verified: true });
 });
 
 function signedInAs(decodedToken) {
@@ -48,7 +59,7 @@ function signedInAs(decodedToken) {
 
 function exchange(body = {}) {
   return server.request('POST', EXCHANGE, {
-    body: JSON.stringify({ firebaseToken: 'synthetic-id-token', ...body }),
+    body: JSON.stringify({ firebaseToken: ID_TOKEN, ...body }),
   });
 }
 
@@ -109,6 +120,22 @@ function expectPrivate409(response, values) {
     expect(response.text).not.toContain(value);
     expect(capturedLines.join('')).not.toContain(value);
   }
+}
+
+// IDENTITY-006: refused before any account lookup, with nothing written.
+function expectUnverifiedRefusal(response, values) {
+  expect(response.status).toBe(403);
+  expect(response.json()).toEqual({
+    code: 'EMAIL_NOT_VERIFIED',
+    message: 'Verify your email address to continue.',
+  });
+  expectNoSession(response);
+  expect(store.connected).toBe(0);
+  expect(store.commands).toEqual([]);
+  // Rate limiting and metrics do not use the database, so nothing else may either.
+  expect(db.calls).toEqual([]);
+  expect(capturedLines.join('')).toContain('request completed');
+  for (const value of values) expect(capturedLines.join('')).not.toContain(value);
 }
 
 describe('IDENTITY-001: session cookie', () => {
@@ -202,7 +229,7 @@ describe('IDENTITY-002: fullName', () => {
   });
 
   it('uses the name in the Firebase token when fullName is null', async () => {
-    signedInAs({ uid: UID, email: EMAIL, name: 'Token Name' });
+    signedInAs({ uid: UID, email: EMAIL, email_verified: true, name: 'Token Name' });
 
     expect((await exchange({ fullName: null })).status).toBe(200);
     expect(store.byUid(UID).full_name).toBe('Token Name');
@@ -228,24 +255,14 @@ describe('IDENTITY-002: fullName', () => {
 });
 
 describe('IDENTITY-003: email held by another UID, not verified', () => {
-  it.each([
-    ['false', { email_verified: false }],
-    ['missing', {}],
-    ['the string "true"', { email_verified: 'true' }],
-    ['1', { email_verified: 1 }],
-    ['null', { email_verified: null }],
-  ])('refuses with 409 when email_verified is %s', async (_label, claims) => {
+  it.each(UNVERIFIED)('refuses with 403 when email_verified is %s', async (_label, claims) => {
     const holder = store.add({ firebaseUid: UID, email: EMAIL, fullName: 'Stored Name' });
     signedInAs({ uid: NEW_UID, email: EMAIL, ...claims });
 
     const response = await exchange({ fullName: 'Other Person' });
 
-    expectPrivate409(response, [EMAIL, UID, NEW_UID]);
-    expectNoSession(response);
+    expectUnverifiedRefusal(response, [EMAIL, UID, NEW_UID, ID_TOKEN, 'Other Person']);
     expect(store.rows()).toEqual([holder]);
-    // Linking would look up the holder or update the row.
-    expect(db.callsMatching(/WHERE email/)).toEqual([]);
-    expect(db.callsMatching(/UPDATE users/)).toEqual([]);
   });
 
   it('refuses an existing user who changes to a taken email', async () => {
@@ -256,9 +273,160 @@ describe('IDENTITY-003: email held by another UID, not verified', () => {
 
     const response = await exchange();
 
+    expectUnverifiedRefusal(response, [EMAIL, UID, NEW_UID, ID_TOKEN]);
+    expect(store.rows()).toEqual(before);
+  });
+
+  // The 006 gate makes this branch unreachable with an ordinary token, so the
+  // claim changes after the gate reads it. Guards the linking step on its own.
+  it.each(UNVERIFIED)('does not link past the gate when email_verified is %s', async (_label, claims) => {
+    const holder = store.add({ firebaseUid: UID, email: EMAIL, fullName: 'Stored Name' });
+    let reads = 0;
+    signedInAs({
+      uid: NEW_UID,
+      email: EMAIL,
+      get email_verified() {
+        reads += 1;
+        return reads === 1 ? true : claims.email_verified;
+      },
+    });
+
+    const response = await exchange({ fullName: 'Other Person' });
+
+    expect(reads).toBeGreaterThan(1);
     expectPrivate409(response, [EMAIL, UID, NEW_UID]);
     expectNoSession(response);
+    expect(store.rows()).toEqual([holder]);
+    expect(db.callsMatching(/WHERE email/)).toEqual([]);
+    expect(db.callsMatching(/UPDATE users/)).toEqual([]);
+  });
+});
+
+describe('IDENTITY-006: unverified email', () => {
+  const cases = ['password', 'google.com', 'custom', undefined].flatMap((provider) => (
+    ['free', 'held'].flatMap((email) => (
+      UNVERIFIED.map(([label, claims]) => [label, provider || 'missing', email, provider, claims])
+    ))
+  ));
+
+  it.each(cases)('is refused: email_verified %s, provider %s, email %s', async (_l, _p, email, provider, claims) => {
+    if (email === 'held') store.add({ firebaseUid: UID, email: EMAIL });
+    const before = store.rows();
+    signedInAs({
+      uid: NEW_UID,
+      email: EMAIL,
+      ...(provider && { firebase: { sign_in_provider: provider } }),
+      ...claims,
+    });
+
+    const response = await exchange({ fullName: 'Other Person' });
+
+    expectUnverifiedRefusal(response, [EMAIL, NEW_UID, ID_TOKEN, 'Other Person']);
     expect(store.rows()).toEqual(before);
+  });
+
+  it('gets an identical response whether or not the email is taken', async () => {
+    signedInAs({ uid: NEW_UID, email: EMAIL, email_verified: false });
+    const free = await exchange();
+    store.add({ firebaseUid: UID, email: EMAIL });
+    const held = await exchange();
+
+    // Headers that differ between any two requests.
+    const comparable = ({ status, text, headers }) => {
+      const rest = { ...headers };
+      for (const name of ['date', 'x-request-id', 'x-response-time']) delete rest[name];
+      return { status, text, headers: rest };
+    };
+    expect(free.status).toBe(403);
+    expect(comparable(held)).toEqual(comparable(free));
+  });
+
+  it('creates the account once the same UID has verified', async () => {
+    signedInAs({ uid: UID, email: EMAIL, email_verified: false });
+    expect((await exchange({ fullName: 'Given Name' })).status).toBe(403);
+
+    signedInAs({ uid: UID, email: EMAIL, email_verified: true });
+    const response = await exchange({ fullName: 'Given Name' });
+
+    expect(response.status).toBe(200);
+    expect(store.rows()).toEqual([expect.objectContaining({ firebase_uid: UID, full_name: 'Given Name' })]);
+    expect((await getProfile(UID, onlyCookie(response).header)).status).toBe(200);
+  });
+
+  it('links a held email once the same UID has verified', async () => {
+    const holder = store.add({ firebaseUid: UID, email: EMAIL, fullName: 'Stored Name' });
+    signedInAs({ uid: NEW_UID, email: EMAIL, email_verified: false });
+    expect((await exchange()).status).toBe(403);
+    expect(store.rows()).toEqual([holder]);
+
+    signedInAs({ uid: NEW_UID, email: EMAIL, email_verified: true });
+
+    expect((await exchange()).status).toBe(200);
+    expect(store.rows()).toEqual([{ ...holder, firebase_uid: NEW_UID, token_version: 1 }]);
+  });
+
+  it('does not renew the session of a user whose email becomes unverified, and changes nothing', async () => {
+    expect((await exchange({ fullName: 'Stored Name' })).status).toBe(200);
+    const before = store.rows();
+    db.calls.length = 0;
+    store.commands.length = 0;
+    store.connected = 0;
+    signedInAs({ uid: UID, email: 'changed.person@example.test', email_verified: false });
+
+    const response = await exchange({ fullName: 'Changed Name' });
+
+    expectUnverifiedRefusal(response, [EMAIL, 'changed.person@example.test', UID, ID_TOKEN]);
+    expect(store.rows()).toEqual(before);
+  });
+
+  // Not the required behavior: IDENTITY-005 keeps issued cookies valid.
+  it('KNOWN BUG IDENTITY-005: the cookie issued before the email became unverified still works', async () => {
+    const { header } = onlyCookie(await exchange());
+    signedInAs({ uid: UID, email: 'changed.person@example.test', email_verified: false });
+    expect((await exchange()).status).toBe(403);
+
+    const response = await getProfile(UID, header);
+
+    expect(response.status).toBe(200);
+    expect(response.json().email).toBe(EMAIL);
+  });
+
+  it.each([
+    ['uid', { email: EMAIL }],
+    ['email', { uid: UID }],
+  ])('a token without %s is still 400 first', async (_label, claims) => {
+    signedInAs({ ...claims, email_verified: false });
+
+    const response = await exchange();
+
+    expect(response.status).toBe(400);
+    expect(response.json()).toEqual({ message: 'Firebase token must include uid and email' });
+    expectNoSession(response);
+    expect(db.calls).toEqual([]);
+  });
+
+  it.each([['auth/id-token-expired'], ['auth/argument-error']])('a token refused with %s is still 401', async (code) => {
+    mockVerifyIdToken.mockRejectedValue(Object.assign(new Error('synthetic'), { code }));
+
+    const response = await exchange();
+
+    expect(response.status).toBe(401);
+    expect(response.json()).toEqual({ message: 'Invalid Firebase token' });
+    expectNoSession(response);
+    expect(db.calls).toEqual([]);
+  });
+
+  it('leaves the verified 409 without a code, or advice to verify or use Google', async () => {
+    store.add({ firebaseUid: UID, email: EMAIL });
+    store.add({ firebaseUid: NEW_UID, email: 'other.person@example.test' });
+    signedInAs({ uid: NEW_UID, email: EMAIL, email_verified: true });
+
+    const response = await exchange();
+
+    expectPrivate409(response, [EMAIL, UID, NEW_UID]);
+    expectNoSession(response);
+    expect(Object.keys(response.json())).toEqual(['message']);
+    expect(response.json().message).not.toMatch(/verif|google/i);
   });
 });
 
