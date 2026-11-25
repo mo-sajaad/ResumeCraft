@@ -86,7 +86,7 @@ describe('logger output', () => {
     expect(response.status).toBe(200);
     expect(response.headers['set-cookie']).toHaveLength(1);
     expect(logOutput()).toContain('request completed');
-    const sessionToken = response.headers['set-cookie'][0].split(';')[0].replace('rc_auth=', '');
+    const sessionToken = response.headers['set-cookie'][0].split(';')[0].replace('__session=', '');
 
     expect(logOutput().includes(sessionToken)).toBe(false);
   });
@@ -280,7 +280,7 @@ describe('bounded labels', () => {
 
   it('keeps the mount prefix when router middleware fails before a route matches', async () => {
     const response = await server.request('GET', '/api/users/synthetic-uid', {
-      headers: { cookie: 'rc_auth=%' }, // Rejects in authenticateJWT (IDENTITY-018).
+      headers: { cookie: '__session=%' }, // Rejects in authenticateJWT (IDENTITY-018).
     });
 
     expect(response.status).toBe(500);

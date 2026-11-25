@@ -87,7 +87,7 @@ function createCapturePino(realPino) {
 
 function sessionCookie(firebaseUid) {
   const token = jwt.sign({ uid: firebaseUid, tokenVersion: 0 }, process.env.JWT_SECRET_KEY);
-  return `rc_auth=${token}`;
+  return `__session=${token}`;
 }
 
 // Serves the app on loopback. request() resolves only after the server has also

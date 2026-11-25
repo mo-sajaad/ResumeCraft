@@ -32,7 +32,9 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data?.message || data?.error || "Failed to exchange Firebase token");
+    const error = new Error(data?.message || data?.error || "Failed to exchange Firebase token");
+    error.status = response.status;
+    throw error;
   }
 
   sessionEstablished = true;

@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
-
-const COOKIE_NAME = 'rc_auth';
+const { SESSION_COOKIE_NAME } = require('../modules/identity/sessionCookie');
 
 function jwtSecretOrThrow() {
   const secret = process.env.JWT_SECRET_KEY;
@@ -32,7 +31,7 @@ function getTokenFromRequest(req) {
   }
 
   const cookies = parseCookies(req);
-  return cookies[COOKIE_NAME] || null;
+  return cookies[SESSION_COOKIE_NAME] || null;
 }
 
 async function authenticateJWT(req, res, next) {

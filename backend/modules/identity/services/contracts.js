@@ -1,6 +1,7 @@
 /**
  * @typedef {Object} IdentityServiceContract
  * @property {(firebaseUid:string,email:string,fullName?:string|null)=>Promise<any>} findOrCreateUser
+ * @property {(firebaseUid:string,email:string,fullName?:string|null)=>Promise<any>} linkUserToVerifiedEmail
  * @property {(firebaseUid:string)=>Promise<any>} getUserByFirebaseUid
  * @property {(firebaseUid:string)=>Promise<number|null>} incrementTokenVersion
  * @property {(firebaseUid:string)=>Promise<any>} getUserProfileByFirebaseUid

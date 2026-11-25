@@ -69,7 +69,7 @@ describe.each(ROUTES)('%s /api/admin%s', (method, path) => {
 
   it('returns 401 for a token signed with another secret', async () => {
     const forged = require('jsonwebtoken').sign({ uid: ADMIN_UID, tokenVersion: 0 }, 'wrong-secret');
-    const response = await callRoute(method, path, `rc_auth=${forged}`);
+    const response = await callRoute(method, path, `__session=${forged}`);
 
     expect(response.status).toBe(401);
     expect(db.callsMatching(ADMIN_TABLES)).toEqual([]);

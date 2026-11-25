@@ -100,7 +100,7 @@ describe('auth flow', () => {
     expect(next).not.toHaveBeenCalled();
     expect(mockVerifyIdToken).toHaveBeenCalledWith('firebase-token');
     expect(findOrCreateUser).toHaveBeenCalledWith('firebase-uid-1', 'user@example.com', 'Resume Tester');
-    expect(res.cookieCall.name).toBe('rc_auth');
+    expect(res.cookieCall.name).toBe('__session');
     expect(res.cookieCall.options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/' });
     const decoded = jwt.verify(res.cookieCall.value, process.env.JWT_SECRET_KEY);
     expect(decoded.uid).toBe('firebase-uid-1');
@@ -123,7 +123,7 @@ describe('auth flow', () => {
     expect(next).not.toHaveBeenCalled();
     expect(incrementTokenVersion).toHaveBeenCalledWith('firebase-uid-1');
     expect(res.statusCode).toBe(204);
-    expect(res.clearCookieCall.name).toBe('rc_auth');
+    expect(res.clearCookieCall.name).toBe('__session');
     expect(createAuditLog).toHaveBeenCalledWith(expect.objectContaining({
       actorUserId: 1,
       actorFirebaseUid: 'firebase-uid-1',

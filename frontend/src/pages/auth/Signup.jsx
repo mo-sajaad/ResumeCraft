@@ -14,7 +14,7 @@ import { auth, hasFirebaseConfig } from "../../firebase";
 import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Signup() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState("");
@@ -67,9 +67,12 @@ export default function Signup() {
     try {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: fullName });
+      // Optional: the exchange below stores the name even if this fails.
+      await updateProfile(userCredential.user, { displayName: fullName }).catch(() => {});
       await exchangeFirebaseTokenForJwt(fullName);
       navigate("/dashboard");
+      // AuthProvider may have loaded the profile before the name was saved.
+      await refreshProfile();
     } catch (err) {
       setError(err.message);
     } finally {

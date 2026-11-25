@@ -1,11 +1,24 @@
 const userRepository = require('../modules/identity/repositories/userRepository'); 
 
-async function findOrCreateUser(firebaseUid, email, fullName = null) {
+// True only when the email is the problem; other 23505s are real failures.
+function isEmailConflict(error) {
+  return error.code === '23505' && error.constraint === 'users_email_key';
+}
+
+function emailInUseError() {
+  return Object.assign(new Error('Email belongs to another user.'), { code: 'EMAIL_IN_USE' });
+}
+
+async function saveUser({ firebaseUid, email, fullName, moveEmailHolder = false }) {
   const pool = userRepository.getPool();
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
+
+    if (moveEmailHolder && !(await userRepository.moveEmailHolderToUid(client, { firebaseUid, email }))) {
+      throw emailInUseError();
+    }
 
     const user = await userRepository.insertOrUpdateUser(client, { firebaseUid, email, fullName });
     const freePlanId = await userRepository.getFreePlanId(client);
@@ -24,6 +37,34 @@ async function findOrCreateUser(firebaseUid, email, fullName = null) {
     throw error;
   } finally {
     client.release();
+  }
+}
+
+// Rejects with code EMAIL_IN_USE when another UID holds the email.
+async function findOrCreateUser(firebaseUid, email, fullName = null) {
+  const details = { firebaseUid, email, fullName };
+
+  try {
+    return await saveUser(details);
+  } catch (error) {
+    if (!isEmailConflict(error)) throw error;
+  }
+
+  // Concurrent first exchanges of one UID can also collide on the email index.
+  // The other transaction has committed by now, so only a real conflict repeats.
+  try {
+    return await saveUser(details);
+  } catch (error) {
+    throw isEmailConflict(error) ? emailInUseError() : error;
+  }
+}
+
+// Only for an email that Firebase reports as verified for this UID.
+async function linkUserToVerifiedEmail(firebaseUid, email, fullName = null) {
+  try {
+    return await saveUser({ firebaseUid, email, fullName, moveEmailHolder: true });
+  } catch (error) {
+    throw isEmailConflict(error) ? emailInUseError() : error;
   }
 }
 
@@ -81,6 +122,7 @@ async function updateUserPreferences(firebaseUid, { weeklyInsights, jobAlerts })
 
 module.exports = {
   findOrCreateUser,
+  linkUserToVerifiedEmail,
   getUserByFirebaseUid,
   incrementTokenVersion,
   getUserProfileByFirebaseUid,

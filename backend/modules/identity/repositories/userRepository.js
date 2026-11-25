@@ -19,6 +19,27 @@ async function insertOrUpdateUser(client, { firebaseUid, email, fullName }) {
   return result.rows[0] || null;
 }
 
+// Moves the row that holds this email to the given UID, ending the previous
+// UID's sessions. Never merges: returns false if the UID already has a row.
+async function moveEmailHolderToUid(client, { firebaseUid, email }) {
+  const { rows: [holder] } = await client.query(
+    'SELECT id, firebase_uid FROM users WHERE email = $1 FOR UPDATE',
+    [email]
+  );
+  if (!holder || holder.firebase_uid === firebaseUid) return true;
+  if (await getUserIdByFirebaseUid(client, firebaseUid)) return false;
+
+  await client.query(
+    `UPDATE users
+     SET firebase_uid = $2,
+         token_version = COALESCE(token_version, 0) + 1,
+         updated_at = NOW()
+     WHERE id = $1`,
+    [holder.id, firebaseUid]
+  );
+  return true;
+}
+
 async function ensureDefaultSubscription(client, userId, freePlanId) {
   await client.query(
     `INSERT INTO subscriptions (user_id, plan_id, status)
@@ -125,6 +146,7 @@ module.exports = {
   getPool,
   getFreePlanId,
   insertOrUpdateUser,
+  moveEmailHolderToUid,
   ensureDefaultSubscription,
   findByFirebaseUid,
   incrementTokenVersion,

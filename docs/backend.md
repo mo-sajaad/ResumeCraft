@@ -55,7 +55,7 @@ There are exceptions: `middleware/authMiddleware.js`, `middleware/usageAnalytics
 
 | Middleware | Purpose |
 | --- | --- |
-| `authMiddleware` | Verifies the JWT (bearer header or `rc_auth` cookie) and token version; sets `req.user` |
+| `authMiddleware` | Verifies the JWT (bearer header or `__session` cookie) and token version; sets `req.user` |
 | `attachPlan` | Loads the active subscription into `req.plan` |
 | `requirePlan` | Enforces a minimum plan: free, premium, pro |
 | `requireFeature` | Requires a plan capability such as `has_advanced_ai` |
@@ -73,7 +73,7 @@ There are exceptions: `middleware/authMiddleware.js`, `middleware/usageAnalytics
 ### Sign-in and sessions
 
 1. The browser signs in with Firebase and posts the ID token to `POST /api/auth/exchange`.
-2. The API verifies it, finds or creates the user, and sets a seven-day HTTP-only `rc_auth` JWT cookie.
+2. The API verifies it, finds or creates the user, and sets a seven-day HTTP-only `__session` JWT cookie.
 3. Later requests compare the JWT's `tokenVersion` with the database. Logout increments that version, revoking all of the user's existing sessions.
 
 ### Resume generation

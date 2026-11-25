@@ -5,13 +5,17 @@ const {
   findOrCreateUser,
   getUserByFirebaseUid,
   incrementTokenVersion,
+  linkUserToVerifiedEmail,
 } = require('../services/userService');
 const { createAuditLog } = require('../services/auditLogService');
 const { validate } = require('../shared/http/validators');
 const { exchangeTokenSchema } = require('../modules/identity/schemas/authSchemas');
+const { SESSION_COOKIE_NAME } = require('../modules/identity/sessionCookie');
 
-const COOKIE_NAME = 'rc_auth';
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
+const EMAIL_IN_USE_MESSAGE =
+  'This email address already belongs to another ResumeCraft account. Sign in the way you originally did, '
+  + 'or with a method that verifies this email address, such as Google.';
 
 function jwtSecretOrThrow() {
   const secret = process.env.JWT_SECRET_KEY;
@@ -48,6 +52,16 @@ function cookieOptions() {
   };
 }
 
+// A reused email moves to the new Firebase UID only with proof of ownership.
+async function resolveUser({ uid, email, email_verified: emailVerified }, fullName) {
+  try {
+    await findOrCreateUser(uid, email, fullName);
+  } catch (error) {
+    if (error.code !== 'EMAIL_IN_USE' || emailVerified !== true) throw error;
+    await linkUserToVerifiedEmail(uid, email, fullName);
+  }
+}
+
 async function exchangeFirebaseToken(req, res, next) {
   try {
     if (!admin) {
@@ -64,7 +78,7 @@ async function exchangeFirebaseToken(req, res, next) {
 
     const fullName = typeof requestFullName === 'string' ? requestFullName : decodedToken.name || null;
 
-    await findOrCreateUser(decodedToken.uid, decodedToken.email, fullName);
+    await resolveUser(decodedToken, fullName);
     const appUser = await getUserByFirebaseUid(decodedToken.uid);
 
     if (!appUser) {
@@ -77,14 +91,14 @@ async function exchangeFirebaseToken(req, res, next) {
       tokenVersion: Number(appUser.token_version || 0),
     });
 
-    res.cookie(COOKIE_NAME, token, cookieOptions());
+    res.cookie(SESSION_COOKIE_NAME, token, cookieOptions());
 
     await createAuditLog({
       actorUserId: appUser.id,
       actorFirebaseUid: decodedToken.uid,
       action: 'auth.login',
       resourceType: 'session',
-      resourceId: COOKIE_NAME,
+      resourceId: SESSION_COOKIE_NAME,
       metadata: { provider: 'firebase' },
     });
 
@@ -99,6 +113,9 @@ async function exchangeFirebaseToken(req, res, next) {
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
       return res.status(401).json({ message: 'Invalid Firebase token' });
     }
+    if (error.code === 'EMAIL_IN_USE') {
+      return res.status(409).json({ message: EMAIL_IN_USE_MESSAGE });
+    }
     return next(error);
   }
 }
@@ -112,11 +129,11 @@ async function logout(req, res, next) {
         actorFirebaseUid: req.user.firebaseUid,
         action: 'auth.logout',
         resourceType: 'session',
-        resourceId: COOKIE_NAME,
+        resourceId: SESSION_COOKIE_NAME,
       });
     }
 
-    res.clearCookie(COOKIE_NAME, cookieOptions());
+    res.clearCookie(SESSION_COOKIE_NAME, cookieOptions());
 
     return res.status(204).send();
   } catch (error) {
