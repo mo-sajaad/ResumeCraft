@@ -75,7 +75,13 @@ async function authenticateJWT(req, res, next) {
 
     return next();
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid or expired token.' });
+    // Only a bad session is 401 (TokenExpiredError and NotBeforeError extend
+    // JsonWebTokenError). A database failure or missing secret is a server
+    // error, so it must not look like an expired session (IDENTITY-007).
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid or expired token.' });
+    }
+    return next(error);
   }
 }
 

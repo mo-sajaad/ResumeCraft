@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 const admin = require('../firebaseAdmin');
+const logger = require('../observability/logger');
 const {
   findOrCreateUser,
   getUserByFirebaseUid,
@@ -22,6 +23,12 @@ const REVOKED_ACCOUNT_CODES = new Set([
 ]);
 const REVOKED_ACCOUNT_MESSAGE =
   'This sign-in is no longer valid because the account was signed out, disabled or deleted. Sign in again.';
+// firebase-admin uses auth/argument-error both for a bad token and for a failed
+// download of Google's public keys (it passes the network error's message
+// through). Every bad-token message it builds links to this page, except the
+// unknown-key one. Anything else is a server failure, not a 401 (IDENTITY-007).
+const BAD_TOKEN_MESSAGE = /firebase\.google\.com\/docs\/auth\/admin\/verify-id-tokens|does not correspond to a known public key/;
+const MAX_LOGGED_SDK_MESSAGE = 300;
 const EMAIL_IN_USE_MESSAGE =
   'This email address already belongs to another ResumeCraft account. '
   + 'Sign in to that account the way you originally did.';
@@ -74,6 +81,28 @@ async function resolveUser({ uid, email, email_verified: emailVerified }, fullNa
     if (error.code !== 'EMAIL_IN_USE' || emailVerified !== true) throw error;
     await linkUserToVerifiedEmail(uid, email, fullName);
   }
+}
+
+function isBadFirebaseToken(error) {
+  if (error.code === 'auth/id-token-expired') return true;
+  return error.code === 'auth/argument-error' && BAD_TOKEN_MESSAGE.test(String(error.message || ''));
+}
+
+function isFirebaseError(error) {
+  return typeof error.code === 'string' && /^(auth|app)\//.test(error.code);
+}
+
+// The SDK messages hold no token, cookie or email; the error serializer drops
+// messages, so this one is logged on its own, shortened.
+function logExchangeFailure(error, outcome) {
+  logger.warn(
+    {
+      outcome,
+      sdkCode: error.code,
+      sdkMessage: String(error.message || '').slice(0, MAX_LOGGED_SDK_MESSAGE),
+    },
+    'Firebase token exchange failed'
+  );
 }
 
 async function exchangeFirebaseToken(req, res, next) {
@@ -131,11 +160,17 @@ async function exchangeFirebaseToken(req, res, next) {
       },
     });
   } catch (error) {
-    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
+    if (isBadFirebaseToken(error)) {
+      logExchangeFailure(error, 'invalid_token');
       return res.status(401).json({ message: 'Invalid Firebase token' });
     }
     if (REVOKED_ACCOUNT_CODES.has(error.code)) {
+      logExchangeFailure(error, 'revoked');
       return res.status(401).json({ message: REVOKED_ACCOUNT_MESSAGE });
+    }
+    if (isFirebaseError(error)) {
+      // For example the key download failed or the user lookup was refused.
+      logExchangeFailure(error, 'server_error');
     }
     if (error.code === 'EMAIL_IN_USE') {
       return res.status(409).json({ message: EMAIL_IN_USE_MESSAGE });

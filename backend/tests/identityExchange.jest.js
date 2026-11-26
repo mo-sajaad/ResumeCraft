@@ -1,5 +1,5 @@
-// IDENTITY-001 to 003 and 006 over HTTP: session cookie, names, reused emails
-// and unverified emails.
+// IDENTITY-001 to 003 and 005 to 007 over HTTP: session cookie, names, reused
+// emails, unverified emails, revocation, and server failures versus bad tokens.
 // All credentials and personal data below are synthetic.
 delete process.env.LOG_LEVEL;
 
@@ -405,8 +405,13 @@ describe('IDENTITY-006: unverified email', () => {
     expect(db.calls).toEqual([]);
   });
 
-  it.each([['auth/id-token-expired'], ['auth/argument-error']])('a token refused with %s is still 401', async (code) => {
-    mockVerifyIdToken.mockRejectedValue(Object.assign(new Error('synthetic'), { code }));
+  // auth/argument-error is a bad token only with one of the SDK's bad-token
+  // messages; IDENTITY-007 covers the other messages.
+  it.each([
+    ['auth/id-token-expired', 'synthetic'],
+    ['auth/argument-error', 'Synthetic. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details.'],
+  ])('a token refused with %s is still 401', async (code, message) => {
+    mockVerifyIdToken.mockRejectedValue(Object.assign(new Error(message), { code }));
 
     const response = await exchange();
 
@@ -640,5 +645,306 @@ describe('IDENTITY-005: revoked accounts and session revocation', () => {
 
     expect(store.byUid(NEW_UID).token_version).toBe(0);
     expect((await getProfile(NEW_UID, theirs.header)).status).toBe(200);
+  });
+});
+
+describe('IDENTITY-007: server failures are not reported as a bad token', () => {
+  const PROJECT = 'synthetic-project';
+  const synthetic = (code, message) => Object.assign(new Error(message), { code });
+  let sdk;
+
+  // The real SDK, offline. Test isolation blocks the download of Google's
+  // public keys, as an outage would; the credential is never used.
+  beforeAll(() => {
+    sdk = jest.requireActual('firebase-admin').initializeApp({
+      projectId: PROJECT,
+      credential: { getAccessToken: async () => ({ access_token: 'synthetic', expires_in: 3600 }) },
+    }, 'identity-007');
+  });
+  afterAll(() => sdk.delete());
+
+  async function sdkErrorFor(token) {
+    const error = await sdk.auth().verifyIdToken(token, true).then(() => null, (failure) => failure);
+    expect(error).not.toBeNull();
+    return error;
+  }
+
+  function wellFormedToken(claims = {}) {
+    const { privateKey } = require('node:crypto').generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const now = Math.floor(Date.now() / 1000);
+    return jwt.sign(
+      { aud: PROJECT, iss: `https://securetoken.google.com/${PROJECT}`, sub: UID, auth_time: now, ...claims },
+      privateKey,
+      { algorithm: 'RS256', keyid: 'synthetic-kid', expiresIn: 600 }
+    );
+  }
+
+  function firebaseLog() {
+    return capturedLines.map((line) => JSON.parse(line)).filter(({ msg }) => msg === 'Firebase token exchange failed');
+  }
+
+  it.each([
+    ['a malformed token', () => 'not-a-jwt'],
+    ['a token for another project', () => wellFormedToken({ aud: 'other-project' })],
+  ])('answers 401 to %s and logs the SDK code and message', async (_label, token) => {
+    const sdkError = await sdkErrorFor(token());
+    expect(sdkError.code).toBe('auth/argument-error');
+    mockVerifyIdToken.mockRejectedValue(sdkError);
+
+    const response = await exchange();
+
+    expect(response.status).toBe(401);
+    expect(response.json()).toEqual({ message: 'Invalid Firebase token' });
+    expectNoSession(response);
+    expect(firebaseLog()).toEqual([expect.objectContaining({
+      level: 40, outcome: 'invalid_token', sdkCode: 'auth/argument-error', sdkMessage: expect.stringContaining('ID token'),
+    })]);
+  });
+
+  it('answers 401 to a token signed with a key Google does not list', async () => {
+    mockVerifyIdToken.mockRejectedValue(synthetic('auth/argument-error',
+      'Firebase ID token has "kid" claim which does not correspond to a known public key. Most likely the ID token is expired.'));
+
+    expect((await exchange()).status).toBe(401);
+  });
+
+  it('answers 500, not 401, when the public keys cannot be downloaded', async () => {
+    const sdkError = await sdkErrorFor(wellFormedToken());
+    // The code alone cannot tell this apart from a bad token.
+    expect(sdkError.code).toBe('auth/argument-error');
+    expect(sdkError.message).toContain('ERR_TEST_NETWORK_BLOCKED');
+    mockVerifyIdToken.mockRejectedValue(sdkError);
+
+    const response = await exchange();
+
+    expect(response.status).toBe(500);
+    expect(response.json().message).toBe('Internal server error');
+    expectNoSession(response);
+    expect(firebaseLog()).toEqual([expect.objectContaining({
+      outcome: 'server_error', sdkCode: 'auth/argument-error', sdkMessage: expect.stringContaining('Error while making request'),
+    })]);
+  });
+
+  it.each([
+    ['auth/argument-error', 'Error fetching public keys for Google certs: synthetic outage'],
+    ['auth/internal-error', 'synthetic'],
+    ['auth/insufficient-permission', 'synthetic'],
+    ['app/network-error', 'Error while making request: synthetic. Error code: ECONNRESET'],
+  ])('answers 500 to %s (%s)', async (code, message) => {
+    mockVerifyIdToken.mockRejectedValue(synthetic(code, message));
+
+    const response = await exchange();
+
+    expect(response.status).toBe(500);
+    expectNoSession(response);
+    expect(firebaseLog()).toEqual([expect.objectContaining({ outcome: 'server_error', sdkCode: code })]);
+  });
+
+  it('never logs the token, cookie or email', async () => {
+    mockVerifyIdToken.mockRejectedValue(synthetic('auth/argument-error', 'Error fetching public keys for Google certs: x'));
+    expect((await exchange()).status).toBe(500);
+    store.add({ firebaseUid: UID, email: EMAIL });
+    const cookie = onlyCookie(await (signedInAs({ uid: UID, email: EMAIL, email_verified: true }), exchange()));
+    mockVerifyIdToken.mockRejectedValue(synthetic('auth/argument-error',
+      'Decoding failed. See https://firebase.google.com/docs/auth/admin/verify-id-tokens'));
+    expect((await server.request('POST', EXCHANGE, {
+      headers: { cookie: cookie.header },
+      body: JSON.stringify({ firebaseToken: ID_TOKEN }),
+    })).status).toBe(401);
+
+    const logs = capturedLines.join('');
+    for (const value of [ID_TOKEN, cookie.value, EMAIL]) expect(logs).not.toContain(value);
+  });
+});
+
+describe('IDENTITY-007: API sessions', () => {
+  beforeEach(() => {
+    store.add({ firebaseUid: UID, email: EMAIL });
+  });
+
+  it.each([
+    ['expired', { expiresIn: -10 }],
+    ['not yet valid', { notBefore: 60 }],
+  ])('answers 401 to a session that is %s', async (_label, options) => {
+    const cookie = `__session=${jwt.sign({ uid: UID, tokenVersion: 0 }, process.env.JWT_SECRET_KEY, options)}`;
+
+    const response = await getProfile(UID, cookie);
+
+    expect(response.status).toBe(401);
+    expect(response.json()).toEqual({ message: 'Invalid or expired token.' });
+  });
+
+  it('answers 500, not 401, when the user lookup fails', async () => {
+    const { header } = onlyCookie(await exchange());
+    db.on(/FROM users WHERE firebase_uid/, () => { throw new Error('synthetic database outage'); });
+
+    const response = await getProfile(UID, header);
+
+    expect(response.status).toBe(500);
+    expect(response.json().message).toBe('Internal server error');
+  });
+
+  it('answers 500, not 401, when JWT_SECRET_KEY is missing', async () => {
+    const { header } = onlyCookie(await exchange());
+    const secret = process.env.JWT_SECRET_KEY;
+    delete process.env.JWT_SECRET_KEY;
+    try {
+      const response = await getProfile(UID, header);
+
+      expect(response.status).toBe(500);
+    } finally {
+      process.env.JWT_SECRET_KEY = secret;
+    }
+  });
+});
+
+describe('IDENTITY-007: error handling and logs', () => {
+  const sdkError = (code, message) => Object.assign(new Error(message), { code });
+  const logLines = () => capturedLines.map((line) => JSON.parse(line));
+  const firebaseLog = () => logLines().filter(({ msg }) => msg === 'Firebase token exchange failed');
+  const requestFailedLog = () => logLines().filter(({ msg }) => msg === 'Request failed');
+
+  function expectNothingPrivateLogged(values) {
+    const logs = capturedLines.join('');
+    for (const value of values) expect(logs).not.toContain(value);
+  }
+
+  async function withoutJwtSecret(run) {
+    const secret = process.env.JWT_SECRET_KEY;
+    delete process.env.JWT_SECRET_KEY;
+    try {
+      return await run();
+    } finally {
+      process.env.JWT_SECRET_KEY = secret;
+    }
+  }
+
+  describe('on an authenticated route', () => {
+    beforeEach(() => {
+      store.add({ firebaseUid: UID, email: EMAIL });
+    });
+
+    it('passes a failed user lookup to the error handler as a 500', async () => {
+      const cookie = onlyCookie(await exchange());
+      db.on(/FROM users WHERE firebase_uid/, () => { throw new Error('synthetic database outage'); });
+      capturedLines.length = 0;
+
+      const response = await getProfile(UID, cookie.header);
+
+      expect(response.status).toBe(500);
+      expect(response.json().message).toBe('Internal server error');
+      expect(requestFailedLog()).toEqual([expect.objectContaining({ level: 50, statusCode: 500 })]);
+      expectNothingPrivateLogged([cookie.value, EMAIL]);
+    });
+
+    it('passes a missing JWT_SECRET_KEY to the error handler as a 500, before any lookup', async () => {
+      const cookie = onlyCookie(await exchange());
+      db.calls.length = 0;
+      capturedLines.length = 0;
+
+      const response = await withoutJwtSecret(() => getProfile(UID, cookie.header));
+
+      expect(response.status).toBe(500);
+      expect(response.json().message).toBe('Internal server error');
+      expect(db.callsMatching(/FROM users WHERE firebase_uid/)).toEqual([]);
+      expect(requestFailedLog()).toEqual([expect.objectContaining({ level: 50, statusCode: 500 })]);
+      expectNothingPrivateLogged([cookie.value, EMAIL]);
+    });
+
+    it.each([
+      ['malformed', () => 'not-a-jwt'],
+      ['signed with another secret', () => jwt.sign({ uid: UID, tokenVersion: 0 }, 'synthetic-other-secret')],
+      ['expired', () => jwt.sign({ uid: UID, tokenVersion: 0 }, process.env.JWT_SECRET_KEY, { expiresIn: -10 })],
+      ['not yet valid', () => jwt.sign({ uid: UID, tokenVersion: 0 }, process.env.JWT_SECRET_KEY, { notBefore: 60 })],
+      ['unsigned (alg none)', () => jwt.sign({ uid: UID, tokenVersion: 0 }, null, { algorithm: 'none' })],
+    ])('answers 401 to a session that is %s, without a lookup or an error log', async (_label, token) => {
+      db.calls.length = 0;
+
+      const response = await getProfile(UID, `__session=${token()}`);
+
+      expect(response.status).toBe(401);
+      expect(response.json()).toEqual({ message: 'Invalid or expired token.' });
+      expect(db.callsMatching(/FROM users WHERE firebase_uid/)).toEqual([]);
+      expect(requestFailedLog()).toEqual([]);
+    });
+  });
+
+  describe('on the exchange', () => {
+    it.each([
+      ['invalid_token', 401, 'auth/id-token-expired', 'Firebase ID token has expired.'],
+      ['invalid_token', 401, 'auth/argument-error',
+        'Firebase ID token has invalid signature. See https://firebase.google.com/docs/auth/admin/verify-id-tokens for details.'],
+      ['revoked', 401, 'auth/id-token-revoked', 'The Firebase ID token has been revoked.'],
+      ['revoked', 401, 'auth/user-disabled', 'The user record is disabled.'],
+      ['revoked', 401, 'auth/user-not-found', 'There is no user record corresponding to the provided identifier.'],
+      ['server_error', 500, 'auth/internal-error', 'synthetic internal error'],
+      ['server_error', 500, 'app/network-error', 'Error while making request: synthetic. Error code: ECONNRESET'],
+    ])('logs outcome %s at warn level and answers %i for %s', async (outcome, status, code, message) => {
+      mockVerifyIdToken.mockRejectedValue(sdkError(code, message));
+
+      const response = await exchange();
+
+      expect(response.status).toBe(status);
+      expectNoSession(response);
+      expect(firebaseLog()).toEqual([expect.objectContaining({ level: 40, outcome, sdkCode: code, sdkMessage: message })]);
+      // Only server errors reach the error handler.
+      expect(requestFailedLog()).toHaveLength(status === 500 ? 1 : 0);
+      expectNothingPrivateLogged([ID_TOKEN, EMAIL]);
+    });
+
+    it('logs only outcome, sdkCode and sdkMessage of its own', async () => {
+      mockVerifyIdToken.mockRejectedValue(sdkError('auth/user-disabled', 'synthetic'));
+
+      await exchange();
+
+      const [line] = firebaseLog();
+      const own = Object.keys(line).filter((key) => !['level', 'time', 'pid', 'hostname', 'service', 'env', 'msg'].includes(key));
+      expect(own.sort()).toEqual(['outcome', 'sdkCode', 'sdkMessage']);
+    });
+
+    it('shortens a long SDK message to 300 characters', async () => {
+      const long = `Error fetching public keys for Google certs: ${'x'.repeat(1000)}`;
+      mockVerifyIdToken.mockRejectedValue(sdkError('auth/argument-error', long));
+
+      expect((await exchange()).status).toBe(500);
+
+      expect(firebaseLog()[0].sdkMessage).toBe(long.slice(0, 300));
+    });
+
+    it('never logs the token, an existing cookie or the email on a revoked exchange', async () => {
+      store.add({ firebaseUid: UID, email: EMAIL });
+      const cookie = onlyCookie(await exchange());
+      capturedLines.length = 0;
+      mockVerifyIdToken.mockRejectedValue(sdkError('auth/id-token-revoked', 'The Firebase ID token has been revoked.'));
+
+      const response = await server.request('POST', EXCHANGE, {
+        headers: { cookie: cookie.header },
+        body: JSON.stringify({ firebaseToken: ID_TOKEN }),
+      });
+
+      expect(response.status).toBe(401);
+      expect(firebaseLog()).toEqual([expect.objectContaining({ outcome: 'revoked' })]);
+      expectNothingPrivateLogged([ID_TOKEN, cookie.value, EMAIL]);
+    });
+
+    it('does not log a Firebase failure for errors that are not from Firebase', async () => {
+      mockVerifyIdToken.mockRejectedValue(sdkError(undefined, 'synthetic plain failure'));
+
+      expect((await exchange()).status).toBe(500);
+
+      expect(firebaseLog()).toEqual([]);
+      expect(requestFailedLog()).toHaveLength(1);
+    });
+
+    it('answers 500 without a session when JWT_SECRET_KEY is missing', async () => {
+      const response = await withoutJwtSecret(() => exchange());
+
+      expect(response.status).toBe(500);
+      expect(response.json().message).toBe('Internal server error');
+      expectNoSession(response);
+      expect(firebaseLog()).toEqual([]);
+      expect(requestFailedLog()).toEqual([expect.objectContaining({ level: 50, statusCode: 500 })]);
+      expectNothingPrivateLogged([ID_TOKEN, EMAIL]);
+    });
   });
 });
