@@ -49,13 +49,14 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Dashboard routes
+  // Dashboard routes. The guard comes first, so the shell never shows without
+  // a signed-in user and a loaded profile (SHELL-012).
   {
     path: "dashboard",
-    element: <DashboardLayout />, // wraps dashboard pages
+    element: <ProtectedRoute />, // requires login
     children: [
       {
-        element: <ProtectedRoute />, // requires login
+        element: <DashboardLayout />, // wraps dashboard pages
         children: [
           { index: true, element: withSuspense(<DashboardHome />) },
           { path: "resume/new", element: withSuspense(<ResumeNew />) },

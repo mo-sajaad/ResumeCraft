@@ -142,10 +142,13 @@ export default function DashboardLayout() {
     [profile?.email, profile?.full_name, user]
   );
   const userInitials = useMemo(() => getInitials(userDisplayName, user?.email || profile?.email), [profile?.email, user?.email, userDisplayName]);
+  // Without a profile the plan is unknown, not Free (SHELL-012). A loaded
+  // profile without a plan_code has no active subscription, so it is Free.
   const planLabel = useMemo(() => {
-    const code = (profile?.plan_code || "free").toLowerCase();
+    if (!profile) return "";
+    const code = (profile.plan_code || "free").toLowerCase();
     return `${code.charAt(0).toUpperCase()}${code.slice(1)} Plan`;
-  }, [profile?.plan_code]);
+  }, [profile]);
   const breadcrumbs = useMemo(() => buildBreadcrumbs(location.pathname), [location.pathname]);
 
   useEffect(() => {
@@ -235,7 +238,7 @@ export default function DashboardLayout() {
               <div className="user-avatar">{userInitials}</div>
               <div className="user-details">
                 <span className="user-name">{userDisplayName}</span>
-                <span className="user-plan">{planLabel}</span>
+                {planLabel ? <span className="user-plan">{planLabel}</span> : null}
               </div>
             </button>
             {dropdownVisible && (
