@@ -75,7 +75,7 @@ All routes are mounted under `/api`.
 
 | Area           | Example routes                                                                                                                            |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Authentication | `POST /api/auth/exchange`, `POST /api/auth/logout`                                                                                        |
+| Authentication | `POST /api/auth/exchange`, `POST /api/auth/logout`, `POST /api/auth/sessions/revoke`                                                      |
 | Resumes        | `GET /api/resumes`, `POST /api/resumes/generate`, `GET /api/resumes/:id/preview`, `GET /api/resumes/:id/download`                         |
 | Cover letters  | `GET /api/cover-letters`, `POST /api/cover-letters/generate`, `GET /api/cover-letters/:id/preview`, `GET /api/cover-letters/:id/download` |
 | Career Lab     | `POST /api/career-tools/ats-analysis` (also job parser, recruiter scan, interview prep, role fit, and other tools)                        |
@@ -110,7 +110,7 @@ FIREBASE_PROJECT_ID=your-firebase-project-id
 APP_BASE_URL=http://localhost:5173
 ```
 
-Verifying sign-in tokens needs only the Firebase project ID, so no service-account key is required. To use one anyway, set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PRIVATE_KEY_PATH`; these take precedence. Keep credentials private and out of version control.
+No service-account key is required: with only the Firebase project ID the API uses Application Default Credentials. Sign-in checks whether the Firebase user's tokens were revoked, so those credentials need permission to read Firebase Auth users (locally, for example, `gcloud auth application-default login` with an account that has access to the project; on Cloud Run, the service account). Without it, sign-in fails with a server error. To use a key anyway, set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PRIVATE_KEY_PATH`; these take precedence. Keep credentials private and out of version control.
 
 Create a PostgreSQL database, then apply the schema from the repository root:
 

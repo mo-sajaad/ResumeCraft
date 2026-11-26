@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
 import { auth, sendPasswordResetEmail, updatePassword } from "../firebase";
-import { getAuthHeaders } from "../utils/auth";
+import { getAuthHeaders, signOutOtherSessions } from "../utils/auth";
 
 import "./dashboard/DashboardShared.css";
 
@@ -95,6 +95,13 @@ export default function Settings() {
       await updatePassword(auth.currentUser, newPassword);
       setNewPassword("");
       setConfirmPassword("");
+
+      try {
+        await signOutOtherSessions();
+      } catch {
+        setError("Your password was changed, but other devices could not be signed out. Log out, then sign in again.");
+        return;
+      }
       setSuccess("Preferences and password updated successfully.");
     } catch (error) {
       if (error?.code === "auth/requires-recent-login") {

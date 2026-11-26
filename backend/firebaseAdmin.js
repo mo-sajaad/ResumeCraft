@@ -44,8 +44,9 @@ try {
   }
 
   if (!admin.apps.length) {
-    // Keyless mode uses Application Default Credentials. Verifying ID tokens
-    // needs only the project ID and Google's public certificates.
+    // Keyless mode uses Application Default Credentials. Checking ID tokens for
+    // revocation (verifyIdToken with checkRevoked) looks the user up, so those
+    // credentials need permission to read Firebase Auth users.
     admin.initializeApp(
       serviceAccount
         ? { credential: admin.credential.cert(serviceAccount) }

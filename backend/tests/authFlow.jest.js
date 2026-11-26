@@ -99,7 +99,7 @@ describe('auth flow', () => {
     await exchangeFirebaseToken(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(mockVerifyIdToken).toHaveBeenCalledWith('firebase-token');
+    expect(mockVerifyIdToken).toHaveBeenCalledWith('firebase-token', true);
     expect(findOrCreateUser).toHaveBeenCalledWith('firebase-uid-1', 'user@example.com', 'Resume Tester');
     expect(res.cookieCall.name).toBe('__session');
     expect(res.cookieCall.options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/' });

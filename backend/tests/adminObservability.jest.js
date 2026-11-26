@@ -74,7 +74,7 @@ describe('logger output', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(mockVerifyIdToken).toHaveBeenCalledWith('synthetic-body-token');
+    expect(mockVerifyIdToken).toHaveBeenCalledWith('synthetic-body-token', true);
     expect(logOutput()).toContain('request completed');
     expect(logOutput()).not.toContain('synthetic-body-token');
   });

@@ -105,6 +105,21 @@ export async function authFetch(input, init = {}, authOptions = {}) {
   return response;
 }
 
+// Ends every API session of the user, then exchanges a fresh Firebase ID
+// token so this device stays signed in. Call after a password change.
+export async function signOutOtherSessions() {
+  const response = await authFetch("/api/auth/sessions/revoke", { method: "POST" });
+  if (!response.ok) {
+    const error = new Error("Failed to sign out other sessions");
+    error.status = response.status;
+    throw error;
+  }
+
+  clearAppJwt();
+  await auth?.currentUser?.getIdToken(true);
+  await exchangeFirebaseTokenForJwt();
+}
+
 export async function logoutSession() {
   try {
     await fetch("/api/auth/logout", {

@@ -150,7 +150,7 @@ describe('IDENTITY-001: session cookie', () => {
     expect(cookie.name).toBe('__session');
     expect(cookie.attributes).toMatchObject({ httponly: true, samesite: 'Lax', path: '/' });
     expect(cookie.attributes.secure).toBe(secure);
-    expect(cookie.attributes['max-age']).toBe(String(7 * 24 * 60 * 60));
+    expect(cookie.attributes['max-age']).toBe(String(24 * 60 * 60));
     expect(cookie.attributes).not.toHaveProperty('domain');
     expect(jwt.verify(cookie.value, process.env.JWT_SECRET_KEY)).toMatchObject({ uid: UID, tokenVersion: 0 });
   });
@@ -528,5 +528,117 @@ describe('IDENTITY-003: other database errors stay 500', () => {
     expectNoSession(response);
     expect(db.callsMatching(/UPDATE users/)).toHaveLength(1);
     expect(store.rows()).toEqual([holder]);
+  });
+});
+
+describe('IDENTITY-005: revoked accounts and session revocation', () => {
+  const REVOKE = '/api/auth/sessions/revoke';
+  const REVOKED_MESSAGE =
+    'This sign-in is no longer valid because the account was signed out, disabled or deleted. Sign in again.';
+  const sdkError = (code) => Object.assign(new Error('synthetic sdk failure'), { code });
+
+  function revoke(cookie) {
+    return server.request('POST', REVOKE, cookie === undefined ? {} : { headers: { cookie } });
+  }
+
+  it('asks Firebase to check revocation on every exchange', async () => {
+    expect((await exchange()).status).toBe(200);
+
+    expect(mockVerifyIdToken.mock.calls).toEqual([[ID_TOKEN, true]]);
+  });
+
+  it.each([['auth/id-token-revoked'], ['auth/user-disabled'], ['auth/user-not-found']])(
+    'answers 401 to %s with no cookie, no audit log and no database use',
+    async (code) => {
+      store.add({ firebaseUid: UID, email: EMAIL });
+      mockVerifyIdToken.mockRejectedValue(sdkError(code));
+
+      const response = await exchange();
+
+      expect(response.status).toBe(401);
+      expect(response.json()).toEqual({ message: REVOKED_MESSAGE });
+      expectNoSession(response);
+      expect(db.calls).toEqual([]);
+    }
+  );
+
+  it.each([['auth/insufficient-permission'], ['auth/internal-error'], [undefined]])(
+    'passes other SDK failures (%s) to the error handler instead of answering 401',
+    async (code) => {
+      mockVerifyIdToken.mockRejectedValue(sdkError(code));
+
+      const response = await exchange();
+
+      expect(response.status).toBe(500);
+      expect(response.json().message).toBe('Internal server error');
+      expectNoSession(response);
+      expect(db.calls).toEqual([]);
+    }
+  );
+
+  it('issues a session JWT and cookie that last one day', async () => {
+    const cookie = onlyCookie(await exchange());
+
+    const { iat, exp } = jwt.verify(cookie.value, process.env.JWT_SECRET_KEY);
+    expect(exp - iat).toBe(86400);
+    expect(cookie.attributes['max-age']).toBe('86400');
+  });
+
+  it.each([
+    ['no session', undefined],
+    ['a session signed with another key', `__session=${jwt.sign({ uid: UID, tokenVersion: 0 }, 'other-key')}`],
+  ])('refuses to revoke with %s', async (_label, cookie) => {
+    store.add({ firebaseUid: UID, email: EMAIL });
+
+    const response = await revoke(cookie);
+
+    expect(response.status).toBe(401);
+    expect(store.byUid(UID).token_version).toBe(0);
+    expect(auditedActions()).toEqual([]);
+  });
+
+  it('ends every session, including the caller, and records it', async () => {
+    const first = onlyCookie(await exchange());
+    const second = onlyCookie(await exchange());
+    expect(store.byUid(UID).token_version).toBe(0);
+    const user = store.byUid(UID);
+    db.calls.length = 0;
+
+    const response = await revoke(first.header);
+
+    expect(response.status).toBe(204);
+    expect(response.text).toBe('');
+    expect(cookiesOf(response)).toEqual([]);
+    expect(store.byUid(UID).token_version).toBe(1);
+    const audits = db.callsMatching(/INSERT INTO audit_logs/);
+    expect(audits).toHaveLength(1);
+    expect(audits[0].params.slice(0, 5)).toEqual([user.id, UID, 'auth.sessions_revoked', 'session', '__session']);
+    for (const old of [first, second]) {
+      expect((await getProfile(UID, old.header)).status).toBe(401);
+    }
+    expect((await revoke(second.header)).status).toBe(401);
+    expect(store.byUid(UID).token_version).toBe(1);
+  });
+
+  it('lets a fresh exchange after revocation issue a working session', async () => {
+    const old = onlyCookie(await exchange());
+    expect((await revoke(old.header)).status).toBe(204);
+
+    const fresh = onlyCookie(await exchange());
+
+    expect(jwt.verify(fresh.value, process.env.JWT_SECRET_KEY)).toMatchObject({ uid: UID, tokenVersion: 1 });
+    expect((await getProfile(UID, fresh.header)).status).toBe(200);
+    expect((await getProfile(UID, old.header)).status).toBe(401);
+  });
+
+  it('does not revoke other users', async () => {
+    const mine = onlyCookie(await exchange());
+    signedInAs({ uid: NEW_UID, email: 'other.person@example.test', email_verified: true });
+    const theirs = onlyCookie(await exchange());
+
+    expect((await revoke(mine.header)).status).toBe(204);
+
+    expect(store.byUid(NEW_UID).token_version).toBe(0);
+    expect((await getProfile(NEW_UID, theirs.header)).status).toBe(200);
   });
 });

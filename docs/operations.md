@@ -6,7 +6,7 @@
 | --- | --- |
 | Server | `PORT`, `NODE_ENV`, `APP_BASE_URL`, `TRUST_PROXY`, `LOG_LEVEL` |
 | Sessions | `JWT_SECRET_KEY` (required to start) |
-| Firebase | `FIREBASE_PROJECT_ID` (keyless), or `FIREBASE_SERVICE_ACCOUNT_JSON` / `FIREBASE_PRIVATE_KEY_PATH`, which take precedence |
+| Firebase | `FIREBASE_PROJECT_ID` (keyless), or `FIREBASE_SERVICE_ACCOUNT_JSON` / `FIREBASE_PRIVATE_KEY_PATH`, which take precedence. Sign-in checks token revocation, so the credentials (keyless: the Cloud Run service account) need permission to read Firebase Auth users |
 | Database | `DATABASE_URL`, or `PG_*` / `PG*` connection settings; `PG_SSL`, `DB_CA_CERT` |
 | Redis | `REDIS_URL` (required in production) |
 | OpenAI | `OPENAI_API_KEY`, `OPENAI_CAREER_LAB_MODEL`, `OPENAI_REQUEST_TIMEOUT_MS`, `OPENAI_MAX_RETRIES`, `OPENAI_RETRY_BASE_DELAY_MS` |

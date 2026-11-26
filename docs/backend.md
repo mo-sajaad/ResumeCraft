@@ -73,8 +73,8 @@ There are exceptions: `middleware/authMiddleware.js`, `middleware/usageAnalytics
 ### Sign-in and sessions
 
 1. The browser signs in with Firebase and posts the ID token to `POST /api/auth/exchange`.
-2. The API verifies it and refuses it with 403 `EMAIL_NOT_VERIFIED` unless the email is verified. Otherwise it finds or creates the user and sets a seven-day HTTP-only `__session` JWT cookie.
-3. Later requests compare the JWT's `tokenVersion` with the database. Logout increments that version, revoking all of the user's existing sessions.
+2. The API verifies it, including that it was not revoked and the user is not disabled or deleted (401 otherwise), and refuses it with 403 `EMAIL_NOT_VERIFIED` unless the email is verified. Otherwise it finds or creates the user and sets a one-day HTTP-only `__session` JWT cookie.
+3. Later requests compare the JWT's `tokenVersion` with the database. Logout and `POST /api/auth/sessions/revoke` (called by Settings after a password change, which then exchanges a fresh ID token) increment that version, revoking all of the user's existing sessions.
 
 ### Resume generation
 

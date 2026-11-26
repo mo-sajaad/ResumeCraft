@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { exchangeFirebaseToken, logout } = require('../controllers/authController');
+const { exchangeFirebaseToken, logout, revokeSessions } = require('../controllers/authController');
 const { createRateLimiter } = require('../middleware/rateLimiter');
 const authenticateJWT = require('../middleware/authMiddleware');
 
@@ -13,5 +13,6 @@ const authExchangeRateLimiter = createRateLimiter({
 
 router.post('/exchange', authExchangeRateLimiter, exchangeFirebaseToken);
 router.post('/logout', authenticateJWT, logout);
+router.post('/sessions/revoke', authenticateJWT, revokeSessions);
 
 module.exports = router;

@@ -12,7 +12,16 @@ const { validate } = require('../shared/http/validators');
 const { exchangeTokenSchema } = require('../modules/identity/schemas/authSchemas');
 const { SESSION_COOKIE_NAME } = require('../modules/identity/sessionCookie');
 
-const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
+// Short, because the session is only re-checked against Firebase on exchange.
+const TOKEN_TTL_SECONDS = 24 * 60 * 60;
+// Firebase says the token or its account is no longer valid (IDENTITY-005).
+const REVOKED_ACCOUNT_CODES = new Set([
+  'auth/id-token-revoked',
+  'auth/user-disabled',
+  'auth/user-not-found',
+]);
+const REVOKED_ACCOUNT_MESSAGE =
+  'This sign-in is no longer valid because the account was signed out, disabled or deleted. Sign in again.';
 const EMAIL_IN_USE_MESSAGE =
   'This email address already belongs to another ResumeCraft account. '
   + 'Sign in to that account the way you originally did.';
@@ -75,7 +84,9 @@ async function exchangeFirebaseToken(req, res, next) {
 
     const { firebaseToken, fullName: requestFullName } = validate(exchangeTokenSchema, req.body || {});
 
-    const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    // checkRevoked also rejects tokens of disabled or deleted users and tokens
+    // issued before a password change or reset. It needs permission to look up users.
+    const decodedToken = await admin.auth().verifyIdToken(firebaseToken, true);
 
     if (!decodedToken.uid || !decodedToken.email) {
       return res.status(400).json({ message: 'Firebase token must include uid and email' });
@@ -123,6 +134,9 @@ async function exchangeFirebaseToken(req, res, next) {
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
       return res.status(401).json({ message: 'Invalid Firebase token' });
     }
+    if (REVOKED_ACCOUNT_CODES.has(error.code)) {
+      return res.status(401).json({ message: REVOKED_ACCOUNT_MESSAGE });
+    }
     if (error.code === 'EMAIL_IN_USE') {
       return res.status(409).json({ message: EMAIL_IN_USE_MESSAGE });
     }
@@ -151,7 +165,27 @@ async function logout(req, res, next) {
   }
 }
 
+// Ends every API session of the user, including this one; the caller then
+// exchanges a fresh Firebase ID token. Used after a password change.
+async function revokeSessions(req, res, next) {
+  try {
+    await incrementTokenVersion(req.user.firebaseUid);
+    await createAuditLog({
+      actorUserId: req.user.id,
+      actorFirebaseUid: req.user.firebaseUid,
+      action: 'auth.sessions_revoked',
+      resourceType: 'session',
+      resourceId: SESSION_COOKIE_NAME,
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   exchangeFirebaseToken,
   logout,
+  revokeSessions,
 };
