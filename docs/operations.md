@@ -5,6 +5,7 @@
 | Area | Variables |
 | --- | --- |
 | Server | `PORT`, `NODE_ENV`, `APP_BASE_URL`, `TRUST_PROXY`, `LOG_LEVEL` |
+| Proxy | `TRUST_PROXY` is required when `NODE_ENV=production`; startup fails if it is unset or malformed. Use a hop count (likely `2` for Firebase Hosting plus Cloud Run; confirm with `req.ip` after deploying), `true` (one hop), `false`, or comma-separated IPs/CIDRs or `loopback`/`linklocal`/`uniquelocal`. Defaults to `false` elsewhere |
 | Sessions | `JWT_SECRET_KEY` (required to start) |
 | Firebase | `FIREBASE_PROJECT_ID` (keyless), or `FIREBASE_SERVICE_ACCOUNT_JSON` / `FIREBASE_PRIVATE_KEY_PATH`, which take precedence. Sign-in checks token revocation, so the credentials (keyless: the Cloud Run service account) need permission to read Firebase Auth users |
 | Database | `DATABASE_URL`, or `PG_*` / `PG*` connection settings; `PG_SSL`, `DB_CA_CERT` |

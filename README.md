@@ -126,7 +126,7 @@ npm ci
 npm start
 ```
 
-For Stripe billing, also set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PREMIUM_PRICE_ID` / `STRIPE_PRO_PRICE_ID` (or their `STRIPE_PRICE_ID_PREMIUM` / `STRIPE_PRICE_ID_PRO` aliases). For Redis, set `REDIS_URL`. Set `NODE_ENV=production` in deployment, and `TRUST_PROXY` to match your proxy setup. `OPENAI_CAREER_LAB_MODEL` can override the shared AI client’s default model; resume and cover-letter generation explicitly select `gpt-4o-mini`.
+For Stripe billing, also set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PREMIUM_PRICE_ID` / `STRIPE_PRO_PRICE_ID` (or their `STRIPE_PRICE_ID_PREMIUM` / `STRIPE_PRICE_ID_PRO` aliases). For Redis, set `REDIS_URL`. Set `NODE_ENV=production` in deployment. `TRUST_PROXY` is then required, and the API refuses to start if it is unset or malformed: use the number of proxy hops in front of the API (likely `2` for Firebase Hosting plus Cloud Run; confirm by checking `req.ip` after deploying), `true` (one hop), `false`, or a comma-separated list of IP addresses, CIDR ranges or `loopback`/`linklocal`/`uniquelocal`. Outside production it defaults to `false`. `OPENAI_CAREER_LAB_MODEL` can override the shared AI client’s default model; resume and cover-letter generation explicitly select `gpt-4o-mini`.
 
 ### 2. Configure and start the frontend
 
