@@ -1,14 +1,15 @@
-// IDENTITY-002, 003, 007 and 009 in the browser: profile after sign-up,
-// refused exchanges and session renewal.
+// IDENTITY-002, 003, 007, 009 and 010 in the browser: profile after sign-up,
+// refused exchanges, session renewal and switching user.
 // Firebase and the API are fakes; all data is synthetic.
 import process from 'node:process';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 
 vi.mock('../src/firebase', async () => (await import('./support/fakeFirebase.js')).appModule());
 vi.mock('firebase/auth', async () => (await import('./support/fakeFirebase.js')).sdkModule());
 
 import { AuthProvider } from '../src/context/AuthProvider.jsx';
+import { useAuth } from '../src/context/useAuth';
 import { authFetch, exchangeFirebaseTokenForJwt, getAuthToken } from '../src/utils/auth';
 import {
   CONFIRM,
@@ -304,6 +305,42 @@ describe('IDENTITY-003: exchangeFirebaseTokenForJwt errors', () => {
   });
 });
 
+describe('IDENTITY-010: switching user', () => {
+  it('exchanges for the new user on a direct switch and never shows the old profile', async () => {
+    renderApp('/auth/login');
+    await submitLogin();
+    await profileText('uid-one: null');
+    const exchanges = seen.exchanges.length;
+
+    // No signed-out event in between, and the new user's profile read fails.
+    api.profile = async () => reply(500);
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    await settle();
+
+    expect(seen.exchanges.slice(exchanges).map(({ uid }) => uid)).toContain('uid-two');
+    expect(screen.queryByText(/uid-one/)).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(/could not load your account/i);
+  });
+
+  it('ignores an exchange answer for the previous user', async () => {
+    const slow = deferred();
+    const accept = api.exchange;
+    api.exchange = (request) => (request.uid === 'uid-one' ? slow.promise : accept(request));
+    renderApp('/auth/login');
+    await screen.findByRole('button', { name: /^sign in$/i });
+    await act(async () => setCurrentUser(createUser('uid-one')));
+    await waitFor(() => expect(callsTo('/exchange')).toHaveLength(1));
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    await profileText('uid-two: null');
+
+    await act(async () => slow.resolve(reply(500)));
+    await settle();
+
+    await profileText('uid-two: null');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
 describe('IDENTITY-009: exchange answers', () => {
   it('treats a 2xx answer that is not JSON as a failed exchange', async () => {
     firebase.auth.currentUser = createUser('uid-one');
@@ -338,3 +375,145 @@ describe('IDENTITY-007: session renewal', () => {
   });
 });
 
+describe('IDENTITY-010: profile and session status follow the UID', () => {
+  const loader = () => screen.queryByText('Loading your account...');
+
+  // Holds back the profile read of one UID; every other read answers as usual.
+  function holdProfileOf(uid) {
+    const held = deferred();
+    const load = api.profile;
+    api.profile = (requested) => (requested === uid ? held.promise : load(requested));
+    return held;
+  }
+
+  it('after A signs out and B signs in, shows only B, and only once B has loaded', async () => {
+    renderApp('/auth/login');
+    await submitLogin();
+    await profileText('uid-one: null');
+    fireEvent.click(within(screen.getByRole('main', { name: 'Dashboard' })).getByRole('button', { name: 'Sign out' }));
+    await screen.findByRole('button', { name: /^sign in$/i });
+
+    const held = holdProfileOf('uid-two');
+    firebase.nextUser = createUser('uid-two');
+    await submitLogin();
+    await waitFor(() => expect(callsTo('/users/uid-two')).toHaveLength(1));
+    await settle();
+
+    expect(screen.queryByRole('main', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/uid-one/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await act(async () => held.resolve(reply(200, { firebase_uid: 'uid-two', full_name: 'Second User' })));
+
+    await profileText('uid-two: Second User');
+    expect(seen.exchanges.map(({ uid }) => uid)).toContain('uid-two');
+  });
+
+  it('on a direct switch from A to B, shows the account loader until B has loaded', async () => {
+    renderApp('/auth/login');
+    await submitLogin();
+    await profileText('uid-one: null');
+    const exchanges = seen.exchanges.length;
+    const held = holdProfileOf('uid-two');
+
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    await waitFor(() => expect(callsTo('/users/uid-two')).toHaveLength(1));
+    await settle();
+
+    expect(loader()).toBeInTheDocument();
+    expect(screen.queryByRole('main', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/uid-one/)).not.toBeInTheDocument();
+    // B's read used a session issued for B, not A's.
+    expect(seen.exchanges.slice(exchanges).map(({ uid }) => uid)).toEqual(['uid-two']);
+
+    await act(async () => held.resolve(reply(200, { firebase_uid: 'uid-two', full_name: 'Second User' })));
+
+    await profileText('uid-two: Second User');
+    expect(loader()).not.toBeInTheDocument();
+  });
+
+  it('exchanges again for B on a direct switch, so B reads its own profile', async () => {
+    renderApp('/auth/login');
+    await submitLogin();
+    await profileText('uid-one: null');
+
+    // The fake API answers a profile only for the UID of the current session cookie.
+    await act(async () => setCurrentUser(createUser('uid-two')));
+
+    await profileText('uid-two: null');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it("does not carry A's failed session over to B", async () => {
+    const accept = api.exchange;
+    api.exchange = async (request) => (request.uid === 'uid-one' ? reply(500) : accept(request));
+    renderApp('/auth/login');
+    await submitLogin();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load your account/i);
+    const held = holdProfileOf('uid-two');
+
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    await waitFor(() => expect(callsTo('/users/uid-two')).toHaveLength(1));
+    await settle();
+
+    // B is still loading: neither A's error nor a dashboard.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('main', { name: 'Dashboard' })).not.toBeInTheDocument();
+
+    await act(async () => held.resolve(reply(200, { firebase_uid: 'uid-two', full_name: 'Second User' })));
+    await profileText('uid-two: Second User');
+  });
+
+  it.each([
+    ['a profile', () => reply(200, { firebase_uid: 'uid-one', full_name: 'First User' })],
+    ['a failure', () => reply(500)],
+  ])("ignores A's late profile answer (%s) after B has signed in", async (_label, answer) => {
+    const held = holdProfileOf('uid-one');
+    renderApp('/auth/login');
+    await screen.findByRole('button', { name: /^sign in$/i });
+    await act(async () => setCurrentUser(createUser('uid-one')));
+    await waitFor(() => expect(callsTo('/users/uid-one')).toHaveLength(1));
+
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    await profileText('uid-two: null');
+
+    await act(async () => held.resolve(answer()));
+    await settle();
+
+    await profileText('uid-two: null');
+    expect(screen.queryByText(/First User|uid-one/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+describe('IDENTITY-010: what the auth context exposes during a switch', () => {
+  // Reads the context outside any guard, as any component may.
+  function Probe() {
+    const { profile, sessionStatus } = useAuth();
+    return <p data-testid="probe">{`${profile?.firebase_uid ?? 'none'} ${sessionStatus}`}</p>;
+  }
+
+  const probe = (text) => waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent(new RegExp(`^${text}$`)));
+
+  it('never pairs B with A\'s profile or session status', async () => {
+    render(<AuthProvider><Probe /></AuthProvider>);
+    await probe('none idle');
+    await act(async () => setCurrentUser(createUser('uid-one')));
+    await probe('uid-one ready');
+
+    const held = deferred();
+    const load = api.profile;
+    api.profile = (uid) => (uid === 'uid-two' ? held.promise : load(uid));
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    await waitFor(() => expect(callsTo('/users/uid-two')).toHaveLength(1));
+    await settle();
+
+    await probe('none loading');
+
+    await act(async () => held.resolve(reply(200, { firebase_uid: 'uid-two', full_name: null })));
+    await probe('uid-two ready');
+
+    await act(async () => setCurrentUser(null));
+    await probe('none idle');
+  });
+});

@@ -3,10 +3,12 @@ import { auth } from "../firebase";
 // Error code of an exchange refused because the email is not verified.
 export const EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED";
 
-let sessionEstablished = false;
+// UID of the user the session cookie was issued for, so that a direct switch
+// to another user exchanges again (IDENTITY-010).
+let sessionUid = null;
 
 export function clearAppJwt() {
-  sessionEstablished = false;
+  sessionUid = null;
 }
 
 export function getStoredAppJwt() {
@@ -32,7 +34,7 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   const firebaseUser = auth?.currentUser;
 
   if (!firebaseUser) {
-    sessionEstablished = false;
+    sessionUid = null;
     return null;
   }
 
@@ -58,7 +60,7 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   }
 
   // If another user has signed in meanwhile, their next request must exchange again.
-  sessionEstablished = auth.currentUser?.uid === firebaseUser.uid;
+  sessionUid = auth.currentUser?.uid === firebaseUser.uid ? firebaseUser.uid : null;
   return "cookie_session";
 }
 
@@ -69,7 +71,7 @@ export async function getAuthToken({ forceRefresh = false } = {}) {
     return null;
   }
 
-  if (!sessionEstablished || forceRefresh) {
+  if (sessionUid !== firebaseUser.uid || forceRefresh) {
     await exchangeFirebaseTokenForJwt();
   }
 
