@@ -18,8 +18,9 @@ export default function CareerLabToolPage() {
   const { profile } = useAuth();
 
   const tool = TOOL_MAP[toolId];
-  const activePlanCode = (profile?.plan_code || "free").toLowerCase();
-  const hasAccess = tool
+  // Without a profile the plan is unknown, not Free (CAREER-018).
+  const activePlanCode = profile ? (profile.plan_code || "free").toLowerCase() : null;
+  const hasAccess = tool && activePlanCode !== null
     ? hasPlanAccess(activePlanCode, tool.minimumPlan)
     : false;
   const minimumPlanLabel = tool?.minimumPlan
@@ -48,6 +49,15 @@ export default function CareerLabToolPage() {
         <p className="career-lab-tool-description">
           Select a valid Career Lab tool from the navigation list.
         </p>
+      </section>
+    );
+  }
+
+  if (activePlanCode === null) {
+    return (
+      <section className="content-card career-lab-tool-card" role="status">
+        <h3>{tool.title}</h3>
+        <p className="career-lab-tool-description">Loading your plan...</p>
       </section>
     );
   }

@@ -46,7 +46,8 @@ function resolveCareerToolEndpoint(endpoint) {
 export default function CareerLabLayout() {
   const location = useLocation();
   const { profile } = useAuth();
-  const activePlanCode = (profile?.plan_code || "free").toLowerCase();
+  // Without a profile the plan is unknown: show no locks rather than Free (CAREER-018).
+  const activePlanCode = profile ? (profile.plan_code || "free").toLowerCase() : null;
 
   const [results, setResults] = useState({});
   const [running, setRunning] = useState({});
@@ -211,10 +212,9 @@ export default function CareerLabLayout() {
                   <div className="career-lab-dropdown-menu is-open">
                     {group.tools.map((tool) => {
                       const done = Boolean(results[tool.id]);
-                      const hasAccess = hasPlanAccess(
-                        activePlanCode,
-                        tool.minimumPlan,
-                      );
+                      const hasAccess =
+                        activePlanCode === null ||
+                        hasPlanAccess(activePlanCode, tool.minimumPlan);
                       const minimumPlanLabel =
                         tool.minimumPlan.charAt(0).toUpperCase() +
                         tool.minimumPlan.slice(1);
