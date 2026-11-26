@@ -14,9 +14,24 @@ import {
 
 const isCurrentUser = (firebaseUser) => auth.currentUser?.uid === firebaseUser.uid;
 
+const NO_PROFILE = { uid: null, data: null };
+
+// Ignores a result that arrives after another user has signed in.
+function setSessionStatus(setSession, firebaseUser, status) {
+  if (!isCurrentUser(firebaseUser)) return;
+  const { uid } = firebaseUser;
+  // A failed later refresh leaves a loaded profile on screen.
+  setSession((previous) => (
+    status === "error" && previous.uid === uid && previous.status === "ready" ? previous : { uid, status }
+  ));
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Firebase Auth user
-  const [profile, setProfile] = useState(null); // DB user profile (full_name, role, etc.)
+  // DB user profile (full_name, role, etc.), with the UID it belongs to (IDENTITY-010).
+  const [profileState, setProfileState] = useState(NO_PROFILE);
+  // API session and first profile load of one UID: "loading", "ready" or "error" (IDENTITY-009).
+  const [session, setSession] = useState({ uid: null, status: "loading" });
   const [loading, setLoading] = useState(Boolean(auth));
   const [authError, setAuthError] = useState(""); // shown on the sign-in pages
   // State, because Firebase changes user.emailVerified in place.
@@ -27,7 +42,7 @@ export function AuthProvider({ children }) {
 
   const refreshProfile = async (firebaseUser = auth?.currentUser) => {
     if (!firebaseUser) {
-      setProfile(null);
+      setProfileState(NO_PROFILE);
       return null;
     }
 
@@ -48,7 +63,8 @@ export function AuthProvider({ children }) {
     // A slow response must not replace a newer one, or another user's.
     if (requestId > requests.applied && isCurrentUser(firebaseUser)) {
       requests.applied = requestId;
-      setProfile(data);
+      setProfileState({ uid: firebaseUser.uid, data });
+      setSessionStatus(setSession, firebaseUser, "ready");
     }
     return data;
   };
@@ -68,6 +84,10 @@ export function AuthProvider({ children }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      // Another user's profile and session state must never be shown (IDENTITY-010).
+      const uid = firebaseUser?.uid ?? null;
+      setProfileState((previous) => (previous.uid === uid ? previous : NO_PROFILE));
+      setSession((previous) => (previous.uid === uid ? previous : { uid, status: "loading" }));
 
       setNeedsEmailVerification(Boolean(firebaseUser) && !firebaseUser.emailVerified);
 
@@ -80,14 +100,18 @@ export function AuthProvider({ children }) {
           console.warn("Auth/Profile error:", error.message);
           if (error.status === 409 && isCurrentUser(firebaseUser)) {
             await endRefusedSession(firebaseUser, error.message);
+            // Still signed in only if Firebase sign-out failed.
+            setSessionStatus(setSession, firebaseUser, "error");
           } else if (error.code === EMAIL_NOT_VERIFIED && isCurrentUser(firebaseUser)) {
             setNeedsEmailVerification(true);
+          } else {
+            setSessionStatus(setSession, firebaseUser, "error");
           }
         }
       } else {
         // Signed out, or no session until the email is verified.
         clearAppJwt();
-        setProfile(null);
+        setProfileState(NO_PROFILE);
         if (!firebaseUser) setVerificationEmail(null);
       }
 
@@ -143,9 +167,25 @@ export function AuthProvider({ children }) {
     }
     if (!isCurrentUser(firebaseUser)) return false;
 
-    await refreshProfile(firebaseUser).catch((error) => console.warn("Auth/Profile error:", error.message));
+    await refreshProfile(firebaseUser).catch((error) => {
+      console.warn("Auth/Profile error:", error.message);
+      setSessionStatus(setSession, firebaseUser, "error");
+    });
     if (isCurrentUser(firebaseUser)) setNeedsEmailVerification(false);
     return true;
+  };
+
+  // The Retry of the could-not-load-your-account message.
+  const retrySession = async () => {
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) return;
+    setSessionStatus(setSession, firebaseUser, "loading");
+    try {
+      await refreshProfile(firebaseUser);
+    } catch (error) {
+      console.warn("Auth/Profile error:", error.message);
+      setSessionStatus(setSession, firebaseUser, "error");
+    }
   };
 
   const logout = async () => {
@@ -153,19 +193,29 @@ export function AuthProvider({ children }) {
     await logoutSession();
     await signOut(auth);
     clearAppJwt();
-    setProfile(null);
+    setProfileState(NO_PROFILE);
   };
+
+  const profile = user && profileState.uid === user.uid ? profileState.data : null;
+  // "idle" while signed out or waiting for email verification; then the
+  // session of this UID, which is "loading" until its first result.
+  let sessionStatus = "idle";
+  if (user && !needsEmailVerification) {
+    sessionStatus = session.uid === user.uid ? session.status : "loading";
+  }
 
   return (
     <AuthContext.Provider value={{
       user,
       profile,
+      sessionStatus,
       loading,
       authError,
       needsEmailVerification,
       verificationEmail,
       logout,
       refreshProfile,
+      retrySession,
       completeSignUp,
       sendVerificationEmail,
       confirmEmailVerified,

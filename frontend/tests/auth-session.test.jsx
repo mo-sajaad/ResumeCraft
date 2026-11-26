@@ -1,4 +1,5 @@
-// IDENTITY-002 and 003 in the browser: profile after sign-up, refused exchanges.
+// IDENTITY-002, 003, 007 and 009 in the browser: profile after sign-up,
+// refused exchanges and session renewal.
 // Firebase and the API are fakes; all data is synthetic.
 import process from 'node:process';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
@@ -7,7 +8,8 @@ import { vi } from 'vitest';
 vi.mock('../src/firebase', async () => (await import('./support/fakeFirebase.js')).appModule());
 vi.mock('firebase/auth', async () => (await import('./support/fakeFirebase.js')).sdkModule());
 
-import { exchangeFirebaseTokenForJwt } from '../src/utils/auth';
+import { AuthProvider } from '../src/context/AuthProvider.jsx';
+import { authFetch, exchangeFirebaseTokenForJwt, getAuthToken } from '../src/utils/auth';
 import {
   CONFIRM,
   NAME,
@@ -104,14 +106,17 @@ describe('IDENTITY-002: email sign-up ends with a named profile', () => {
 
   it('still applies an older response when the newer refresh fails', async () => {
     const slow = deferred();
-    api.profile = vi.fn()
+    // The dashboard opens only with a profile (IDENTITY-009), so both are refreshes.
+    api.profile = vi.fn(api.profile)
+      .mockImplementationOnce(api.profile)
       .mockImplementationOnce(() => slow.promise)
       .mockImplementationOnce(async () => reply(500));
     renderApp('/auth/login');
     await submitLogin();
-    await waitFor(() => expect(api.profile).toHaveBeenCalledTimes(1));
-    await profileText('no profile');
+    await profileText('uid-one: null');
 
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(api.profile).toHaveBeenCalledTimes(2));
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await screen.findByText('Refresh failed');
     await act(async () => slow.resolve(reply(200, { firebase_uid: 'uid-one', full_name: 'Older Name' })));
@@ -121,7 +126,7 @@ describe('IDENTITY-002: email sign-up ends with a named profile', () => {
 });
 
 describe('IDENTITY-003: a 409 exchange', () => {
-  // Answers only once the dashboard has opened, as a real round trip would:
+  // Answers only once the sign-in has rendered, as a real round trip would:
   // an instant answer could be batched into one render with the sign-in.
   async function refuseExchangeDuring(submit) {
     const gate = deferred();
@@ -130,7 +135,10 @@ describe('IDENTITY-003: a 409 exchange', () => {
       return reply(409, { message: CONFLICT });
     };
     await submit();
-    await screen.findByRole('main', { name: 'Dashboard' });
+    await waitFor(() => expect(callsTo('/exchange').length).toBeGreaterThan(0));
+    await settle();
+    // IDENTITY-009: no dashboard without a session.
+    expect(screen.queryByRole('main', { name: 'Dashboard' })).not.toBeInTheDocument();
     await act(async () => gate.resolve());
   }
 
@@ -189,6 +197,7 @@ describe('IDENTITY-003: a 409 exchange', () => {
   });
 
   it.each([[400], [500]])('is the only refusal that signs out: %i does not', async (status) => {
+    const accept = api.exchange;
     api.exchange = async () => reply(status, { message: 'synthetic failure' });
     renderApp('/auth/login');
     await submitLogin();
@@ -198,7 +207,15 @@ describe('IDENTITY-003: a 409 exchange', () => {
     expect(firebase.signOut).not.toHaveBeenCalled();
     expect(callsTo('/logout')).toEqual([]);
     expect(firebase.auth.currentUser.uid).toBe('uid-one');
-    expect(screen.getByRole('main', { name: 'Dashboard' })).toBeInTheDocument();
+    // IDENTITY-009: an explanation with Retry and Sign out, not a broken dashboard.
+    expect(screen.queryByRole('main', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(/could not load your account/i);
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled();
+
+    api.exchange = accept;
+    await click('Retry');
+
+    await profileText('uid-one: null');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -286,3 +303,38 @@ describe('IDENTITY-003: exchangeFirebaseTokenForJwt errors', () => {
     });
   });
 });
+
+describe('IDENTITY-009: exchange answers', () => {
+  it('treats a 2xx answer that is not JSON as a failed exchange', async () => {
+    firebase.auth.currentUser = createUser('uid-one');
+    api.exchange = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => { throw new SyntaxError('synthetic HTML page'); },
+    });
+
+    await expect(exchangeFirebaseTokenForJwt()).rejects.toMatchObject({ status: 200 });
+    // So the next call tries again instead of trusting a session.
+    api.exchange = async () => reply(200);
+    await getAuthToken();
+    expect(callsTo('/exchange')).toHaveLength(2);
+  });
+});
+
+// The server now answers 5xx where it used to answer 401.
+describe('IDENTITY-007: session renewal', () => {
+  it.each([[500], [503]])('renews the session only on 401, so a %i is returned without a retry', async (status) => {
+    firebase.auth.currentUser = createUser('uid-one');
+    const call = vi.fn(async () => reply(status));
+    const fakeApi = globalThis.fetch.getMockImplementation();
+    globalThis.fetch.mockImplementation(async (url, init) => (url === '/api/synthetic' ? call() : fakeApi(url, init)));
+    await getAuthToken();
+
+    const response = await authFetch('/api/synthetic');
+
+    expect(response.status).toBe(status);
+    expect(call).toHaveBeenCalledTimes(1);
+    expect(callsTo('/exchange')).toHaveLength(1);
+  });
+});
+

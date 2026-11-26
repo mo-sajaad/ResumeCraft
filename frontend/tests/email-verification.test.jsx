@@ -285,10 +285,11 @@ describe('the check-your-email page', () => {
     expect(seen.locations).toEqual(['/dashboard', '/auth/login']);
   });
 
+  // IDENTITY-009: a failed read shows an explanation, not a dashboard without a profile.
   it.each([
-    ['succeeds', async (uid) => reply(200, { firebase_uid: uid, full_name: NAME }), `uid-new: ${NAME}`],
-    ['fails', async () => reply(500), 'no profile'],
-  ])('stays pending until the first profile read %s, then opens the dashboard', async (_label, answer, text) => {
+    ['succeeds', async (uid) => reply(200, { firebase_uid: uid, full_name: NAME }), true],
+    ['fails', async () => reply(500), false],
+  ])('stays pending until the first profile read %s, then opens the dashboard or explains', async (_label, answer, opens) => {
     const read = deferred();
     api.profile = vi.fn(async (uid) => { await read.promise; return answer(uid); });
     await logIn();
@@ -300,8 +301,13 @@ describe('the check-your-email page', () => {
 
     await act(async () => read.resolve());
 
-    await profileText(text);
-    expect(seen.dashboardMounts).toBe(1);
+    if (opens) {
+      await profileText(`uid-new: ${NAME}`);
+      expect(seen.dashboardMounts).toBe(1);
+    } else {
+      expect(await screen.findByRole('alert')).toHaveTextContent(/could not load your account/i);
+      expect(seen.dashboardMounts).toBe(0);
+    }
   });
 
   it('stays, without an alert, when the server still answers that the email is not verified', async () => {
@@ -643,9 +649,12 @@ describe('a user switch', () => {
     await expectUntouchedPage('uid-two@example.test');
     verifyOnServer('uid-two');
     await click(CONFIRM);
-    await screen.findByRole('main', { name: 'Dashboard' });
+    // The second user's own read fails: IDENTITY-009 explains instead of opening the dashboard.
+    await screen.findByRole('alert');
+    await settle();
 
-    expect(screen.getByTestId('profile')).toHaveTextContent('no profile');
+    expect(seen.dashboardMounts).toBe(0);
+    expect(screen.queryByText(/First User/)).not.toBeInTheDocument();
   });
 
   it('during a successful confirm lets the other user get their own session back', async () => {

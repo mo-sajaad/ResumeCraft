@@ -21,7 +21,11 @@ async function postExchange(firebaseToken, fullName) {
     body: JSON.stringify({ firebaseToken, fullName }),
   });
 
-  return { response, data: await response.json().catch(() => ({})) };
+  const data = await response.json().catch(() => null);
+  // The server always answers JSON; anything else, such as an HTML page from a
+  // proxy, is not a session even with a 2xx status (IDENTITY-009).
+  const isJson = typeof data === "object" && data !== null;
+  return { response, data: isJson ? data : {}, isJson };
 }
 
 export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
@@ -36,17 +40,17 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   const sanitizedPreferredName = typeof preferredFullName === "string" ? preferredFullName.trim() : "";
   const fullName = sanitizedPreferredName || firebaseUser.displayName || null;
 
-  let { response, data } = await postExchange(firebaseToken, fullName);
+  let { response, data, isJson } = await postExchange(firebaseToken, fullName);
 
   // A token issued before the email was verified, such as in another tab, is out of date.
   if (data?.code === EMAIL_NOT_VERIFIED && firebaseUser.emailVerified) {
     const freshToken = await firebaseUser.getIdToken(true);
     if (auth.currentUser?.uid === firebaseUser.uid) {
-      ({ response, data } = await postExchange(freshToken, fullName));
+      ({ response, data, isJson } = await postExchange(freshToken, fullName));
     }
   }
 
-  if (!response.ok) {
+  if (!response.ok || !isJson) {
     const error = new Error(data?.message || data?.error || "Failed to exchange Firebase token");
     error.status = response.status;
     error.code = data?.code;

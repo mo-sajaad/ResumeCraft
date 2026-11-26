@@ -3,13 +3,17 @@ import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes.js";
 import VerifyEmail from "../pages/auth/VerifyEmail.jsx";
 import BrandedLoader from "../components/ui/BrandedLoader.jsx";
+import SessionError from "./SessionError.jsx";
 
 export default function RedirectIfAuth() {
-  const { user, loading, authError, needsEmailVerification } = useAuth();
+  const { user, loading, authError, needsEmailVerification, sessionStatus } = useAuth();
 
   if (loading) return <BrandedLoader message="Loading authentication..." />;
   if (user && needsEmailVerification) return <VerifyEmail key={user.uid} />;
-  if (user) return <Navigate to={ROUTES.DASHBOARD} replace />;
+  // Only a working session leaves the sign-in pages, so a failed one is
+  // explained here instead of on a broken dashboard (IDENTITY-009).
+  if (user && sessionStatus === "ready") return <Navigate to={ROUTES.DASHBOARD} replace />;
+  if (user && sessionStatus === "error") return <SessionError />;
 
   return (
     <>
