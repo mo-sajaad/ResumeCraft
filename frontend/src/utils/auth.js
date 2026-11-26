@@ -7,6 +7,16 @@ export const EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED";
 // to another user exchanges again (IDENTITY-010).
 let sessionUid = null;
 
+// What the could-not-load-your-account panel says about a refused request
+// (IDENTITY-009). Only the message of a 4xx JSON answer is shown: 5xx bodies
+// are generic and, outside production, carry internal details. Any refusal
+// but a timeout or rate limit gets the same answer again, so Retry is not offered.
+export function describeRefusal(status, data) {
+  const message = data?.message || data?.error;
+  if (!(status >= 400 && status < 500) || typeof message !== "string" || !message.trim()) return null;
+  return { message, retryable: status === 408 || status === 429 };
+}
+
 export function clearAppJwt() {
   sessionUid = null;
 }
@@ -56,6 +66,7 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
     const error = new Error(data?.message || data?.error || "Failed to exchange Firebase token");
     error.status = response.status;
     error.code = data?.code;
+    error.sessionError = describeRefusal(response.status, data);
     throw error;
   }
 

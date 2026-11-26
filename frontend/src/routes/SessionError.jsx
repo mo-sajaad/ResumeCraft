@@ -7,7 +7,9 @@ import { useAuth } from "../context/useAuth";
 // Shown instead of the app when the API session or the first profile load
 // failed, so a signed-in user never sees a dashboard without an account (IDENTITY-009).
 export default function SessionError() {
-  const { retrySession, logout } = useAuth();
+  const { retrySession, logout, sessionError } = useAuth();
+  // A refusal such as a 409 or a revoked sign-in would only come back on Retry.
+  const canRetry = sessionError?.retryable !== false;
   const [busy, setBusy] = useState(false);
   const [signOutFailed, setSignOutFailed] = useState(false);
 
@@ -28,8 +30,8 @@ export default function SessionError() {
       title="We could not load your account"
       description={signOutFailed
         ? "You could not be signed out. Check your connection and try again."
-        : "This is usually temporary. Check your connection, then try again."}
-      action={(
+        : sessionError?.message || "This is usually temporary. Check your connection, then try again."}
+      action={canRetry ? (
         <>
           <Button type="button" onClick={() => run(retrySession)} disabled={busy}>
             {busy ? "Please wait..." : "Retry"}
@@ -38,6 +40,10 @@ export default function SessionError() {
             Sign out
           </Button>
         </>
+      ) : (
+        <Button type="button" onClick={signOut} disabled={busy}>
+          Sign out
+        </Button>
       )}
     />
   );

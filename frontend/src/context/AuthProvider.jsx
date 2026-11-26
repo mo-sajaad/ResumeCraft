@@ -7,6 +7,7 @@ import {
   EMAIL_NOT_VERIFIED,
   authFetch,
   clearAppJwt,
+  describeRefusal,
   exchangeFirebaseTokenForJwt,
   getAuthToken,
   logoutSession,
@@ -16,22 +17,27 @@ const isCurrentUser = (firebaseUser) => auth.currentUser?.uid === firebaseUser.u
 
 const NO_PROFILE = { uid: null, data: null };
 
-// Ignores a result that arrives after another user has signed in.
-function setSessionStatus(setSession, firebaseUser, status) {
+// Ignores a result that arrives after another user has signed in. `error` is
+// the { message, retryable } of a refusal, kept only with an "error" status.
+function setSessionStatus(setSession, firebaseUser, status, error = null) {
   if (!isCurrentUser(firebaseUser)) return;
   const { uid } = firebaseUser;
   // A failed later refresh leaves a loaded profile on screen.
   setSession((previous) => (
-    status === "error" && previous.uid === uid && previous.status === "ready" ? previous : { uid, status }
+    status === "error" && previous.uid === uid && previous.status === "ready"
+      ? previous
+      : { uid, status, error: status === "error" ? error : null }
   ));
 }
+
+const sessionErrorOf = (error) => error?.sessionError ?? null;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // Firebase Auth user
   // DB user profile (full_name, role, etc.), with the UID it belongs to (IDENTITY-010).
   const [profileState, setProfileState] = useState(NO_PROFILE);
   // API session and first profile load of one UID: "loading", "ready" or "error" (IDENTITY-009).
-  const [session, setSession] = useState({ uid: null, status: "loading" });
+  const [session, setSession] = useState({ uid: null, status: "loading", error: null });
   const [loading, setLoading] = useState(Boolean(auth));
   const [authError, setAuthError] = useState(""); // shown on the sign-in pages
   // State, because Firebase changes user.emailVerified in place.
@@ -56,7 +62,9 @@ export function AuthProvider({ children }) {
     const res = await authFetch(`/api/users/${firebaseUser.uid}`);
 
     if (!res.ok) {
-      throw new Error("Failed to fetch profile");
+      const error = new Error("Failed to fetch profile");
+      error.sessionError = describeRefusal(res.status, await res.json().catch(() => null));
+      throw error;
     }
 
     const data = await res.json();
@@ -87,7 +95,7 @@ export function AuthProvider({ children }) {
       // Another user's profile and session state must never be shown (IDENTITY-010).
       const uid = firebaseUser?.uid ?? null;
       setProfileState((previous) => (previous.uid === uid ? previous : NO_PROFILE));
-      setSession((previous) => (previous.uid === uid ? previous : { uid, status: "loading" }));
+      setSession((previous) => (previous.uid === uid ? previous : { uid, status: "loading", error: null }));
 
       setNeedsEmailVerification(Boolean(firebaseUser) && !firebaseUser.emailVerified);
 
@@ -101,11 +109,11 @@ export function AuthProvider({ children }) {
           if (error.status === 409 && isCurrentUser(firebaseUser)) {
             await endRefusedSession(firebaseUser, error.message);
             // Still signed in only if Firebase sign-out failed.
-            setSessionStatus(setSession, firebaseUser, "error");
+            setSessionStatus(setSession, firebaseUser, "error", sessionErrorOf(error));
           } else if (error.code === EMAIL_NOT_VERIFIED && isCurrentUser(firebaseUser)) {
             setNeedsEmailVerification(true);
           } else {
-            setSessionStatus(setSession, firebaseUser, "error");
+            setSessionStatus(setSession, firebaseUser, "error", sessionErrorOf(error));
           }
         }
       } else {
@@ -169,7 +177,7 @@ export function AuthProvider({ children }) {
 
     await refreshProfile(firebaseUser).catch((error) => {
       console.warn("Auth/Profile error:", error.message);
-      setSessionStatus(setSession, firebaseUser, "error");
+      setSessionStatus(setSession, firebaseUser, "error", sessionErrorOf(error));
     });
     if (isCurrentUser(firebaseUser)) setNeedsEmailVerification(false);
     return true;
@@ -184,7 +192,7 @@ export function AuthProvider({ children }) {
       await refreshProfile(firebaseUser);
     } catch (error) {
       console.warn("Auth/Profile error:", error.message);
-      setSessionStatus(setSession, firebaseUser, "error");
+      setSessionStatus(setSession, firebaseUser, "error", sessionErrorOf(error));
     }
   };
 
@@ -203,12 +211,15 @@ export function AuthProvider({ children }) {
   if (user && !needsEmailVerification) {
     sessionStatus = session.uid === user.uid ? session.status : "loading";
   }
+  // { message, retryable } of the refusal behind an "error" status, or null.
+  const sessionError = sessionStatus === "error" ? session.error : null;
 
   return (
     <AuthContext.Provider value={{
       user,
       profile,
       sessionStatus,
+      sessionError,
       loading,
       authError,
       needsEmailVerification,

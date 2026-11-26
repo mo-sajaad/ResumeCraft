@@ -198,7 +198,6 @@ describe('IDENTITY-003: a 409 exchange', () => {
   });
 
   it.each([[400], [500]])('is the only refusal that signs out: %i does not', async (status) => {
-    const accept = api.exchange;
     api.exchange = async () => reply(status, { message: 'synthetic failure' });
     renderApp('/auth/login');
     await submitLogin();
@@ -208,16 +207,11 @@ describe('IDENTITY-003: a 409 exchange', () => {
     expect(firebase.signOut).not.toHaveBeenCalled();
     expect(callsTo('/logout')).toEqual([]);
     expect(firebase.auth.currentUser.uid).toBe('uid-one');
-    // IDENTITY-009: an explanation with Retry and Sign out, not a broken dashboard.
+    // IDENTITY-009: an explanation with Sign out, not a broken dashboard. Retry
+    // is offered only for the 500.
     expect(screen.queryByRole('main', { name: 'Dashboard' })).not.toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(/could not load your account/i);
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled();
-
-    api.exchange = accept;
-    await click('Retry');
-
-    await profileText('uid-one: null');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('does not sign out the user who has signed in meanwhile', async () => {

@@ -8,6 +8,7 @@ vi.mock('firebase/auth', async () => (await import('./support/fakeFirebase.js'))
 
 import { AuthContext } from '../src/context/AuthContext.jsx';
 import SessionError from '../src/routes/SessionError.jsx';
+import { describeRefusal } from '../src/utils/auth';
 import {
   api,
   callsTo,
@@ -22,7 +23,7 @@ import {
   submitLogin,
   tearDownSignInTest,
 } from './support/authHarness.jsx';
-import { firebase, setCurrentUser } from './support/fakeFirebase.js';
+import { createUser, firebase, setCurrentUser } from './support/fakeFirebase.js';
 
 const PANEL = /could not load your account/i;
 const SIGN_OUT_FAILED = 'You could not be signed out. Check your connection and try again.';
@@ -266,5 +267,287 @@ describe('IDENTITY-009: where the panel is shown', () => {
     await screen.findByText('Refresh failed');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     await profileText('uid-one: null');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// IDENTITY-009 follow-up: the panel shows the server's message for a 4xx
+// refusal, and offers Retry only when retrying can help (408, 429, or no
+// usable message). 5xx bodies are never shown.
+
+const REVOKED = 'Synthetic: your sign-in was revoked. Sign in again.';
+
+const panelButtons = () => ({
+  retry: screen.queryByRole('button', { name: /retry|please wait/i }),
+  signOut: screen.queryByRole('button', { name: 'Sign out' }),
+});
+
+// The panel says `text`, and has Retry only if `retry`; Sign out is always there.
+async function expectPanel(text, { retry }) {
+  const panel = await findPanel();
+  await waitFor(() => expect(panel).toHaveTextContent(text));
+  const { retry: retryButton, signOut } = panelButtons();
+  if (retry) expect(retryButton).toBeEnabled();
+  else expect(retryButton).not.toBeInTheDocument();
+  expect(signOut).toBeEnabled();
+  expect(dashboard()).not.toBeInTheDocument();
+  return panel;
+}
+
+async function signInWithExchange(handler) {
+  api.exchange = handler;
+  renderApp('/auth/login');
+  await submitLogin();
+  await settle();
+}
+
+describe('IDENTITY-009 follow-up: server message: describeRefusal', () => {
+  it.each([[200], [201], [204], [301], [304], [399], [500], [502], [503]])(
+    'returns null for status %i, even with a message',
+    (status) => {
+      expect(describeRefusal(status, { message: 'Synthetic message', error: 'Synthetic error' })).toBeNull();
+    },
+  );
+
+  it.each([
+    ['no body', undefined],
+    ['a null body', null],
+    ['an empty object', {}],
+    ['an empty message', { message: '' }],
+    ['a blank message', { message: '   \n\t' }],
+    ['a numeric message', { message: 42 }],
+    ['an object message', { message: { text: 'Synthetic' } }],
+    ['a blank error', { error: '  ' }],
+    ['a non-string error', { error: ['Synthetic'] }],
+  ])('returns null for a 4xx with %s', (_label, data) => {
+    expect(describeRefusal(400, data)).toBeNull();
+  });
+
+  it('uses `error` when `message` is missing', () => {
+    expect(describeRefusal(403, { error: 'Synthetic forbidden' }))
+      .toEqual({ message: 'Synthetic forbidden', retryable: false });
+  });
+
+  it('prefers `message` over `error`', () => {
+    expect(describeRefusal(400, { message: 'Synthetic message', error: 'Synthetic error' }))
+      .toEqual({ message: 'Synthetic message', retryable: false });
+  });
+
+  it.each([[408], [429]])('marks %i as retryable', (status) => {
+    expect(describeRefusal(status, { message: 'Synthetic wait' }))
+      .toEqual({ message: 'Synthetic wait', retryable: true });
+  });
+
+  it.each([[400], [401], [403], [404], [409], [422], [499]])('marks %i as not retryable', (status) => {
+    expect(describeRefusal(status, { message: 'Synthetic refusal' }))
+      .toEqual({ message: 'Synthetic refusal', retryable: false });
+  });
+});
+
+describe('IDENTITY-009 follow-up: server message: exchange refusals', () => {
+  it('shows a 409 message without Retry when Firebase sign-out fails, and Sign out still works', async () => {
+    const conflict = 'Synthetic: this email belongs to another account.';
+    firebase.signOut = vi.fn(async () => { throw new Error('synthetic Firebase sign-out failure'); });
+    await signInWithExchange(async () => reply(409, { message: conflict }));
+
+    await expectPanel(conflict, { retry: false });
+    expect(firebase.auth.currentUser.uid).toBe('uid-one');
+
+    firebase.signOut = vi.fn(async () => setCurrentUser(null));
+    await click('Sign out');
+
+    expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
+    expect(firebase.auth.currentUser).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [401, REVOKED],
+    [400, 'Synthetic: the sign-in request was invalid.'],
+  ])('shows the message of a %i without Retry', async (status, message) => {
+    await signInWithExchange(async () => reply(status, { message }));
+
+    const panel = await expectPanel(message, { retry: false });
+    expect(panel).not.toHaveTextContent(USUAL);
+  });
+
+  it('shows the generic text with Retry for a 500, and none of its body', async () => {
+    const detail = 'synthetic internal detail: relation "users" at db.internal:5432';
+    await signInWithExchange(async () => reply(500, { message: 'Internal server error', error: detail }));
+
+    await expectPanel(USUAL, { retry: true });
+    expect(document.body).not.toHaveTextContent('Internal server error');
+    expect(document.body).not.toHaveTextContent(detail);
+  });
+
+  it('shows the generic text with Retry when the exchange request fails', async () => {
+    await signInWithExchange(async () => { throw new TypeError('synthetic network failure'); });
+
+    await expectPanel(USUAL, { retry: true });
+    expect(document.body).not.toHaveTextContent('synthetic network failure');
+  });
+
+  it('shows the generic text with Retry for a 4xx that is not JSON', async () => {
+    await signInWithExchange(async () => ({
+      ok: false,
+      status: 403,
+      json: async () => { throw new SyntaxError('synthetic HTML page'); },
+    }));
+
+    await expectPanel(USUAL, { retry: true });
+  });
+
+  it('shows a 429 message with Retry; a 500 on Retry brings back the generic text; success opens the dashboard', async () => {
+    const slowDown = 'Synthetic: too many attempts, wait a minute.';
+    const accept = api.exchange;
+    await signInWithExchange(async () => reply(429, { message: slowDown }));
+
+    await expectPanel(slowDown, { retry: true });
+
+    api.exchange = async () => reply(500, { message: 'Internal server error' });
+    await click('Retry');
+    await settle();
+
+    const panel = await expectPanel(USUAL, { retry: true });
+    expect(panel).not.toHaveTextContent(slowDown);
+    expect(document.body).not.toHaveTextContent('Internal server error');
+
+    api.exchange = accept;
+    await click('Retry');
+
+    await profileText('uid-one: null');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(lastLocation()).toBe('/dashboard');
+    expect(seen.dashboardMounts).toBe(1);
+  });
+});
+
+describe('IDENTITY-009 follow-up: server message: profile refusals', () => {
+  it.each([
+    [401, { message: REVOKED }, REVOKED],
+    [403, { message: 'Synthetic: this account is disabled.' }, 'Synthetic: this account is disabled.'],
+    [401, { error: 'Synthetic: session not accepted.' }, 'Synthetic: session not accepted.'],
+    [403, { error: 'Synthetic: access denied.' }, 'Synthetic: access denied.'],
+  ])('shows the text of a profile %i %j without Retry', async (status, body, text) => {
+    api.profile = async () => reply(status, body);
+    renderApp('/auth/login');
+    await submitLogin();
+    await settle();
+
+    const panel = await expectPanel(text, { retry: false });
+    expect(panel).not.toHaveTextContent(USUAL);
+    expect(lastLocation()).toBe('/dashboard');
+  });
+
+  it('shows the generic text with Retry for a profile 500, and none of its body', async () => {
+    api.profile = async () => reply(500, { message: 'Internal server error', error: 'synthetic stack detail' });
+    renderApp('/auth/login');
+    await submitLogin();
+    await settle();
+
+    await expectPanel(USUAL, { retry: true });
+    expect(document.body).not.toHaveTextContent('Internal server error');
+    expect(document.body).not.toHaveTextContent('synthetic stack detail');
+  });
+
+  // The profile error carries no status, so a 409 profile answer is not the
+  // exchange's other-account refusal and does not sign out.
+  it('does not sign out on a profile 409', async () => {
+    api.profile = async () => reply(409, { message: 'Synthetic profile conflict' });
+    renderApp('/auth/login');
+    await submitLogin();
+    await settle();
+
+    await expectPanel('Synthetic profile conflict', { retry: false });
+    expect(firebase.signOut).not.toHaveBeenCalled();
+    expect(callsTo('/logout')).toEqual([]);
+    expect(firebase.auth.currentUser.uid).toBe('uid-one');
+  });
+});
+
+describe('IDENTITY-009 follow-up: server message: another user', () => {
+  const A_TEXT = 'Synthetic: user A was refused.';
+  const B_TEXT = 'Synthetic: user B was refused.';
+
+  // User A has a 401 panel on the dashboard; then B signs in with `exchangeB`.
+  async function refuseAThenSwitchToB(exchangeB) {
+    const heldB = deferred();
+    api.exchange = async ({ uid }) => (uid === 'uid-one' ? reply(401, { message: A_TEXT }) : heldB.promise);
+    firebase.auth.currentUser = createUser('uid-one');
+    renderApp('/dashboard');
+    await expectPanel(A_TEXT, { retry: false });
+
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    // While B loads, A's refusal is not shown.
+    expect(document.body).not.toHaveTextContent(A_TEXT);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await act(async () => heldB.resolve(exchangeB()));
+    await settle();
+  }
+
+  it('shows B the generic text, not A\'s message, when B\'s exchange fails with a 500', async () => {
+    await refuseAThenSwitchToB(() => reply(500, { message: 'Internal server error' }));
+
+    await expectPanel(USUAL, { retry: true });
+    expect(document.body).not.toHaveTextContent(A_TEXT);
+  });
+
+  it('shows B its own message, not A\'s', async () => {
+    await refuseAThenSwitchToB(() => reply(400, { message: B_TEXT }));
+
+    const panel = await expectPanel(B_TEXT, { retry: false });
+    expect(panel).not.toHaveTextContent(A_TEXT);
+  });
+
+  it('opens the dashboard for B with no panel when B\'s exchange succeeds', async () => {
+    await refuseAThenSwitchToB(() => reply(200));
+
+    // The held exchange skips the fake server's name store, so no name is known.
+    await profileText('uid-two:');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(A_TEXT);
+  });
+
+  it('never shows A\'s refusal that arrives after B has signed in', async () => {
+    const heldA = deferred();
+    api.exchange = async ({ uid }) => (uid === 'uid-one' ? heldA.promise : reply(500));
+    firebase.auth.currentUser = createUser('uid-one');
+    renderApp('/dashboard');
+    await waitFor(() => expect(seen.exchanges.map(({ uid }) => uid)).toContain('uid-one'));
+
+    await act(async () => setCurrentUser(createUser('uid-two')));
+    await expectPanel(USUAL, { retry: true });
+
+    await act(async () => heldA.resolve(reply(401, { message: A_TEXT })));
+    await settle();
+
+    await expectPanel(USUAL, { retry: true });
+    expect(document.body).not.toHaveTextContent(A_TEXT);
+  });
+});
+
+describe('IDENTITY-009 follow-up: server message: failed Sign out', () => {
+  it('replaces the server message with the failed-sign-out text, and Sign out still works', async () => {
+    await signInWithExchange(async () => reply(401, { message: REVOKED }));
+    await expectPanel(REVOKED, { retry: false });
+
+    api.logout = async () => { throw new TypeError('synthetic network failure'); };
+    await click('Sign out');
+
+    const panel = screen.getByRole('alert');
+    expect(panel).toHaveTextContent(SIGN_OUT_FAILED);
+    expect(panel).not.toHaveTextContent(REVOKED);
+    expect(panelButtons().retry).not.toBeInTheDocument();
+    expect(panelButtons().signOut).toBeEnabled();
+    expect(firebase.signOut).not.toHaveBeenCalled();
+    expect(firebase.auth.currentUser.uid).toBe('uid-one');
+
+    api.logout = async () => reply(204);
+    await click('Sign out');
+
+    expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
   });
 });
