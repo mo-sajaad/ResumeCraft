@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
+  sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -10,6 +11,16 @@ import {
 
 import { auth, hasFirebaseConfig } from "../../firebase";
 import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
+import { validateEmail } from "../../utils/validators";
+
+// Neutral wording: it must not reveal whether an account exists.
+const RESET_REQUESTED_MESSAGE = "If an account exists for that email, we've sent a reset link.";
+const RESET_ERROR_MESSAGES = {
+  "auth/invalid-email": "Enter a valid email address.",
+  "auth/missing-email": "Enter a valid email address.",
+  "auth/network-request-failed": "We could not reach the server. Check your connection and try again.",
+  "auth/too-many-requests": "Too many attempts. Wait a few minutes, then try again.",
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -17,6 +28,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [resetSending, setResetSending] = useState(false);
+  const resetInFlight = useRef(false);
 
   const destination = "/dashboard";
 
@@ -46,12 +60,41 @@ export default function Login() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (resetInFlight.current) return;
+    setError("");
+    setNotice("");
+
+    const trimmedEmail = email.trim();
+    if (!validateEmail(trimmedEmail)) {
+      setError("Enter your email address above, then select Forgot password? again.");
+      return;
+    }
+    if (!requireFirebase()) return;
+
+    resetInFlight.current = true;
+    setResetSending(true);
+    try {
+      await sendPasswordResetEmail(auth, trimmedEmail);
+      setNotice(RESET_REQUESTED_MESSAGE);
+    } catch (err) {
+      const message = RESET_ERROR_MESSAGES[err?.code];
+      // Any other failure, including user-not-found, gets the neutral message.
+      if (message) setError(message);
+      else setNotice(RESET_REQUESTED_MESSAGE);
+    } finally {
+      resetInFlight.current = false;
+      setResetSending(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!requireFirebase()) return;
 
     setLoading(true);
     setError("");
+    setNotice("");
     try {
       await setPersistence(auth, browserLocalPersistence);
       const { user } = await signInWithEmailAndPassword(auth, email, password);
@@ -74,6 +117,7 @@ export default function Login() {
       </header>
 
       {error ? <p className="auth-error">{error}</p> : null}
+      {notice ? <p className="auth-helper" role="status">{notice}</p> : null}
 
       <button type="button" className="auth-google-btn" onClick={handleGoogleSignIn} disabled={loading}>
         {loading ? "Signing in..." : "Continue with Google"}
@@ -110,7 +154,14 @@ export default function Login() {
           <input id="remember-me" type="checkbox" />
           <span>Remember me</span>
         </label>
-        <button type="button" className="auth-link auth-link-btn" onClick={() => setError("Use the Reset password option in Settings after signing in.")}>Forgot password?</button>
+        <button
+          type="button"
+          className="auth-link auth-link-btn"
+          onClick={handleForgotPassword}
+          disabled={loading || resetSending}
+        >
+          {resetSending ? "Sending..." : "Forgot password?"}
+        </button>
       </div>
 
       <button type="submit" className="auth-submit-btn" disabled={loading}>
