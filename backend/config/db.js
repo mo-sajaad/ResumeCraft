@@ -38,6 +38,25 @@ const validateAndNormalizeConnectionString = (value) => {
   
 };
 
+// Unset uses the default; anything but a positive integer stops startup.
+function positiveIntegerEnv(name, defaultValue) {
+  const raw = process.env[name]?.trim();
+  if (!raw) return defaultValue;
+  if (!/^\d+$/.test(raw) || Number(raw) < 1 || !Number.isSafeInteger(Number(raw))) {
+    throw new Error(`Invalid ${name}: must be a positive integer.`);
+  }
+  return Number(raw);
+}
+
+// Without these a request waits forever for a pooled connection, and one slow
+// statement can hold a connection indefinitely.
+const poolLimits = {
+  max: positiveIntegerEnv('PG_POOL_MAX', 10),
+  connectionTimeoutMillis: positiveIntegerEnv('PG_CONNECTION_TIMEOUT_MS', 5000),
+  idleTimeoutMillis: positiveIntegerEnv('PG_IDLE_TIMEOUT_MS', 30000),
+  statement_timeout: positiveIntegerEnv('PG_STATEMENT_TIMEOUT_MS', 30000),
+};
+
 const connectionString = validateAndNormalizeConnectionString(process.env.DATABASE_URL);
 const sslConfig =
   process.env.PG_SSL === 'true'
@@ -69,7 +88,7 @@ const poolConfig = connectionString
       ssl: sslConfig,
     };
 
-const pool = new Pool(poolConfig);
+const pool = new Pool({ ...poolConfig, ...poolLimits });
 
 pool.on('error', (error) => {
   logger.error({ err: error }, 'Unexpected PostgreSQL client error');
