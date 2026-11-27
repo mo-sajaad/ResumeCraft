@@ -18,8 +18,10 @@ import Breadcrumbs from "../components/ui/Breadcrumbs";
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
 import { TOOL_MAP } from "../pages/dashboard/career-lab/careerLabTools";
+import { SERVER_LOGOUT_FAILED } from "../utils/auth";
 
 import "./DashboardLayout.css";
+import "../pages/dashboard/DashboardShared.css";
 
 const SIDEBAR_STATE_KEY = "dashboardSidebarCollapsed";
 
@@ -129,6 +131,7 @@ function getStoredSidebarState() {
 export default function DashboardLayout() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(getStoredSidebarState);
   const menuRef = useRef(null);
@@ -174,9 +177,15 @@ export default function DashboardLayout() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    setLogoutError("");
     try {
       await logout?.();
       navigate(ROUTES.LOGIN, { replace: true });
+    } catch (error) {
+      // Signed out on this device; the sign-in page says the server did not
+      // confirm it (IDENTITY-012). Otherwise the user is still signed in (SHELL-011).
+      if (error?.code === SERVER_LOGOUT_FAILED) navigate(ROUTES.LOGIN, { replace: true });
+      else setLogoutError("You could not be logged out. Check your connection, then try again.");
     } finally {
       setIsLoggingOut(false);
       setDropdownVisible(false);
@@ -253,6 +262,9 @@ export default function DashboardLayout() {
           </div>
         </div>
         <main className="dashboard-content">
+          {logoutError ? (
+            <p className="settings-feedback settings-feedback--error" role="alert">{logoutError}</p>
+          ) : null}
           <Outlet />
         </main>
       </div>
