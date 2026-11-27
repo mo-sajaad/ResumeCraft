@@ -1,13 +1,11 @@
+const crypto = require('node:crypto');
 const featureFlagRepository = require('../modules/admin/repositories/featureFlagRepository');
 
+// SHA-256 keeps the cohorts of similarly named flags independent (ADMIN-012).
+// The modulo bias of 2^32 % 100 is negligible.
 function hashStringToPercent(input) {
-  let hash = 0;
-  const source = String(input || 'anon');
-  for (let i = 0; i < source.length; i += 1) {
-    hash = ((hash << 5) - hash) + source.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash) % 100;
+  const digest = crypto.createHash('sha256').update(String(input || 'anon')).digest();
+  return digest.readUInt32BE(0) % 100;
 }
 
 async function getAllFlagsForUser(firebaseUid) {
