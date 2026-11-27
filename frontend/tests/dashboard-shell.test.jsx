@@ -87,7 +87,8 @@ describe('SHELL-012: dashboard route order', () => {
   }
 
   it('uses the guard as the parent of the dashboard layout', () => {
-    const dashboard = appRouter.routes.find(({ path }) => path === 'dashboard');
+    // The routes sit under a pathless root route (SHELL-003).
+    const dashboard = appRouter.routes[0].children.find(({ path }) => path === 'dashboard');
 
     expect(dashboard.element.type.name).toBe('ProtectedRoute');
     expect(dashboard.children).toHaveLength(1);

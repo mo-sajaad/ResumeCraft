@@ -31,44 +31,62 @@ const withSuspense = (element) => (
 );
 
 export const router = createBrowserRouter([
-  // Home page
-  { path: "/", element: withSuspense(<Home />), errorElement: <ErrorPage /> },
-
-  // Auth routes
   {
-    path: "auth",
-    element: <AuthLayout />, // wraps auth pages
+    // Outermost error boundary: catches anything a page or layout throws (SHELL-003).
+    errorElement: <ErrorPage fullPage />,
     children: [
+      // Home page
+      { path: "/", element: withSuspense(<Home />) },
+
+      // Auth routes
       {
-        element: <RedirectIfAuth />, // wrapper for login/signup
+        path: "auth",
+        element: <AuthLayout />, // wraps auth pages
         children: [
-          { path: "login", element: withSuspense(<Login />) },
-          { path: "signup", element: withSuspense(<Signup />) },
+          {
+            // Errors show inside the auth layout, which keeps its links.
+            errorElement: <ErrorPage />,
+            children: [
+              {
+                element: <RedirectIfAuth />, // wrapper for login/signup
+                children: [
+                  { path: "login", element: withSuspense(<Login />) },
+                  { path: "signup", element: withSuspense(<Signup />) },
+                ],
+              },
+            ],
+          },
         ],
       },
-    ],
-  },
 
-  // Dashboard routes. The guard comes first, so the shell never shows without
-  // a signed-in user and a loaded profile (SHELL-012).
-  {
-    path: "dashboard",
-    element: <ProtectedRoute />, // requires login
-    children: [
+      // Dashboard routes. The guard comes first, so the shell never shows without
+      // a signed-in user and a loaded profile (SHELL-012).
       {
-        element: <DashboardLayout />, // wraps dashboard pages
+        path: "dashboard",
+        element: <ProtectedRoute />, // requires login
         children: [
-          { index: true, element: withSuspense(<DashboardHome />) },
-          { path: "resume/new", element: withSuspense(<ResumeNew />) },
-          { path: "cover-letter/new", element: withSuspense(<CoverLetterNew />) },
-          { path: "editor", element: withSuspense(<DocumentWorkspace />) },
-          { path: "payment", element: withSuspense(<Payment />) },
-          { path: "settings", element: withSuspense(<Settings />) },
-          { path: "admin", element: withSuspense(<AdminDashboard />) },
-          { path: "career-lab", element: withSuspense(<CareerLabLayout />), children: [
-            { index: true, element: withSuspense(<CareerLabOverview />) },
-            { path: "tools/:toolId", element: withSuspense(<CareerLabToolPage />) }
-          ] }
+          {
+            element: <DashboardLayout />, // wraps dashboard pages
+            children: [
+              {
+                // Errors show inside the shell, so the sidebar still works.
+                errorElement: <ErrorPage />,
+                children: [
+                  { index: true, element: withSuspense(<DashboardHome />) },
+                  { path: "resume/new", element: withSuspense(<ResumeNew />) },
+                  { path: "cover-letter/new", element: withSuspense(<CoverLetterNew />) },
+                  { path: "editor", element: withSuspense(<DocumentWorkspace />) },
+                  { path: "payment", element: withSuspense(<Payment />) },
+                  { path: "settings", element: withSuspense(<Settings />) },
+                  { path: "admin", element: withSuspense(<AdminDashboard />) },
+                  { path: "career-lab", element: withSuspense(<CareerLabLayout />), children: [
+                    { index: true, element: withSuspense(<CareerLabOverview />) },
+                    { path: "tools/:toolId", element: withSuspense(<CareerLabToolPage />) }
+                  ] }
+                ],
+              },
+            ],
+          },
         ],
       },
     ],
