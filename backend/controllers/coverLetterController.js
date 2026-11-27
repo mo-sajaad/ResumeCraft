@@ -77,7 +77,12 @@ async function createCoverLetterWithAI(req, res, next) {
       generatedText: JSON.stringify({ body }),
     });
 
-    await trackUsage(userId, 'cover_letter');
+    // The unit was reserved by enforceUsage; keep it now the document is stored.
+    if (req.usageReservation) {
+      req.usageReservation.confirm();
+    } else {
+      await trackUsage(userId, 'cover_letter');
+    }
 
     return res.status(201).json({
       coverLetterId: createdCoverLetter.id,
@@ -86,6 +91,7 @@ async function createCoverLetterWithAI(req, res, next) {
     });
   } catch (error) {
     logger.error({ err: error, userId }, 'AI cover letter creation failed');
+    await req.usageReservation?.release();
     return next(error);
   }
 }

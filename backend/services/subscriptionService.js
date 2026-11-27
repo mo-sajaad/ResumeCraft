@@ -33,6 +33,29 @@ async function checkLimit(userId, type) {
   return { allowed: true, plan };
 }
 
+// Atomically checks the monthly limit and reserves one unit. Release the
+// reservation with releaseUsage if the generation does not complete.
+async function reserveUsage(userId, type) {
+  const plan = await getActiveSubscription(userId);
+
+  if (!plan) {
+    throw new Error('No active subscription found.');
+  }
+
+  const limit =
+    type === 'resume'
+      ? plan.monthly_resume_limit
+      : plan.monthly_cover_letter_limit;
+
+  const reservationId = await subscriptionRepository.reserveUsage(userId, type, limit ?? null);
+
+  return { allowed: reservationId !== null, plan, reservationId };
+}
+
+async function releaseUsage(reservationId) {
+  await subscriptionRepository.deleteUsage(reservationId);
+}
+
 async function trackUsage(userId, type) {
   await subscriptionRepository.insertUsage(userId, type);
 }
@@ -45,5 +68,7 @@ module.exports = {
   getActiveSubscription,
   checkLimit,
   trackUsage,
+  reserveUsage,
+  releaseUsage,
   getLatestStripeCustomerId,
 };

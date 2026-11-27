@@ -39,13 +39,19 @@ async function createResumeWithAI(req, res, next) {
       generatedText: JSON.stringify(generatedData),
     });
 
-    await trackUsage(userId, 'resume');
+    // The unit was reserved by enforceUsage; keep it now the document is stored.
+    if (req.usageReservation) {
+      req.usageReservation.confirm();
+    } else {
+      await trackUsage(userId, 'resume');
+    }
 
     return res.status(201).json({
       resumeId: createdResume.id,
       resumeData: generatedData,
     });
   } catch (error) {
+    await req.usageReservation?.release();
     return next(error);
   }
 }
