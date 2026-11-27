@@ -7,7 +7,12 @@ const { auditEnabled, createAuditLog, requestContext } = require('../services/au
 const { clearFeatureFlagCache } = require('../services/featureFlagService');
 const { updateFeatureFlagWithAudit } = require('../modules/admin/repositories/adminRepository');
 const { validate } = require('../shared/http/validators');
-const { updateFeatureFlagSchema, adminAnalyticsQuerySchema, adminAuditQuerySchema } = require('../modules/admin/schemas/adminSchemas');
+const {
+  featureFlagKeySchema,
+  updateFeatureFlagSchema,
+  adminAnalyticsQuerySchema,
+  adminAuditQuerySchema,
+} = require('../modules/admin/schemas/adminSchemas');
 
 const flagState = (flag) => flag && {
   description: flag.description ?? null,
@@ -39,7 +44,7 @@ async function getFeatureFlags(req, res, next) {
 
 async function updateFeatureFlag(req, res, next) {
   try {
-    const key = req.params.key;
+    const key = validate(featureFlagKeySchema, req.params.key);
     const { description, enabled, rolloutPercent } = validate(updateFeatureFlagSchema, req.body || {});
 
     const audited = await auditEnabled({

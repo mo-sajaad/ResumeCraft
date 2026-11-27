@@ -24,12 +24,13 @@ async function upsertFeatureFlag({ key, description, enabled, rolloutPercent }, 
      VALUES ($1, $2, $3, COALESCE($4::int, 100), NOW())
      ON CONFLICT (key)
      DO UPDATE SET
-       description = COALESCE(EXCLUDED.description, feature_flags.description),
+       description = CASE WHEN $5::boolean THEN EXCLUDED.description ELSE feature_flags.description END,
        enabled = EXCLUDED.enabled,
        rollout_percent = COALESCE($4::int, feature_flags.rollout_percent),
        updated_at = NOW()
      RETURNING ${FLAG_COLUMNS}`,
-    [key, description || null, Boolean(enabled), rollout]
+    // An omitted description keeps the stored one; null or '' clears it (ADMIN-011).
+    [key, description || null, Boolean(enabled), rollout, description !== undefined]
   );
   return result.rows[0] || null;
 }

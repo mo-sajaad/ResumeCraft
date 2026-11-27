@@ -1,9 +1,16 @@
 const { z } = require('../../../shared/http/validators');
 
+// Lower-case words joined by underscores, like the seeded flags (ADMIN-011).
+const featureFlagKeySchema = z.string().regex(
+  /^[a-z][a-z0-9_]{0,63}$/,
+  'Flag key must be 1-64 lower-case letters, digits or underscores, starting with a letter.'
+);
+
 const updateFeatureFlagSchema = z.object({
-  description: z.string().optional(),
+  // Omitted keeps the stored text; null or an empty string clears it.
+  description: z.string().trim().max(500).nullable().optional(),
   enabled: z.boolean(),
-  rolloutPercent: z.number().min(0).max(100).optional(),
+  rolloutPercent: z.number().int().min(0).max(100).optional(),
 });
 
 const adminAnalyticsQuerySchema = z.object({
@@ -15,6 +22,7 @@ const adminAuditQuerySchema = z.object({
 });
 
 module.exports = {
+  featureFlagKeySchema,
   updateFeatureFlagSchema,
   adminAnalyticsQuerySchema,
   adminAuditQuerySchema,

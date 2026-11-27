@@ -60,8 +60,8 @@ beforeEach(() => {
   });
 });
 
-function patchFlag(body) {
-  return server.request('PATCH', '/api/admin/feature-flags/demo', {
+function patchFlag(body, key = 'demo') {
+  return server.request('PATCH', `/api/admin/feature-flags/${key}`, {
     headers: { cookie: sessionCookie(ADMIN_UID) },
     body: JSON.stringify(body),
   });
@@ -87,7 +87,7 @@ test.each([0, 100])('an explicit rolloutPercent of %i is stored', async (rollout
   expect(committed.flags[0]).toContain(rolloutPercent);
 });
 
-test.each([-1, 101, '50'])('rolloutPercent %p is rejected and nothing is written', async (rolloutPercent) => {
+test.each([-1, 101, '50', 12.5])('rolloutPercent %p is rejected and nothing is written', async (rolloutPercent) => {
   const response = await patchFlag({ enabled: true, rolloutPercent });
 
   expect(response.status).toBe(400);
@@ -177,5 +177,40 @@ describe('ADMIN-005: admin_dashboard and usage_analytics', () => {
     expect((await getFlags()).status).toBe(200);
     await settle();
     expect(db.callsMatching(/INSERT INTO usage_events/)).toEqual([]);
+  });
+});
+
+describe('ADMIN-011: flag input validation', () => {
+  test.each([
+    ['too long', 'a'.repeat(65)],
+    ['upper case', 'Demo'],
+    ['punctuation', 'demo-flag'],
+    ['a leading digit', '1demo'],
+  ])('a key that is %s is rejected and nothing is written', async (_label, key) => {
+    const response = await patchFlag({ enabled: true }, key);
+
+    expect(response.status).toBe(400);
+    expect(committed).toEqual({ flags: [], audit: [] });
+  });
+
+  test('a description over 500 characters is rejected', async () => {
+    const response = await patchFlag({ enabled: true, description: 'x'.repeat(501) });
+
+    expect(response.status).toBe(400);
+    expect(committed).toEqual({ flags: [], audit: [] });
+  });
+
+  test.each([
+    ['omitted', {}, [null, false]],
+    ['null', { description: null }, [null, true]],
+    ['empty', { description: '  ' }, [null, true]],
+    ['set', { description: 'New text' }, ['New text', true]],
+  ])('a description that is %s is kept or replaced as asked', async (_label, body, [stored, replace]) => {
+    const response = await patchFlag({ enabled: true, ...body });
+
+    expect(response.status).toBe(200);
+    const [{ params }] = db.callsMatching(/(INSERT INTO|UPDATE) feature_flags/);
+    expect(params[1]).toBe(stored);
+    expect(params[4]).toBe(replace);
   });
 });
