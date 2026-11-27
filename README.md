@@ -110,7 +110,7 @@ FIREBASE_PROJECT_ID=your-firebase-project-id
 APP_BASE_URL=http://localhost:5173
 ```
 
-No service-account key is required: with only the Firebase project ID the API uses Application Default Credentials. Sign-in checks whether the Firebase user's tokens were revoked, so those credentials need permission to read Firebase Auth users (locally, for example, `gcloud auth application-default login` with an account that has access to the project; on Cloud Run, the service account). Without it, sign-in fails with a server error. To use a key anyway, set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PRIVATE_KEY_PATH`; these take precedence. Keep credentials private and out of version control.
+No service-account key is required: with only the Firebase project ID the API uses Application Default Credentials. Sign-in checks whether the Firebase user's tokens were revoked, so those credentials need permission to read Firebase Auth users (locally, for example, `gcloud auth application-default login` with an account that has access to the project; on Cloud Run, the service account). Without it, sign-in fails with a server error. To use a key instead, leave `FIREBASE_PROJECT_ID` unset and set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PRIVATE_KEY_PATH`. When `FIREBASE_PROJECT_ID` is set it wins: the key variables are ignored with a warning, and with `NODE_ENV=production` the API refuses to start while both are set. Keep credentials private and out of version control.
 
 Create a PostgreSQL database, then apply the schema from the repository root:
 

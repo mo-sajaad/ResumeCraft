@@ -7,7 +7,7 @@
 | Server | `PORT`, `NODE_ENV`, `APP_BASE_URL`, `TRUST_PROXY`, `LOG_LEVEL` |
 | Proxy | `TRUST_PROXY` is required when `NODE_ENV=production`; startup fails if it is unset or malformed. Use a hop count (likely `2` for Firebase Hosting plus Cloud Run; confirm with `req.ip` after deploying), `true` (one hop), `false`, or comma-separated IPs/CIDRs or `loopback`/`linklocal`/`uniquelocal`. Defaults to `false` elsewhere |
 | Sessions | `JWT_SECRET_KEY` (required to start) |
-| Firebase | `FIREBASE_PROJECT_ID` (keyless), or `FIREBASE_SERVICE_ACCOUNT_JSON` / `FIREBASE_PRIVATE_KEY_PATH`, which take precedence. Sign-in checks token revocation, so the credentials (keyless: the Cloud Run service account) need permission to read Firebase Auth users |
+| Firebase | `FIREBASE_PROJECT_ID` (keyless), or `FIREBASE_SERVICE_ACCOUNT_JSON` / `FIREBASE_PRIVATE_KEY_PATH` with `FIREBASE_PROJECT_ID` unset. `FIREBASE_PROJECT_ID` wins: the key variables are then ignored with a warning, and production refuses to start while both are set, or if Firebase Admin cannot start. Sign-in checks token revocation, so the credentials (keyless: the Cloud Run service account) need permission to read Firebase Auth users |
 | Database | `DATABASE_URL`, or `PG_*` / `PG*` connection settings; `PG_SSL`, `DB_CA_CERT` |
 | Redis | `REDIS_URL` (required in production) |
 | OpenAI | `OPENAI_API_KEY`, `OPENAI_CAREER_LAB_MODEL`, `OPENAI_REQUEST_TIMEOUT_MS`, `OPENAI_MAX_RETRIES`, `OPENAI_RETRY_BASE_DELAY_MS` |
