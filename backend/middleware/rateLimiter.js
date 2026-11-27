@@ -3,6 +3,18 @@ const logger = require('../observability/logger');
 
 const WINDOW_SWEEP_INTERVAL_MS = 60 * 1000;
 
+// Increments the counter and makes sure it has an expiry in one atomic step, so a
+// key can never be left without a TTL (PLATFORM-009). Returns [count, ttlMs].
+const INCREMENT_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+local ttl = redis.call('PTTL', KEYS[1])
+if ttl < 0 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[1])
+  ttl = tonumber(ARGV[1])
+end
+return {count, ttl}
+`;
+
 function getClientIp(req) {
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
@@ -76,15 +88,11 @@ function createRateLimiter({
     let ttlMs;
 
     try {
-      count = await withTimeout(redis.incr(redisKey), REDIS_COMMAND_TIMEOUT_MS);
-
-      if (count === 1) {
-        await withTimeout(redis.pExpire(redisKey, windowMs), REDIS_COMMAND_TIMEOUT_MS);
-      }
-
-      if (count > max) {
-        ttlMs = await withTimeout(redis.pTTL(redisKey), REDIS_COMMAND_TIMEOUT_MS);
-      }
+      const reply = await withTimeout(
+        redis.eval(INCREMENT_SCRIPT, { keys: [redisKey], arguments: [String(windowMs)] }),
+        REDIS_COMMAND_TIMEOUT_MS,
+      );
+      [count, ttlMs] = reply.map(Number);
     } catch (error) {
       logger.error({ err: error }, 'Rate limiter Redis operation failed');
       if (process.env.NODE_ENV === 'production') {
