@@ -193,7 +193,8 @@
 }
 
 .auth-field input:focus {
-  outline: none;
+  /* Transparent rather than none, so forced-colors mode still shows focus. */
+  outline: 2px solid transparent;
   border-color: var(--color-brand-500);
   box-shadow: var(--focus-ring);
 }
@@ -244,7 +245,29 @@
     grid-template-columns: 1fr;
   }
 
+  /* Keep the home link and the page's only h1 visible (IDENTITY-017). */
   .auth-brand-panel {
+    padding: 1.25rem 1.25rem 0;
+    gap: 0.5rem;
+    background: none;
+    color: var(--color-text-primary);
+  }
+
+  .auth-logo-link {
+    color: var(--color-text-primary);
+  }
+
+  .auth-logo-mark {
+    background: var(--color-border);
+  }
+
+  .auth-brand-panel h1 {
+    font-size: 1.35rem;
+  }
+
+  .auth-kicker,
+  .auth-hero-copy,
+  .auth-benefits {
     display: none;
   }
 
@@ -267,6 +290,19 @@
 .auth-google-btn:focus-visible,
 .auth-submit-btn:focus-visible,
 .auth-link:focus-visible {
-  outline: none;
+  outline: 2px solid transparent;
   box-shadow: var(--focus-ring);
+}
+
+/* A solid outline: the shared focus ring is faint on small controls and on the dark panel. */
+.auth-check input:focus-visible,
+.auth-link-btn:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+.auth-logo-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+  border-radius: 6px;
 }

@@ -22,15 +22,38 @@ const RESET_ERROR_MESSAGES = {
   "auth/too-many-requests": "Too many attempts. Wait a few minutes, then try again.",
 };
 
+// The fields an error code is about, so they can be marked and focused (IDENTITY-017).
+const ERROR_FIELDS = {
+  "auth/invalid-email": ["email"],
+  "auth/missing-email": ["email"],
+  "auth/missing-password": ["password"],
+  "auth/invalid-credential": ["email", "password"],
+  "auth/invalid-login-credentials": ["email", "password"],
+  "auth/wrong-password": ["email", "password"],
+  "auth/user-not-found": ["email", "password"],
+};
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setErrorText] = useState("");
+  const [errorFields, setErrorFields] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [resetSending, setResetSending] = useState(false);
   const resetInFlight = useRef(false);
+  const fieldRefs = { email: useRef(null), password: useRef(null) };
+
+  // Shows an error, marks the fields it is about and focuses the first of them.
+  const setError = (message, fields = []) => {
+    setErrorText(message);
+    setErrorFields(fields);
+    if (fields.length > 0) fieldRefs[fields[0]].current?.focus();
+  };
+  const fieldProps = (name) => (errorFields.includes(name)
+    ? { "aria-invalid": true, "aria-describedby": "login-error" }
+    : {});
 
   // Unchecked keeps the sign-in only for this browser session (IDENTITY-021).
   const persistence = () => (rememberMe ? browserLocalPersistence : browserSessionPersistence);
@@ -55,7 +78,7 @@ export default function Login() {
       // dashboard once the session is ready (IDENTITY-014).
       await signInWithPopup(auth, provider);
     } catch (err) {
-      setError(authErrorMessage(err, "Google sign-in failed"));
+      setError(authErrorMessage(err, "Google sign-in failed"), ERROR_FIELDS[err?.code]);
     } finally {
       setLoading(false);
     }
@@ -68,7 +91,7 @@ export default function Login() {
 
     const trimmedEmail = email.trim();
     if (!validateEmail(trimmedEmail)) {
-      setError("Enter your email address above, then select Forgot password? again.");
+      setError("Enter your email address above, then select Forgot password? again.", ["email"]);
       return;
     }
     if (!requireFirebase()) return;
@@ -81,7 +104,7 @@ export default function Login() {
     } catch (err) {
       const message = RESET_ERROR_MESSAGES[err?.code];
       // Any other failure, including user-not-found, gets the neutral message.
-      if (message) setError(message);
+      if (message) setError(message, ERROR_FIELDS[err?.code]);
       else setNotice(RESET_REQUESTED_MESSAGE);
     } finally {
       resetInFlight.current = false;
@@ -102,7 +125,7 @@ export default function Login() {
       // dashboard, explains a failure, or shows the check-your-email page (IDENTITY-014).
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
-      setError(authErrorMessage(err, "We could not sign you in. Try again."));
+      setError(authErrorMessage(err, "We could not sign you in. Try again."), ERROR_FIELDS[err?.code]);
     } finally {
       setLoading(false);
     }
@@ -115,7 +138,7 @@ export default function Login() {
         <p>Access your dashboard, resumes, and Career Lab tools.</p>
       </header>
 
-      {error ? <p className="auth-error">{error}</p> : null}
+      {error ? <p id="login-error" className="auth-error" role="alert">{error}</p> : null}
       {notice ? <p className="auth-helper" role="status">{notice}</p> : null}
 
       <button type="button" className="auth-google-btn" onClick={handleGoogleSignIn} disabled={loading}>
@@ -128,11 +151,14 @@ export default function Login() {
         <label htmlFor="login-email">Email</label>
         <input
           id="login-email"
+          ref={fieldRefs.email}
           type="email"
+          autoComplete="email"
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          {...fieldProps("email")}
         />
       </div>
 
@@ -140,11 +166,14 @@ export default function Login() {
         <label htmlFor="login-password">Password</label>
         <input
           id="login-password"
+          ref={fieldRefs.password}
           type="password"
+          autoComplete="current-password"
           placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          {...fieldProps("password")}
         />
       </div>
 

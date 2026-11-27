@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/useAuth";
@@ -24,7 +24,10 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [feedback, setFeedback] = useState({ type: "", message: "" });
+  // The password field the error is about, if any (IDENTITY-017).
+  const [invalidField, setInvalidField] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const passwordRefs = { password: useRef(null), confirm: useRef(null) };
 
   useEffect(() => {
     if (!profile) return;
@@ -40,8 +43,19 @@ export default function Settings() {
     return Number.isNaN(date.valueOf()) ? "Not available" : date.toLocaleDateString();
   }, [user]);
 
-  const setSuccess = (message) => setFeedback({ type: "success", message });
-  const setError = (message) => setFeedback({ type: "error", message });
+  const setSuccess = (message) => {
+    setInvalidField("");
+    setFeedback({ type: "success", message });
+  };
+  // Marks and focuses the field the error is about, if any.
+  const setError = (message, field = "") => {
+    setInvalidField(field);
+    setFeedback({ type: "error", message });
+    if (field) passwordRefs[field].current?.focus();
+  };
+  const passwordFieldProps = (field) => (invalidField === field
+    ? { "aria-invalid": true, "aria-describedby": "settings-feedback" }
+    : {});
 
   const handleLogout = async () => {
     try {
@@ -95,19 +109,22 @@ export default function Settings() {
 
   // Checked before anything is saved, so an invalid password saves nothing.
   const passwordError = () => {
-    if (!validatePassword(newPassword)) return `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
-    if (newPassword !== confirmPassword) return "Passwords do not match.";
-    if (!auth?.currentUser) return "No authenticated user found.";
+    if (!validatePassword(newPassword)) {
+      return { message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`, field: "password" };
+    }
+    if (newPassword !== confirmPassword) return { message: "Passwords do not match.", field: "confirm" };
+    if (!auth?.currentUser) return { message: "No authenticated user found." };
     return null;
   };
 
   const handleSaveChanges = async () => {
     setFeedback({ type: "", message: "" });
+    setInvalidField("");
 
     const changesPassword = Boolean(newPassword || confirmPassword);
     const invalidPassword = changesPassword ? passwordError() : null;
     if (invalidPassword) {
-      setError(invalidPassword);
+      setError(invalidPassword.message, invalidPassword.field);
       return;
     }
 
@@ -146,6 +163,7 @@ export default function Settings() {
 
   const handleResetPassword = async () => {
     setFeedback({ type: "", message: "" });
+    setInvalidField("");
 
     if (!user?.email) {
       setError("No email is available for this account.");
@@ -204,10 +222,11 @@ export default function Settings() {
           <h3>Preferences</h3>
           <div className="form-stack">
             <div className="preference-toggle">
-              <span>Weekly insights</span>
+              <span id="weekly-insights-label">Weekly insights</span>
               <label className="switch">
                 <input
                   type="checkbox"
+                  aria-labelledby="weekly-insights-label"
                   checked={weeklyInsightsEnabled}
                   onChange={(e) => setWeeklyInsightsEnabled(e.target.checked)}
                   disabled={!profile || isSaving}
@@ -216,10 +235,11 @@ export default function Settings() {
               </label>
             </div>
             <div className="preference-toggle">
-              <span>Job alerts</span>
+              <span id="job-alerts-label">Job alerts</span>
               <label className="switch">
                 <input
                   type="checkbox"
+                  aria-labelledby="job-alerts-label"
                   checked={jobAlertsEnabled}
                   onChange={(e) => setJobAlertsEnabled(e.target.checked)}
                   disabled={!profile || isSaving}
@@ -238,27 +258,37 @@ export default function Settings() {
               <label htmlFor="password">New password</label>
               <input
                 id="password"
+                ref={passwordRefs.password}
                 type="password"
+                autoComplete="new-password"
                 placeholder="••••••••"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+                {...passwordFieldProps("password")}
               />
             </div>
             <div className="input-group">
               <label htmlFor="confirm-password">Confirm password</label>
               <input
                 id="confirm-password"
+                ref={passwordRefs.confirm}
                 type="password"
+                autoComplete="new-password"
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                {...passwordFieldProps("confirm")}
               />
             </div>
           </div>
         </div>
 
         {feedback.message && (
-          <p className={`settings-feedback settings-feedback--${feedback.type || "success"}`}>
+          <p
+            id="settings-feedback"
+            className={`settings-feedback settings-feedback--${feedback.type || "success"}`}
+            role={feedback.type === "error" ? "alert" : "status"}
+          >
             {feedback.message}
           </p>
         )}
