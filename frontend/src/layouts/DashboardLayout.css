@@ -272,8 +272,8 @@
 .menu-toggle:focus-visible,
 .user-chip:focus-visible,
 .dropdown-link:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  outline: var(--focus-outline-width) solid var(--color-focus);
+  outline-offset: var(--focus-outline-offset);
 }
 
 .dashboard-content {

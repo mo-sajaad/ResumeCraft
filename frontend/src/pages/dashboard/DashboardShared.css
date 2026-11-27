@@ -614,6 +614,12 @@ input:checked + .slider {
   background-color: #0f172a;
 }
 
+/* The hidden checkbox cannot show focus, so ring the visible track */
+.switch input:focus-visible + .slider {
+  outline: var(--focus-outline-width) solid var(--color-focus);
+  outline-offset: var(--focus-outline-offset);
+}
+
 /* Move the circle when checked */
 input:checked + .slider:before {
   transform: translateX(16.25px);

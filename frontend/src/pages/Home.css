@@ -6,6 +6,8 @@
   --primary: #60a5fa;
   --accent: #a78bfa;
   --border: rgba(148, 163, 184, 0.25);
+  /* Light focus ring for the dark background */
+  --color-focus: #93c5fd;
 }
 
 html:has(.home-page) {

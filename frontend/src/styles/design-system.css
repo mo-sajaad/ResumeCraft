@@ -33,7 +33,12 @@
   --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.08);
 
-  --focus-ring: 0 0 0 3px rgba(67, 56, 202, 0.28);
+  /* Focus: 2px solid outline, at least 3:1 against the background behind it. */
+  --color-focus: var(--color-brand-500);
+  --focus-outline-width: 2px;
+  --focus-outline-offset: 2px;
+  /* For components that draw focus with box-shadow: white gap plus a solid ring. */
+  --focus-ring: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-brand-500);
 }
 
 * {
@@ -48,8 +53,15 @@ body {
 }
 
 :focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  outline: var(--focus-outline-width) solid var(--color-focus);
+  outline-offset: var(--focus-outline-offset);
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: var(--focus-outline-width) solid Highlight !important;
+    outline-offset: var(--focus-outline-offset);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
