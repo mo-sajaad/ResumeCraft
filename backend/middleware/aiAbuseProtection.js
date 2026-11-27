@@ -6,12 +6,12 @@ const MAX_RESUME_TEXT_CHARS = 20000;
 const MAX_RESUME_TOTAL_CHARS = 50000;
 const MAX_BULLET_COUNT = 120;
 const MAX_AI_REQUESTS_PER_MINUTE = readIntegerEnv('MAX_AI_REQUESTS_PER_MINUTE', 30);
-const MAX_GLOBAL_AI_REQUESTS_PER_DAY = readIntegerEnv('MAX_GLOBAL_AI_REQUESTS_PER_DAY', 25);
+const MAX_GLOBAL_AI_REQUESTS_PER_DAY = readIntegerEnv('MAX_GLOBAL_AI_REQUESTS_PER_DAY', 500);
 // Kept below the shared cap so one account cannot use it up (PLATFORM-004).
 const MAX_PER_USER_DAILY_ALLOWED = Math.max(1, MAX_GLOBAL_AI_REQUESTS_PER_DAY - 1);
 const MAX_AI_REQUESTS_PER_USER_PER_DAY = readIntegerEnv(
   'MAX_AI_REQUESTS_PER_USER_PER_DAY',
-  Math.min(5, MAX_PER_USER_DAILY_ALLOWED),
+  Math.min(50, MAX_PER_USER_DAILY_ALLOWED),
 );
 const DAY_MS = 24 * 60 * 60 * 1000;
 const GLOBAL_AI_LIMIT_MESSAGE = 'The shared daily AI usage limit has been reached. Please try again later.';

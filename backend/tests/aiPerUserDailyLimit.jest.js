@@ -63,10 +63,12 @@ describe('per-user daily AI limit', () => {
     expect(other.nextCalled).toBe(true);
   });
 
-  it('defaults to 5 per user under the default shared cap of 25', () => {
+  it('defaults to 50 per user under the default shared cap of 500', () => {
     const protection = loadProtection();
-    expect(protection.MAX_GLOBAL_AI_REQUESTS_PER_DAY).toBe(25);
-    expect(protection.MAX_AI_REQUESTS_PER_USER_PER_DAY).toBe(5);
+    expect(protection.MAX_GLOBAL_AI_REQUESTS_PER_DAY).toBe(500);
+    expect(protection.MAX_AI_REQUESTS_PER_USER_PER_DAY).toBe(50);
+    // The old shared default: the per-user default drops to one below it.
+    expect(loadProtection({ MAX_GLOBAL_AI_REQUESTS_PER_DAY: '25' }).MAX_AI_REQUESTS_PER_USER_PER_DAY).toBe(24);
   });
 
   it('defaults to one below a small shared cap', () => {
