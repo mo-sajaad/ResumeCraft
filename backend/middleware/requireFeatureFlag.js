@@ -1,12 +1,10 @@
-const { getAllFlagsForUser } = require('../services/featureFlagService');
+const { isFeatureEnabled } = require('../services/featureFlagService');
 
+// Fails closed: a failed flag lookup is a server error, not a pass (ADMIN-005).
 function requireFeatureFlag(flagKey) {
   return async (req, res, next) => {
     try {
-      const flags = await getAllFlagsForUser(req.user?.firebaseUid);
-      req.featureFlags = flags;
-
-      if (!flags[flagKey]) {
+      if (!(await isFeatureEnabled(flagKey, req.user?.firebaseUid))) {
         return res.status(403).json({ error: 'Feature is not enabled for your account.' });
       }
 

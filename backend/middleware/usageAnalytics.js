@@ -1,5 +1,16 @@
 const pool = require('../config/db');
 const { trackRoute, routeLabel } = require('../observability/routeLabel');
+const { isFeatureEnabled } = require('../services/featureFlagService');
+
+// Collection is skipped when usage_analytics is off for the user, missing or
+// cannot be read (ADMIN-005).
+async function collectionEnabled(firebaseUid) {
+  try {
+    return await isFeatureEnabled('usage_analytics', firebaseUid);
+  } catch {
+    return false;
+  }
+}
 
 function usageAnalytics(req, res, next) {
   trackRoute(req);
@@ -9,6 +20,7 @@ function usageAnalytics(req, res, next) {
     if (!req.user?.id) return;
 
     const durationMs = Date.now() - startedAt;
+    if (!(await collectionEnabled(req.user.firebaseUid))) return;
 
     try {
       await pool.query(

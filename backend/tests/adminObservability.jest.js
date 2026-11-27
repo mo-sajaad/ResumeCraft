@@ -22,6 +22,11 @@ const db = require('../config/db');
 const logger = require('../observability/logger');
 const { metricsMiddleware, register } = require('../observability/metrics');
 const { sessionCookie, startServer } = require('./support/adminHarness');
+const { clearFeatureFlagCache } = require('../services/featureFlagService');
+// The seeded flags, as the flag service reads them (ADMIN-005).
+const FLAG_LOOKUP = /^SELECT key, enabled, rollout_percent FROM feature_flags$/;
+const SEEDED_FLAGS = ['admin_dashboard', 'usage_analytics', 'audit_logs']
+  .map((key) => ({ key, enabled: true, rollout_percent: 100 }));
 
 const ADMIN_UID = 'synthetic-admin';
 const originalAdmins = process.env.ADMIN_FIREBASE_UIDS;
@@ -41,6 +46,8 @@ afterAll(async () => {
 beforeEach(() => {
   db.reset();
   db.addUser({ id: 1, firebaseUid: ADMIN_UID });
+  clearFeatureFlagCache();
+  db.on(FLAG_LOOKUP, () => ({ rows: SEEDED_FLAGS }));
   capturedLines.length = 0;
   register.resetMetrics();
   mockVerifyIdToken.mockResolvedValue({ uid: ADMIN_UID, email: 'admin@example.test', email_verified: true });

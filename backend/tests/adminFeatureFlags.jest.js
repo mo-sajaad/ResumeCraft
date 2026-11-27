@@ -8,6 +8,11 @@ jest.mock('../firebaseAdmin', () => null);
 const { createApp } = require('../app');
 const db = require('../config/db');
 const { sessionCookie, startServer } = require('./support/adminHarness');
+const { clearFeatureFlagCache } = require('../services/featureFlagService');
+// The seeded flags, as the flag service reads them (ADMIN-005).
+const FLAG_LOOKUP = /^SELECT key, enabled, rollout_percent FROM feature_flags$/;
+const SEEDED_FLAGS = ['admin_dashboard', 'usage_analytics', 'audit_logs']
+  .map((key) => ({ key, enabled: true, rollout_percent: 100 }));
 
 const ADMIN_UID = 'synthetic-admin';
 const originalAdmins = process.env.ADMIN_FIREBASE_UIDS;
@@ -37,10 +42,12 @@ beforeEach(() => {
   db.reset();
   db.addUser({ id: 1, firebaseUid: ADMIN_UID });
   committed = { flags: [], audit: [] };
+  clearFeatureFlagCache();
 
   db.on(/SELECT[\s\S]*FROM feature_flags/, () => ({
     rows: [{ key: 'demo', description: null, enabled: false, rollout_percent: 10 }],
   }));
+  db.on(FLAG_LOOKUP, () => ({ rows: SEEDED_FLAGS }));
   db.on(/INSERT INTO audit_logs/, (params, { transaction }) => {
     commitOrDefer('audit', params, transaction);
     return { rows: [] };
@@ -128,5 +135,47 @@ test('ADMIN-007: the audit record holds the old and new values and the request',
     before: { enabled: false, rollout_percent: 10, description: null },
     after: { enabled: true, rollout_percent: 25 },
     request: { ip: expect.any(String), requestId: expect.any(String) },
+  });
+});
+
+describe('ADMIN-005: admin_dashboard and usage_analytics', () => {
+  const withFlag = (key, change) => SEEDED_FLAGS.map((row) => (row.key === key ? { ...row, ...change } : row));
+  const getFlags = () => server.request('GET', '/api/admin/feature-flags', { headers: { cookie: sessionCookie(ADMIN_UID) } });
+  // The usage row is written after the response; wait for that handler.
+  const settle = () => new Promise((resolve) => { setTimeout(resolve, 20); });
+
+  test('admin_dashboard off refuses the admin routes and writes nothing', async () => {
+    db.on(FLAG_LOOKUP, () => ({ rows: withFlag('admin_dashboard', { enabled: false }) }));
+
+    const response = await patchFlag({ enabled: true, rolloutPercent: 25 });
+
+    expect(response.status).toBe(403);
+    expect(committed).toEqual({ flags: [], audit: [] });
+  });
+
+  test('a failed admin_dashboard lookup refuses the admin routes', async () => {
+    db.on(FLAG_LOOKUP, () => { throw new Error('synthetic lookup failure'); });
+
+    const response = await patchFlag({ enabled: true, rolloutPercent: 25 });
+
+    expect(response.status).toBe(500);
+    expect(committed.flags).toEqual([]);
+  });
+
+  test('usage events are stored while usage_analytics is on', async () => {
+    expect((await getFlags()).status).toBe(200);
+    await settle();
+    expect(db.callsMatching(/INSERT INTO usage_events/)).toHaveLength(1);
+  });
+
+  test.each([
+    ['off', () => ({ rows: withFlag('usage_analytics', { enabled: false }) })],
+    ['missing', () => ({ rows: SEEDED_FLAGS.filter(({ key }) => key !== 'usage_analytics') })],
+  ])('usage events are not stored while usage_analytics is %s', async (_label, answer) => {
+    db.on(FLAG_LOOKUP, answer);
+
+    expect((await getFlags()).status).toBe(200);
+    await settle();
+    expect(db.callsMatching(/INSERT INTO usage_events/)).toEqual([]);
   });
 });

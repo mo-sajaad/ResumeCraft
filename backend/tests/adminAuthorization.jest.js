@@ -7,13 +7,19 @@ const { createApp } = require('../app');
 const db = require('../config/db');
 const adminRoutes = require('../modules/admin/routes/adminRoutes');
 const { sessionCookie, startServer } = require('./support/adminHarness');
+const { clearFeatureFlagCache } = require('../services/featureFlagService');
+// The seeded flags, as the flag service reads them (ADMIN-005).
+const FLAG_LOOKUP = /^SELECT key, enabled, rollout_percent FROM feature_flags$/;
+const SEEDED_FLAGS = ['admin_dashboard', 'usage_analytics', 'audit_logs']
+  .map((key) => ({ key, enabled: true, rollout_percent: 100 }));
 
 const ADMIN_UID = 'synthetic-admin';
 const USER_UID = 'synthetic-user';
 const ADMIN_TABLES = /feature_flags|audit_logs|date_trunc/;
 // A refused signed-in caller leaves one audit record and touches nothing else.
 const isDenialRecord = ({ sql, params }) => /INSERT INTO audit_logs/.test(sql) && params[2] === 'admin.access_denied';
-const adminDataCalls = () => db.callsMatching(ADMIN_TABLES).filter((call) => !isDenialRecord(call));
+const adminDataCalls = () => db.callsMatching(ADMIN_TABLES)
+  .filter((call) => !isDenialRecord(call) && !FLAG_LOOKUP.test(call.sql));
 const denialRecords = () => db.calls.filter(isDenialRecord);
 
 const ROUTES = [
@@ -36,6 +42,8 @@ beforeEach(() => {
   db.reset();
   db.addUser({ id: 1, firebaseUid: ADMIN_UID });
   db.addUser({ id: 2, firebaseUid: USER_UID });
+  clearFeatureFlagCache();
+  db.on(FLAG_LOOKUP, () => ({ rows: SEEDED_FLAGS }));
   db.on(/INSERT INTO feature_flags/, () => ({
     rows: [{ key: 'demo', enabled: true, rollout_percent: 50 }],
   }));

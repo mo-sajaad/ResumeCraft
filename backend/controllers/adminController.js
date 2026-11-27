@@ -3,7 +3,8 @@ const {
   getUsageSummary,
   getAuditLogs,
 } = require('../services/adminService');
-const { createAuditLog, requestContext } = require('../services/auditLogService');
+const { auditEnabled, createAuditLog, requestContext } = require('../services/auditLogService');
+const { clearFeatureFlagCache } = require('../services/featureFlagService');
 const { updateFeatureFlagWithAudit } = require('../modules/admin/repositories/adminRepository');
 const { validate } = require('../shared/http/validators');
 const { updateFeatureFlagSchema, adminAnalyticsQuerySchema, adminAuditQuerySchema } = require('../modules/admin/schemas/adminSchemas');
@@ -41,10 +42,16 @@ async function updateFeatureFlag(req, res, next) {
     const key = req.params.key;
     const { description, enabled, rolloutPercent } = validate(updateFeatureFlagSchema, req.body || {});
 
+    const audited = await auditEnabled({
+      actorFirebaseUid: req.user.firebaseUid,
+      resourceType: 'feature_flag',
+      resourceId: key,
+    });
+
     // The change and its record commit together, or neither does (ADMIN-007).
     const { after: updated } = await updateFeatureFlagWithAudit(
       { key, description, enabled, rolloutPercent },
-      (before, after) => ({
+      (before, after) => audited && ({
         actorUserId: req.user.id,
         actorFirebaseUid: req.user.firebaseUid,
         action: 'feature_flag.update',
@@ -61,6 +68,7 @@ async function updateFeatureFlag(req, res, next) {
       })
     );
 
+    clearFeatureFlagCache();
     return res.json({ flag: updated });
   } catch (error) {
     return next(error);

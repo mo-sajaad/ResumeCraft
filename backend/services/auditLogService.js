@@ -1,5 +1,6 @@
 const auditLogRepository = require('../modules/admin/repositories/auditLogRepository');
 const logger = require('../observability/logger');
+const { isFeatureEnabled } = require('./featureFlagService');
 
 const MAX_USER_AGENT = 256;
 
@@ -15,6 +16,19 @@ function requestContext(req) {
   };
 }
 
+// The audit_logs flag turns persistence off. A missing flag or a failed
+// lookup still writes, so no record is lost to a flag fault (ADMIN-005).
+// A change to audit_logs itself is always recorded.
+async function auditEnabled({ actorFirebaseUid, resourceType, resourceId }) {
+  if (resourceType === 'feature_flag' && resourceId === 'audit_logs') return true;
+  try {
+    return await isFeatureEnabled('audit_logs', actorFirebaseUid, { ifMissing: true });
+  } catch (error) {
+    logger.warn({ err: error }, 'audit_logs flag lookup failed; writing the audit entry');
+    return true;
+  }
+}
+
 // Best effort: a failed audit write is logged and never reaches the caller, so
 // it cannot stop or half-complete a sign-in or sign-out (IDENTITY-008,
 // ADMIN-008). Changes that must not happen unrecorded write their audit entry
@@ -28,6 +42,7 @@ async function createAuditLog({
   metadata,
   request,
 }) {
+  if (!(await auditEnabled({ actorFirebaseUid, resourceType, resourceId }))) return;
   const context = requestContext(request);
   try {
     await auditLogRepository.insertAuditLog({
@@ -44,6 +59,7 @@ async function createAuditLog({
 }
 
 module.exports = {
+  auditEnabled,
   createAuditLog,
   requestContext,
 };
