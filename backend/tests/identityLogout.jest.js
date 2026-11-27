@@ -200,3 +200,29 @@ describe('IDENTITY-012: remaining gap', () => {
     },
   );
 });
+
+describe('IDENTITY-008: a failed audit write', () => {
+  beforeEach(() => {
+    db.on(/INSERT INTO audit_logs/, () => { throw new Error('synthetic audit failure'); });
+  });
+
+  it('does not stop sign-in', async () => {
+    const cookie = await signIn();
+
+    expect((await getProfile(cookie)).status).toBe(200);
+  });
+
+  it('does not stop logout or sessions revocation', async () => {
+    const cookie = await signIn();
+
+    const response = await logout(cookie);
+
+    expect(response.status).toBe(204);
+    expectClearedCookie(response);
+    expect(store.byUid(UID).token_version).toBe(1);
+
+    const fresh = await signIn();
+    expect((await revokeAll(fresh)).status).toBe(204);
+    expect(store.byUid(UID).token_version).toBe(2);
+  });
+});

@@ -4,7 +4,8 @@ const {
   getUsageSummary,
   getAuditLogs,
 } = require('../services/adminService');
-const { createAuditLog } = require('../services/auditLogService');
+// Strict: a flag change must not succeed without its audit record (ADMIN-008).
+const { insertAuditLog } = require('../modules/admin/repositories/auditLogRepository');
 const { validate } = require('../shared/http/validators');
 const { updateFeatureFlagSchema, adminAnalyticsQuerySchema, adminAuditQuerySchema } = require('../modules/admin/schemas/adminSchemas');
 
@@ -24,7 +25,7 @@ async function updateFeatureFlag(req, res, next) {
 
     const updated = await upsertFeatureFlag({ key, description, enabled, rolloutPercent });
 
-    await createAuditLog({
+    await insertAuditLog({
       actorUserId: req.user.id,
       actorFirebaseUid: req.user.firebaseUid,
       action: 'feature_flag.update',
