@@ -12,7 +12,8 @@ async function insertOrUpdateUser(client, { firebaseUid, email, fullName }) {
      ON CONFLICT (firebase_uid)
      DO UPDATE SET
        email = EXCLUDED.email,
-       full_name = COALESCE(EXCLUDED.full_name, users.full_name)
+       full_name = COALESCE(EXCLUDED.full_name, users.full_name),
+       updated_at = NOW()
      WHERE users.deleted_at IS NULL
      RETURNING *`,
     [firebaseUid, email, fullName]
@@ -126,14 +127,16 @@ async function getPreferencesByUserId(client, userId) {
   return result.rows[0] || null;
 }
 
+// A null value keeps the stored preference (false for a new row), in one
+// statement so concurrent partial updates cannot overwrite each other.
 async function upsertPreferences(client, { userId, weeklyInsights, jobAlerts }) {
   const result = await client.query(
     `INSERT INTO user_preferences (user_id, weekly_insights, job_alerts, updated_at)
-     VALUES ($1, $2, $3, NOW())
+     VALUES ($1, COALESCE($2::boolean, FALSE), COALESCE($3::boolean, FALSE), NOW())
      ON CONFLICT (user_id)
      DO UPDATE SET
-       weekly_insights = EXCLUDED.weekly_insights,
-       job_alerts = EXCLUDED.job_alerts,
+       weekly_insights = COALESCE($2::boolean, user_preferences.weekly_insights),
+       job_alerts = COALESCE($3::boolean, user_preferences.job_alerts),
        updated_at = NOW()
      RETURNING user_id, weekly_insights, job_alerts, updated_at`,
     [userId, weeklyInsights, jobAlerts]

@@ -9,6 +9,15 @@ function emailInUseError() {
   return Object.assign(new Error('Email belongs to another user.'), { code: 'EMAIL_IN_USE' });
 }
 
+// A failed ROLLBACK must not replace the error that caused it (IDENTITY-023).
+async function rollbackQuietly(client) {
+  try {
+    await client.query('ROLLBACK');
+  } catch {
+    // The connection is released below; the original error is rethrown.
+  }
+}
+
 async function saveUser({ firebaseUid, email, fullName, moveEmailHolder = false }) {
   const pool = userRepository.getPool();
   const client = await pool.connect();
@@ -37,7 +46,7 @@ async function saveUser({ firebaseUid, email, fullName, moveEmailHolder = false 
 
     return user;
   } catch (error) {
-    await client.query('ROLLBACK');
+    await rollbackQuietly(client);
     throw error;
   } finally {
     client.release();
@@ -99,25 +108,16 @@ async function updateUserPreferences(firebaseUid, { weeklyInsights, jobAlerts })
       throw error;
     }
 
-    const currentPreferences = await userRepository.getPreferencesByUserId(client, userId) || {
-      weekly_insights: false,
-      job_alerts: false,
-    };
-
-    const nextWeeklyInsights =
-      typeof weeklyInsights === 'boolean' ? weeklyInsights : currentPreferences.weekly_insights;
-    const nextJobAlerts = typeof jobAlerts === 'boolean' ? jobAlerts : currentPreferences.job_alerts;
-
     const preferences = await userRepository.upsertPreferences(client, {
       userId,
-      weeklyInsights: nextWeeklyInsights,
-      jobAlerts: nextJobAlerts,
+      weeklyInsights: typeof weeklyInsights === 'boolean' ? weeklyInsights : null,
+      jobAlerts: typeof jobAlerts === 'boolean' ? jobAlerts : null,
     });
 
     await client.query('COMMIT');
     return preferences;
   } catch (error) {
-    await client.query('ROLLBACK');
+    await rollbackQuietly(client);
     throw error;
   } finally {
     client.release();
