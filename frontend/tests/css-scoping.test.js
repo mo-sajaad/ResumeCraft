@@ -76,11 +76,9 @@ describe('DashboardShared.css scoping (SHELL-002)', () => {
     expect(selectors).not.toContain(selector);
   });
 
-  // KNOWN BUG (SHELL-002 residual): the transition rule near the end of the file,
-  // ".btn, .quick-card, .edit-link { transition: ... }", still targets bare .btn,
-  // so .btn elements outside the dashboard (for example on Signup) pick up the
-  // dashboard transition once this file has loaded. Flip to it() once scoped.
-  it.fails('KNOWN BUG: has no bare ".btn" rule', () => {
+  // SHELL-002 residual: the transition rule ".btn, .quick-card, .edit-link" and
+  // the .btn-danger rules must not reach .btn elements outside the dashboard.
+  it('has no bare ".btn" rule', () => {
     expect(selectors).not.toContain('.btn');
   });
 
