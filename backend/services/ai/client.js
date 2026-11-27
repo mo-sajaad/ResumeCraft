@@ -20,7 +20,8 @@ function getOpenAIClient() {
     return cachedClient;
   }
 
-  cachedClient = new OpenAI({ apiKey });
+  // Retries happen only in createChatCompletion; SDK retries would multiply them (PLATFORM-007).
+  cachedClient = new OpenAI({ apiKey, maxRetries: 0 });
   return cachedClient;
 }
 
@@ -29,14 +30,23 @@ function sleep(ms) {
 }
 
 function isRetryableError(error) {
+  const code = String(error?.code || '').toLowerCase();
+  // An exhausted quota does not recover on retry.
+  if (code === 'insufficient_quota') return false;
+
   const status = error?.status || error?.statusCode;
   if ([408, 409, 429, 500, 502, 503, 504].includes(status)) return true;
 
-  const code = String(error?.code || '').toLowerCase();
-  if (['etimedout', 'econnreset', 'eai_again', 'abort_err'].includes(code)) return true;
+  const causeCode = String(error?.cause?.code || '').toLowerCase();
+  if ([code, causeCode].some((value) => ['etimedout', 'econnreset', 'eai_again', 'abort_err'].includes(value))) {
+    return true;
+  }
 
   const message = String(error?.message || '').toLowerCase();
-  return message.includes('timeout') || message.includes('temporarily unavailable');
+  return message.includes('timeout')
+    || message.includes('timed out')
+    || message.includes('connection error')
+    || message.includes('temporarily unavailable');
 }
 
 async function createChatCompletion({
@@ -59,7 +69,11 @@ async function createChatCompletion({
 
   while (attempt <= MAX_RETRIES) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, REQUEST_TIMEOUT_MS);
 
     try {
       const completion = await client.chat.completions.create({
@@ -70,6 +84,7 @@ async function createChatCompletion({
       },
       {
         signal: controller.signal,
+        maxRetries: 0,
       });
 
       clearTimeout(timeout);
@@ -77,7 +92,8 @@ async function createChatCompletion({
     } catch (error) {
       clearTimeout(timeout);
 
-      if (attempt >= MAX_RETRIES || !isRetryableError(error)) {
+      // Our own timeout aborts the request; the SDK reports that as a plain abort.
+      if (attempt >= MAX_RETRIES || !(timedOut || isRetryableError(error))) {
         throw error;
       }
 
