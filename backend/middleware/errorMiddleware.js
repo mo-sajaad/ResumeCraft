@@ -27,6 +27,14 @@ function resolveStatus(err) {
   return UPSTREAM_STATUS;
 }
 
+// The router's message quotes the undecodable path, and the JSON parser's
+// quotes the body.
+function clientMessage(err) {
+  if (err instanceof URIError) return 'Malformed URL.';
+  if (err.type === 'entity.parse.failed') return 'Malformed JSON body.';
+  return err.message;
+}
+
 const errorHandler = (err, req, res, next) => {
   const statusCode = resolveStatus(err);
 
@@ -41,6 +49,11 @@ const errorHandler = (err, req, res, next) => {
     'Request failed'
   );
 
+  // A response already under way cannot change status; Express closes it.
+  if (res.headersSent) {
+    return next(err);
+  }
+
   // The provider's message is never sent, in any environment.
   if (statusCode === UPSTREAM_STATUS) {
     return res.status(statusCode).json({ message: UPSTREAM_MESSAGE });
@@ -54,8 +67,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   return res.status(statusCode).json({
-    // The router's message quotes the undecodable path.
-    message: err instanceof URIError ? 'Malformed URL.' : err.message,
+    message: clientMessage(err),
   });
 };
 

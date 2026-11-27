@@ -110,6 +110,13 @@ function createApp({ sentryEnabled = false } = {}) {
   app.use('/api', careerIntelligenceModule.router);
   app.use('/api', adminModule.router);
 
+  // Unknown API paths answer JSON. Not mounted on '/api', so the metric label
+  // for these stays "unmatched"; routing ignores case, and so does this.
+  app.use((req, res, next) => {
+    if (!/^\/api(\/|$)/i.test(req.path)) return next();
+    return res.status(404).json({ message: 'Not found.' });
+  });
+
   // Sentry v8: request data comes from Sentry.init (server.js), which must run
   // before Express is required. Only errors answered with 5xx are reported.
   if (sentryEnabled) {
