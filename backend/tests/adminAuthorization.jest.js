@@ -11,6 +11,10 @@ const { sessionCookie, startServer } = require('./support/adminHarness');
 const ADMIN_UID = 'synthetic-admin';
 const USER_UID = 'synthetic-user';
 const ADMIN_TABLES = /feature_flags|audit_logs|date_trunc/;
+// A refused signed-in caller leaves one audit record and touches nothing else.
+const isDenialRecord = ({ sql, params }) => /INSERT INTO audit_logs/.test(sql) && params[2] === 'admin.access_denied';
+const adminDataCalls = () => db.callsMatching(ADMIN_TABLES).filter((call) => !isDenialRecord(call));
+const denialRecords = () => db.calls.filter(isDenialRecord);
 
 const ROUTES = [
   ['GET', '/feature-flags'],
@@ -80,7 +84,9 @@ describe.each(ROUTES)('%s /api/admin%s', (method, path) => {
 
     expect(response.status).toBe(403);
     expect(response.json()).toEqual({ error: 'Admin access required.' });
-    expect(db.callsMatching(ADMIN_TABLES)).toEqual([]);
+    expect(adminDataCalls()).toEqual([]);
+    expect(denialRecords()).toHaveLength(1);
+    expect(denialRecords()[0].params.slice(0, 3)).toEqual([2, USER_UID, 'admin.access_denied']);
   });
 
   it.each([
@@ -94,7 +100,8 @@ describe.each(ROUTES)('%s /api/admin%s', (method, path) => {
     const response = await callRoute(method, path, sessionCookie(ADMIN_UID));
 
     expect(response.status).toBe(403);
-    expect(db.callsMatching(ADMIN_TABLES)).toEqual([]);
+    expect(adminDataCalls()).toEqual([]);
+    expect(denialRecords()).toHaveLength(1);
   });
 
   it('allows a listed admin', async () => {

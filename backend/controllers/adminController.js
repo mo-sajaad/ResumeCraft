@@ -1,17 +1,35 @@
 const {
   listFeatureFlags,
-  upsertFeatureFlag,
   getUsageSummary,
   getAuditLogs,
 } = require('../services/adminService');
-// Strict: a flag change must not succeed without its audit record (ADMIN-008).
-const { insertAuditLog } = require('../modules/admin/repositories/auditLogRepository');
+const { createAuditLog, requestContext } = require('../services/auditLogService');
+const { updateFeatureFlagWithAudit } = require('../modules/admin/repositories/adminRepository');
 const { validate } = require('../shared/http/validators');
 const { updateFeatureFlagSchema, adminAnalyticsQuerySchema, adminAuditQuerySchema } = require('../modules/admin/schemas/adminSchemas');
+
+const flagState = (flag) => flag && {
+  description: flag.description ?? null,
+  enabled: flag.enabled,
+  rollout_percent: flag.rollout_percent,
+};
+
+// Admin reads are recorded too (ADMIN-007); best effort, like session events.
+function auditRead(req, action, metadata) {
+  return createAuditLog({
+    actorUserId: req.user.id,
+    actorFirebaseUid: req.user.firebaseUid,
+    action,
+    resourceType: 'admin',
+    metadata,
+    request: req,
+  });
+}
 
 async function getFeatureFlags(req, res, next) {
   try {
     const flags = await listFeatureFlags();
+    await auditRead(req, 'admin.feature_flags.read');
     return res.json({ flags });
   } catch (error) {
     return next(error);
@@ -23,16 +41,25 @@ async function updateFeatureFlag(req, res, next) {
     const key = req.params.key;
     const { description, enabled, rolloutPercent } = validate(updateFeatureFlagSchema, req.body || {});
 
-    const updated = await upsertFeatureFlag({ key, description, enabled, rolloutPercent });
-
-    await insertAuditLog({
-      actorUserId: req.user.id,
-      actorFirebaseUid: req.user.firebaseUid,
-      action: 'feature_flag.update',
-      resourceType: 'feature_flag',
-      resourceId: key,
-      metadata: { enabled: updated.enabled, rollout_percent: updated.rollout_percent },
-    });
+    // The change and its record commit together, or neither does (ADMIN-007).
+    const { after: updated } = await updateFeatureFlagWithAudit(
+      { key, description, enabled, rolloutPercent },
+      (before, after) => ({
+        actorUserId: req.user.id,
+        actorFirebaseUid: req.user.firebaseUid,
+        action: 'feature_flag.update',
+        resourceType: 'feature_flag',
+        resourceId: key,
+        metadata: {
+          // Kept at the top level for existing readers of the audit log.
+          enabled: after.enabled,
+          rollout_percent: after.rollout_percent,
+          before: flagState(before),
+          after: flagState(after),
+          request: requestContext(req),
+        },
+      })
+    );
 
     return res.json({ flag: updated });
   } catch (error) {
@@ -44,6 +71,7 @@ async function getAnalytics(req, res, next) {
   try {
     const { days } = validate(adminAnalyticsQuerySchema, req.query || {});
     const events = await getUsageSummary({ days });
+    await auditRead(req, 'admin.analytics.read', { days });
     return res.json({ days, events });
   } catch (error) {
     return next(error);
@@ -54,6 +82,7 @@ async function getAdminAuditLogs(req, res, next) {
   try {
     const { limit } = validate(adminAuditQuerySchema, req.query || {});
     const logs = await getAuditLogs({ limit });
+    await auditRead(req, 'admin.audit_logs.read', { limit });
     return res.json({ logs });
   } catch (error) {
     return next(error);

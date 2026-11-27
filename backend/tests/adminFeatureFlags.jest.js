@@ -7,7 +7,7 @@ jest.mock('../firebaseAdmin', () => null);
 
 const { createApp } = require('../app');
 const db = require('../config/db');
-const { knownBug, sessionCookie, startServer } = require('./support/adminHarness');
+const { sessionCookie, startServer } = require('./support/adminHarness');
 
 const ADMIN_UID = 'synthetic-admin';
 const originalAdmins = process.env.ADMIN_FIREBASE_UIDS;
@@ -110,16 +110,23 @@ test('a failed flag write returns 500 and leaves no audit record', async () => {
   expect(committed).toEqual({ flags: [], audit: [] });
 });
 
-knownBug(
-  'ADMIN-007: a failed audit insert should undo the flag change but the change stays committed',
-  async () => {
-    db.on(/audit_logs/, () => { throw new Error('synthetic audit failure'); });
-    const response = await patchFlag({ enabled: true, rolloutPercent: 25 });
-    expect(response.status).toBe(500);
-    expect(db.callsMatching(/audit_logs/)).not.toEqual([]);
-    expect(committed.audit).toEqual([]);
-  },
-  () => {
-    expect(committed.flags).toEqual([]);
-  }
-);
+test('ADMIN-007: a failed audit insert undoes the flag change', async () => {
+  db.on(/audit_logs/, () => { throw new Error('synthetic audit failure'); });
+  const response = await patchFlag({ enabled: true, rolloutPercent: 25 });
+  expect(response.status).toBe(500);
+  expect(db.callsMatching(/audit_logs/)).not.toEqual([]);
+  expect(committed.audit).toEqual([]);
+  expect(committed.flags).toEqual([]);
+});
+
+test('ADMIN-007: the audit record holds the old and new values and the request', async () => {
+  const response = await patchFlag({ enabled: true, rolloutPercent: 25 });
+
+  expect(response.status).toBe(200);
+  const metadata = JSON.parse(committed.audit[0][5]);
+  expect(metadata).toMatchObject({
+    before: { enabled: false, rollout_percent: 10, description: null },
+    after: { enabled: true, rollout_percent: 25 },
+    request: { ip: expect.any(String), requestId: expect.any(String) },
+  });
+});
