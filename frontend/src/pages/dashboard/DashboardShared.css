@@ -21,7 +21,7 @@
   gap: 0.75rem;
 }
 
-.btn {
+:where(.dashboard-shell) .btn {
   display: flex;
   align-items: center;
   border: 1px solid transparent;
@@ -34,16 +34,16 @@
   color: #0f172a;
 }
 
-.btn-outline {
+:where(.dashboard-shell) .btn-outline {
   border-color: #e2e8f0;
 }
 
-.btn-dark {
+:where(.dashboard-shell) .btn-dark {
   background: #0f172a;
   color: #ffffff;
 }
 
-.btn:hover {
+:where(.dashboard-shell) .btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
@@ -472,7 +472,7 @@
   transform: scale(1.05);
 }
 
-.pricing-grid {
+:where(.dashboard-shell) .pricing-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
@@ -548,7 +548,7 @@
   justify-self: flex-end;
 }
 
-.feature-grid {
+:where(.dashboard-shell) .feature-grid {
   margin-top: 2rem;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -678,13 +678,13 @@ input:checked + .slider:before {
 }
 
 /* Lighter placeholder text */
-input::placeholder,
-textarea::placeholder {
+:where(.dashboard-shell) input::placeholder,
+:where(.dashboard-shell) textarea::placeholder {
   color: #9ca3af; /* Light grey */
 }
 
-input,
-textarea {
+:where(.dashboard-shell) input,
+:where(.dashboard-shell) textarea {
   color: #0f172a; /* Ensure input text color is normal */
 }
 
@@ -940,7 +940,7 @@ select.btn:hover {
   transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
 }
 
-.btn:active,
+:where(.dashboard-shell) .btn:active,
 .quick-card:active {
   transform: translateY(0);
 }
