@@ -10,7 +10,7 @@ import {
 } from "firebase/auth";
 
 import { auth, hasFirebaseConfig } from "../../firebase";
-import { validateEmail } from "../../utils/validators";
+import { authErrorMessage, validateEmail } from "../../utils/validators";
 
 // Neutral wording: it must not reveal whether an account exists.
 const RESET_REQUESTED_MESSAGE = "If an account exists for that email, we've sent a reset link.";
@@ -49,8 +49,8 @@ export default function Login() {
       // AuthProvider exchanges the token, and RedirectIfAuth opens the
       // dashboard once the session is ready (IDENTITY-014).
       await signInWithPopup(auth, provider);
-    } catch {
-      setError("Google sign-in failed");
+    } catch (err) {
+      setError(authErrorMessage(err, "Google sign-in failed"));
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export default function Login() {
       // dashboard, explains a failure, or shows the check-your-email page (IDENTITY-014).
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
-      setError(`Failed to sign in: ${err.message}`);
+      setError(authErrorMessage(err, "We could not sign you in. Try again."));
     } finally {
       setLoading(false);
     }

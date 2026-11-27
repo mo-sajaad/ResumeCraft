@@ -5,6 +5,7 @@ import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
 import { auth, sendPasswordResetEmail, updatePassword } from "../firebase";
 import { authFetch, getAuthHeaders, signOutOtherSessions } from "../utils/auth";
+import { MIN_PASSWORD_LENGTH, validatePassword } from "../utils/validators";
 
 import "./dashboard/DashboardShared.css";
 
@@ -81,7 +82,7 @@ export default function Settings() {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(data?.error || "Failed to save preferences.");
+      throw new Error(data?.message || data?.error || "Failed to save preferences.");
     }
 
     // Reopening Settings must show what was saved, not the old profile.
@@ -94,7 +95,7 @@ export default function Settings() {
 
   // Checked before anything is saved, so an invalid password saves nothing.
   const passwordError = () => {
-    if (newPassword.length < 6) return "Password must be at least 6 characters long.";
+    if (!validatePassword(newPassword)) return `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
     if (newPassword !== confirmPassword) return "Passwords do not match.";
     if (!auth?.currentUser) return "No authenticated user found.";
     return null;

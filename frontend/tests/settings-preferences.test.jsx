@@ -196,7 +196,7 @@ describe('IDENTITY-013: the saved values are kept', () => {
 
 describe('IDENTITY-013: an invalid new password saves nothing', () => {
   it.each([
-    ['too short', 'short', 'short', 'Password must be at least 6 characters long.'],
+    ['too short', 'seven77', 'seven77', 'Password must be at least 8 characters long.'],
     ['not confirmed', 'synthetic-password-2', 'synthetic-password-3', 'Passwords do not match.'],
   ])('sends no preferences and changes no password when it is %s', async (_label, password, confirm, message) => {
     await openSettings();
@@ -258,5 +258,21 @@ describe('IDENTITY-013: toggles need a loaded profile', () => {
 
     expect(toggles().weekly).toBeEnabled();
     expect(toggles().weekly).toBeChecked();
+  });
+});
+
+describe('IDENTITY-020: a failed save shows the API message', () => {
+  it.each([
+    ['message', { message: 'Synthetic message text.' }, 'Synthetic message text.'],
+    ['error', { error: 'Synthetic error text.' }, 'Synthetic error text.'],
+  ])('reads the %s field', async (_label, body, text) => {
+    api.preferences = async () => reply(400, body);
+    await openSettings();
+    fireEvent.click(toggles().weekly);
+
+    await save();
+
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByText(SAVED)).not.toBeInTheDocument();
   });
 });

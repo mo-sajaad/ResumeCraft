@@ -10,6 +10,7 @@ import {
 
 import { useAuth } from "../../context/useAuth";
 import { auth, hasFirebaseConfig } from "../../firebase";
+import { authErrorMessage } from "../../utils/validators";
 
 export default function Signup() {
   const { completeSignUp, prepareGoogleSignUp } = useAuth();
@@ -41,9 +42,9 @@ export default function Signup() {
       // opens the dashboard once the session is ready (IDENTITY-014).
       prepareGoogleSignUp(fullName);
       await signInWithPopup(auth, provider);
-    } catch {
+    } catch (err) {
       prepareGoogleSignUp(null);
-      setError("Google sign-in failed");
+      setError(authErrorMessage(err, "Google sign-in failed"));
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,7 @@ export default function Signup() {
       // RedirectIfAuth now shows the check-your-email page.
       await completeSignUp(userCredential.user, fullName);
     } catch (err) {
-      setError(err.message);
+      setError(authErrorMessage(err, "We could not create your account. Try again."));
     } finally {
       setLoading(false);
     }
@@ -122,7 +123,7 @@ export default function Signup() {
           required
         />
       </div>
-      <p className="auth-helper">Use at least 8 characters with a mix of letters and numbers.</p>
+      <p className="auth-helper">Use at least 8 characters.</p>
 
       <label className="auth-check" htmlFor="signup-terms">
         <input
