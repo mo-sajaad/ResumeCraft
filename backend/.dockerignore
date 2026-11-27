@@ -27,3 +27,19 @@ README.md
 .vscode
 .idea
 *.DS_Store
+
+# Local files and tests that must not ship in the image
+Dockerfile
+.dockerignore
+tests
+coverage
+jest.config.cjs
+eslint.config.cjs
+*.md
+firebase-service-account*.json
+*.local
+
+# db/ holds local SQL (seed_admin.sql, old migrations). Only the baseline
+# schema is needed, because migrations/ runs it.
+db/*
+!db/schema.sql
