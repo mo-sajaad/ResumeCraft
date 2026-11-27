@@ -65,7 +65,7 @@ The backend seeds these plan limits in `backend/db/schema.sql`:
 
 Both paid plans are seeded with advanced AI and resume-analysis features. Resume and cover-letter PDF downloads require at least the Premium plan.
 
-The AI endpoint limiter defaults to 30 requests per minute per user (or IP for unauthenticated requests) and can be changed with `MAX_AI_REQUESTS_PER_MINUTE`. A shared deployment-wide cutoff allows 25 AI requests in each fixed 24-hour window by default; configure it with `MAX_GLOBAL_AI_REQUESTS_PER_DAY`. This is a request-count cap, not a dollar-spend cap. Production counters use Redis; development can use in-memory limiters.
+The AI endpoint limiter defaults to 30 requests per minute per user (or IP for unauthenticated requests) and can be changed with `MAX_AI_REQUESTS_PER_MINUTE`. Each user also has a daily limit across all AI features (`MAX_AI_REQUESTS_PER_USER_PER_DAY`, default 5, always below the shared cap). A shared deployment-wide cutoff allows 25 OpenAI calls in each fixed 24-hour window by default; configure it with `MAX_GLOBAL_AI_REQUESTS_PER_DAY`. Only requests that pass sign-in, plan and input checks reach it, and Career Lab tools return their no-AI result once it is reached. This is a request-count cap, not a dollar-spend cap. Production counters use Redis; development can use in-memory limiters.
 
 The database seeds, homepage and payment page all use $9.99/month for Premium and $19.99/month for Pro. Stripe charges the Price IDs configured in environment variables, so keep those in line with the displayed prices.
 
@@ -112,13 +112,13 @@ APP_BASE_URL=http://localhost:5173
 
 No service-account key is required: with only the Firebase project ID the API uses Application Default Credentials. Sign-in checks whether the Firebase user's tokens were revoked, so those credentials need permission to read Firebase Auth users (locally, for example, `gcloud auth application-default login` with an account that has access to the project; on Cloud Run, the service account). Without it, sign-in fails with a server error. To use a key instead, leave `FIREBASE_PROJECT_ID` unset and set `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PRIVATE_KEY_PATH`. When `FIREBASE_PROJECT_ID` is set it wins: the key variables are ignored with a warning, and with `NODE_ENV=production` the API refuses to start while both are set. Keep credentials private and out of version control.
 
-Create a PostgreSQL database, then apply the schema from the repository root:
+Create a PostgreSQL database, then apply the migrations from `backend/` (after `npm install`):
 
 ```bash
-psql "postgresql://postgres:password@localhost:5432/resumecraft_db" -f backend/db/schema.sql
+DATABASE_URL="postgresql://postgres:password@localhost:5432/resumecraft_db" npm run migrate:up
 ```
 
-The schema creates the required tables, extensions, and seeded plans. Then install and start the backend:
+The migrations create the required tables, extensions, and seeded plans. New schema changes go in new migrations (`npm run migrate:create <name>`), never in `backend/db/schema.sql`; see `backend/db/README.md`. Then install and start the backend:
 
 ```bash
 cd backend

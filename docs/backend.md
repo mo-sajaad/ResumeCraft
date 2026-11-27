@@ -2,16 +2,17 @@
 
 ## Startup
 
-`server.js` loads the environment, refuses to start without `JWT_SECRET_KEY`, initialises Sentry and starts the app. `app.js` exports `createApp()`, which assembles middleware in this order:
+`server.js` loads the environment, initialises Sentry before Express is loaded, refuses to start without `JWT_SECRET_KEY` and starts the app, with graceful shutdown on SIGTERM/SIGINT. `app.js` exports `createApp()`, which assembles middleware in this order:
 
 1. `helmet`, then CORS (only `APP_BASE_URL` is an allowed origin)
-2. Sentry handlers, if enabled
+2. `GET /healthz` and `GET /readyz`, before logging, metrics and usage analytics
 3. Pino request logging, Prometheus metrics, usage analytics
-4. `GET /metrics`
+4. `GET /metrics` (bearer token)
 5. Stripe webhook router, mounted before JSON parsing because signature verification needs the raw body
 6. `express.json()`
 7. Domain module routers, all under `/api`
-8. Error handlers
+8. JSON 404 for unknown `/api` paths
+9. Sentry's Express error handler (5xx only), if enabled, then the app's error handler. Only our own errors choose the status; errors from OpenAI, Stripe and other SDKs become a generic 502
 
 ## Modules
 
