@@ -20,6 +20,9 @@ jest.mock('../services/subscriptionService', () => ({
   getActiveSubscription: async (userId) => mockPlans.get(userId) || null,
   checkLimit: async () => ({ allowed: true }),
   trackUsage: async () => {},
+  // enforceUsage reserves a unit before generation (BILLING-008, DOCUMENTS-010).
+  reserveUsage: async () => ({ allowed: true, reservationId: 'synthetic-reservation' }),
+  releaseUsage: async () => {},
   getLatestStripeCustomerId: async () => null,
 }));
 jest.mock('../modules/documents/services/resumeService', () => ({
