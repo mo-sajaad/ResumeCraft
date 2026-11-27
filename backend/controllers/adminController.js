@@ -48,7 +48,6 @@ async function updateFeatureFlag(req, res, next) {
     const { description, enabled, rolloutPercent } = validate(updateFeatureFlagSchema, req.body || {});
 
     const audited = await auditEnabled({
-      actorFirebaseUid: req.user.firebaseUid,
       resourceType: 'feature_flag',
       resourceId: key,
     });

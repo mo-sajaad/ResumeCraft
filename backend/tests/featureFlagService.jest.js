@@ -120,12 +120,29 @@ describe('ADMIN-005: flag enforcement', () => {
 
     it.each([
       ['on', () => listFlags([ON('audit_logs')])],
+      ['on at a 0% rollout', () => listFlags([{ key: 'audit_logs', enabled: true, rollout_percent: 0 }])],
       ['missing', () => listFlags([])],
       ['unreadable', failLookup],
     ])('still writes when the flag is %s', async (_label, setUp) => {
       setUp();
       await createAuditLog(entry);
       expect(insert).toHaveBeenCalledTimes(1);
+    });
+
+    it('treats a partial rollout as on for every actor', async () => {
+      listFlags([{ key: 'audit_logs', enabled: true, rollout_percent: 1 }]);
+      for (const uid of USERS.slice(0, 50)) {
+        await createAuditLog({ ...entry, actorFirebaseUid: uid });
+      }
+      expect(insert).toHaveBeenCalledTimes(50);
+    });
+
+    it('stops for every actor when disabled, whatever the rollout', async () => {
+      listFlags([{ key: 'audit_logs', enabled: false, rollout_percent: 100 }]);
+      for (const uid of USERS.slice(0, 50)) {
+        await createAuditLog({ ...entry, actorFirebaseUid: uid });
+      }
+      expect(insert).not.toHaveBeenCalled();
     });
 
     it('always records a change to the audit_logs flag itself', async () => {

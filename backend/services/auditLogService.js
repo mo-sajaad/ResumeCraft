@@ -1,6 +1,6 @@
 const auditLogRepository = require('../modules/admin/repositories/auditLogRepository');
 const logger = require('../observability/logger');
-const { isFeatureEnabled } = require('./featureFlagService');
+const { isSwitchEnabled } = require('./featureFlagService');
 
 const MAX_USER_AGENT = 256;
 
@@ -16,13 +16,14 @@ function requestContext(req) {
   };
 }
 
-// The audit_logs flag turns persistence off. A missing flag or a failed
-// lookup still writes, so no record is lost to a flag fault (ADMIN-005).
-// A change to audit_logs itself is always recorded.
-async function auditEnabled({ actorFirebaseUid, resourceType, resourceId }) {
+// The audit_logs flag is a global switch: all actors or none, whatever its
+// rollout percent. Only an explicitly disabled flag stops persistence; a
+// missing flag or a failed lookup still writes, so no record is lost to a flag
+// fault (ADMIN-005). A change to audit_logs itself is always recorded.
+async function auditEnabled({ resourceType, resourceId }) {
   if (resourceType === 'feature_flag' && resourceId === 'audit_logs') return true;
   try {
-    return await isFeatureEnabled('audit_logs', actorFirebaseUid, { ifMissing: true });
+    return await isSwitchEnabled('audit_logs', { ifMissing: true });
   } catch (error) {
     logger.warn({ err: error }, 'audit_logs flag lookup failed; writing the audit entry');
     return true;
@@ -42,7 +43,7 @@ async function createAuditLog({
   metadata,
   request,
 }) {
-  if (!(await auditEnabled({ actorFirebaseUid, resourceType, resourceId }))) return;
+  if (!(await auditEnabled({ resourceType, resourceId }))) return;
   const context = requestContext(request);
   try {
     await auditLogRepository.insertAuditLog({

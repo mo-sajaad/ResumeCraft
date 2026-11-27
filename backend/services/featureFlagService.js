@@ -60,8 +60,17 @@ async function isFeatureEnabled(key, firebaseUid, { ifMissing = false } = {}) {
   return Object.hasOwn(flags, key) ? flags[key] : ifMissing;
 }
 
+// Whether `key` is enabled for everyone, ignoring the rollout percent: a
+// global switch. A flag with no row counts as `ifMissing`; a failed lookup
+// rejects.
+async function isSwitchEnabled(key, { ifMissing = false } = {}) {
+  const row = (await loadFlagRows()).find((flag) => flag.key === key);
+  return row ? row.enabled === true : ifMissing;
+}
+
 module.exports = {
   getAllFlagsForUser,
   isFeatureEnabled,
+  isSwitchEnabled,
   clearFeatureFlagCache,
 };
