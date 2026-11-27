@@ -10,11 +10,17 @@
   --color-bg-surface: #ffffff;
   --color-bg-subtle: #eef2ff;
   --color-border: #e2e8f0;
+  /* Boundary of inputs and switches: 3.68:1 on white, 3.40:1 on the page. */
+  --color-border-control: #7b8698;
 
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
+  --color-text-muted: #596579;
+  --color-text-placeholder: #6b7280;
   --color-text-inverse: #ffffff;
+
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
 
   --radius-sm: 10px;
   --radius-md: 14px;
