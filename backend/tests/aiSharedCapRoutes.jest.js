@@ -128,10 +128,12 @@ it('rejected requests never reserve the cap; at the cap Career Lab degrades and 
   const cappedResume = await post('/api/ai/generate-resume', RESUME_BODY);
   expect(cappedResume.status).toBe(429);
   expect(cappedResume.json()).toEqual({ message: CAP_MESSAGE });
+  expect(Number(cappedResume.headers['retry-after'])).toBeGreaterThan(0);
 
   const cappedCoverLetter = await post('/api/ai/generate-cover-letter', COVER_LETTER_BODY);
   expect(cappedCoverLetter.status).toBe(429);
   expect(cappedCoverLetter.json()).toEqual({ message: CAP_MESSAGE });
+  expect(Number(cappedCoverLetter.headers['retry-after'])).toBeGreaterThan(0);
 
   expect(mockCreate).toHaveBeenCalledTimes(2);
 });

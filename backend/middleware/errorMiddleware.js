@@ -67,6 +67,11 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Our own limit errors carry how long to wait (PLATFORM-004 shared AI cap).
+  if (statusCode === 429 && Number.isInteger(err.retryAfterSeconds) && err.retryAfterSeconds > 0) {
+    res.set('Retry-After', String(err.retryAfterSeconds));
+  }
+
   return res.status(statusCode).json({
     message: clientMessage(err),
   });
