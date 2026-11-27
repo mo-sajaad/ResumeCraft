@@ -13,6 +13,7 @@ async function insertOrUpdateUser(client, { firebaseUid, email, fullName }) {
      DO UPDATE SET
        email = EXCLUDED.email,
        full_name = COALESCE(EXCLUDED.full_name, users.full_name)
+     WHERE users.deleted_at IS NULL
      RETURNING *`,
     [firebaseUid, email, fullName]
   );
@@ -51,7 +52,7 @@ async function ensureDefaultSubscription(client, userId, freePlanId) {
 
 async function findByFirebaseUid(firebaseUid) {
   const result = await pool.query(
-    'SELECT id, firebase_uid, email, token_version FROM users WHERE firebase_uid = $1 LIMIT 1',
+    'SELECT id, firebase_uid, email, token_version FROM users WHERE firebase_uid = $1 AND deleted_at IS NULL LIMIT 1',
     [firebaseUid]
   );
   return result.rows[0] || null;

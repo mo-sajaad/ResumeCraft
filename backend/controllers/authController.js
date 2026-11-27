@@ -175,6 +175,9 @@ async function exchangeFirebaseToken(req, res, next) {
     if (error.code === 'EMAIL_IN_USE') {
       return res.status(409).json({ message: EMAIL_IN_USE_MESSAGE });
     }
+    if (error.code === 'ACCOUNT_DELETED') {
+      return res.status(403).json({ code: 'ACCOUNT_DELETED', message: 'This account has been deleted. Contact support to restore it.' });
+    }
     return next(error);
   }
 }

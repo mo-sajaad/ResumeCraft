@@ -21,6 +21,10 @@ async function saveUser({ firebaseUid, email, fullName, moveEmailHolder = false 
     }
 
     const user = await userRepository.insertOrUpdateUser(client, { firebaseUid, email, fullName });
+    if (!user) {
+      // The upsert skips a soft-deleted row rather than reviving it (IDENTITY-019).
+      throw Object.assign(new Error('Account has been deleted.'), { code: 'ACCOUNT_DELETED' });
+    }
     const freePlanId = await userRepository.getFreePlanId(client);
 
     if (!freePlanId) {

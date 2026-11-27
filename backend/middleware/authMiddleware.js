@@ -58,7 +58,7 @@ async function resolveSession(token) {
   }
 
   const result = await pool.query(
-    'SELECT id, firebase_uid, email, token_version FROM users WHERE firebase_uid = $1 LIMIT 1',
+    'SELECT id, firebase_uid, email, token_version FROM users WHERE firebase_uid = $1 AND deleted_at IS NULL LIMIT 1',
     [firebaseUid]
   );
 
