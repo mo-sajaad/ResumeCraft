@@ -1,6 +1,7 @@
 require('../../config/testRun');
 const OpenAI = require('openai');
 const { readIntegerEnv } = require('../../config/env');
+const { reserveGlobalAiRequest } = require('../../middleware/aiAbuseProtection');
 
 const DEFAULT_MODEL = process.env.OPENAI_CAREER_LAB_MODEL || 'gpt-4o-mini';
 const REQUEST_TIMEOUT_MS = readIntegerEnv('OPENAI_REQUEST_TIMEOUT_MS', 12000);
@@ -50,6 +51,9 @@ async function createChatCompletion({
     error.code = 'api_key_missing';
     throw error;
   }
+
+  // One slot of the shared daily cap per completion, retries included.
+  await reserveGlobalAiRequest();
 
   let attempt = 0;
 

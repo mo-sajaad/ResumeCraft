@@ -28,7 +28,7 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-function createInMemoryLimiter({ windowMs, max, keyGenerator, message }) {
+function createInMemoryCounter({ windowMs }) {
   const store = new Map();
 
   const intervalId = setInterval(() => {
@@ -44,26 +44,61 @@ function createInMemoryLimiter({ windowMs, max, keyGenerator, message }) {
     intervalId.unref();
   }
 
-  return function inMemoryRateLimit(req, res, next) {
+  return function hit(key) {
     const now = Date.now();
-    const key = keyGenerator ? keyGenerator(req) : getClientIp(req);
-
-    const entry = store.get(key);
+    let entry = store.get(key);
 
     if (!entry || entry.expiresAt <= now) {
-      store.set(key, { count: 1, expiresAt: now + windowMs });
-      return next();
+      entry = { count: 0, expiresAt: now + windowMs };
+      store.set(key, entry);
     }
 
     entry.count += 1;
+    return { count: entry.count, ttlMs: entry.expiresAt - now };
+  };
+}
 
-    if (entry.count > max) {
-      const retryAfterSeconds = Math.ceil((entry.expiresAt - now) / 1000);
-      res.set('Retry-After', String(Math.max(1, retryAfterSeconds)));
-      return res.status(429).json({ message });
+async function redisHit(redis, redisKey, windowMs) {
+  const reply = await withTimeout(
+    redis.eval(INCREMENT_SCRIPT, { keys: [redisKey], arguments: [String(windowMs)] }),
+    REDIS_COMMAND_TIMEOUT_MS,
+  );
+  const [count, ttlMs] = reply.map(Number);
+  return { count, ttlMs };
+}
+
+// Counts one hit against `key` and reports whether it is within `max` per window.
+// Uses Redis when configured. If Redis fails, production throws a 503 error
+// (fail closed); other environments fall back to an in-memory counter.
+function createRateCounter({ windowMs = 60_000, max = 60 } = {}) {
+  const redis = getRedisClient();
+  const memoryHit = createInMemoryCounter({ windowMs });
+
+  return async function consume(key) {
+    let result;
+
+    if (!redis) {
+      result = memoryHit(key);
+    } else {
+      try {
+        result = await redisHit(redis, `ratelimit:${key}`, windowMs);
+      } catch (error) {
+        logger.error({ err: error }, 'Rate limiter Redis operation failed');
+        if (process.env.NODE_ENV === 'production') {
+          const unavailable = new Error('Service temporarily unavailable.');
+          unavailable.status = 503;
+          unavailable.code = 'rate_limit_unavailable';
+          throw unavailable;
+        }
+
+        result = memoryHit(key);
+      }
     }
 
-    return next();
+    return {
+      allowed: result.count <= max,
+      retryAfterSeconds: Math.max(1, Math.ceil(Math.max(0, result.ttlMs) / 1000)),
+    };
   };
 }
 
@@ -73,38 +108,20 @@ function createRateLimiter({
   keyGenerator,
   message = 'Too many requests. Please try again shortly.',
 } = {}) {
-  const redis = getRedisClient();
-  const fallbackLimiter = createInMemoryLimiter({ windowMs, max, keyGenerator, message });
+  const consume = createRateCounter({ windowMs, max });
 
-  if (!redis) {
-    return fallbackLimiter;
-  }
-
-  return async function redisRateLimitMiddleware(req, res, next) {
+  return async function rateLimitMiddleware(req, res, next) {
     const key = keyGenerator ? keyGenerator(req) : getClientIp(req);
-    const redisKey = `ratelimit:${key}`;
 
-    let count;
-    let ttlMs;
-
+    let result;
     try {
-      const reply = await withTimeout(
-        redis.eval(INCREMENT_SCRIPT, { keys: [redisKey], arguments: [String(windowMs)] }),
-        REDIS_COMMAND_TIMEOUT_MS,
-      );
-      [count, ttlMs] = reply.map(Number);
+      result = await consume(key);
     } catch (error) {
-      logger.error({ err: error }, 'Rate limiter Redis operation failed');
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(503).json({ message: 'Service temporarily unavailable.' });
-      }
-
-      return fallbackLimiter(req, res, next);
+      return res.status(503).json({ message: error.message });
     }
 
-    if (count > max) {
-      const retryAfterSeconds = Math.max(1, Math.ceil(Math.max(0, ttlMs) / 1000));
-      res.set('Retry-After', String(retryAfterSeconds));
+    if (!result.allowed) {
+      res.set('Retry-After', String(result.retryAfterSeconds));
       return res.status(429).json({ message });
     }
 
@@ -113,5 +130,6 @@ function createRateLimiter({
 }
 
 module.exports = {
+  createRateCounter,
   createRateLimiter,
 };

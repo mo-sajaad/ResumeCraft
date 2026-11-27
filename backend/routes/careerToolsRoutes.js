@@ -41,9 +41,9 @@ router.post(
   authenticateJWT,
   attachPlan,
   requireFreePlan,
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   parseJobDescription,
 );
 router.post(
@@ -51,9 +51,9 @@ router.post(
   authenticateJWT,
   attachPlan,
   requireFreePlan,
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   analyzeAts,
 );
 router.post(
@@ -62,9 +62,9 @@ router.post(
   attachPlan,
   requireProPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   recruiterScan,
 );
 router.post(
@@ -73,9 +73,9 @@ router.post(
   attachPlan,
   requireProPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   competitiveAnalysis,
 );
 router.post(
@@ -84,9 +84,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   interviewPrep,
 );
 router.post(
@@ -95,9 +95,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   roleFitAnalysis,
 );
 router.post(
@@ -106,9 +106,9 @@ router.post(
   attachPlan,
   requireProPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   salaryEstimate,
 );
 router.post(
@@ -117,9 +117,9 @@ router.post(
   attachPlan,
   requireProPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   marketDemandAnalysis,
 );
 router.post(
@@ -128,9 +128,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   learningRoadmap,
 );
 router.post(
@@ -139,9 +139,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   visaGuidance,
 );
 router.post(
@@ -150,9 +150,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   applicationReadiness,
 );
 router.post(
@@ -161,9 +161,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   networkingStrategy,
 );
 router.post(
@@ -172,9 +172,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   portfolioAudit,
 );
 router.post(
@@ -183,9 +183,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   offerNegotiationPrep,
 );
 router.post(
@@ -194,9 +194,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   jobSearchSprint,
 );
 router.post(
@@ -205,9 +205,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   personalBrandAudit,
 );
 router.post(
@@ -216,9 +216,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   careerPivotPlan,
 );
 router.post(
@@ -227,9 +227,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   outreachMessageGenerator,
 );
 router.post(
@@ -238,9 +238,9 @@ router.post(
   attachPlan,
   requirePremiumPlan,
   requireFeature("has_resume_analysis"),
-  aiRequestRateLimiter,
   careerToolInputGuard,
   enforceMaxBulletCount,
+  aiRequestRateLimiter,
   interviewDrillPlan,
 );
 

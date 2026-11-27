@@ -5,9 +5,13 @@ const fs = require("node:fs");
 process.env.NODE_ENV = "test";
 process.env.MAX_AI_REQUESTS_PER_MINUTE = "1";
 process.env.MAX_GLOBAL_AI_REQUESTS_PER_DAY = "2";
+process.env.MAX_AI_REQUESTS_PER_USER_PER_DAY = "1";
 delete process.env.REDIS_URL;
 
-const { aiRequestRateLimiter } = require("../middleware/aiAbuseProtection");
+const {
+  aiRequestRateLimiter,
+  reserveGlobalAiRequest,
+} = require("../middleware/aiAbuseProtection");
 
 function runLimiter(userId, ip) {
   return new Promise((resolve, reject) => {
@@ -37,7 +41,7 @@ function runLimiter(userId, ip) {
   });
 }
 
-test("global AI cutoff aggregates requests across users after per-user throttling", async () => {
+test("per-user limits apply at the route; the shared cap is not counted there", async () => {
   const firstRequest = await runLimiter("user-1", "198.51.100.1");
   assert.equal(firstRequest.statusCode, 200);
 
@@ -45,13 +49,24 @@ test("global AI cutoff aggregates requests across users after per-user throttlin
   assert.equal(perUserLimited.statusCode, 429);
   assert.match(perUserLimited.body.message, /Too many requests/);
 
-  const secondUserRequest = await runLimiter("user-2", "198.51.100.2");
-  assert.equal(secondUserRequest.statusCode, 200);
+  // More users than the shared cap (2) all pass the route limiter.
+  for (const userId of ["user-2", "user-3", "user-4"]) {
+    const response = await runLimiter(userId, "198.51.100.2");
+    assert.equal(response.statusCode, 200, `${userId} should pass`);
+  }
+});
 
-  const globallyLimited = await runLimiter("user-3", "198.51.100.3");
-  assert.equal(globallyLimited.statusCode, 429);
-  assert.match(globallyLimited.body.message, /shared daily AI usage limit/);
-  assert.equal(globallyLimited.headers["Retry-After"], "86400");
+test("the shared daily cap is counted per reserved AI call", async () => {
+  await reserveGlobalAiRequest();
+  await reserveGlobalAiRequest();
+
+  await assert.rejects(reserveGlobalAiRequest(), (error) => {
+    assert.equal(error.status, 429);
+    assert.equal(error.code, "ai_daily_limit_reached");
+    assert.match(error.message, /shared daily AI usage limit/);
+    assert.equal(error.retryAfterSeconds, 86400);
+    return true;
+  });
 });
 
 test("legacy resume and cover-letter AI routes use the shared cutoff", () => {

@@ -1,4 +1,4 @@
-const { createRateLimiter } = require('./rateLimiter');
+const { createRateCounter, createRateLimiter } = require('./rateLimiter');
 const { readIntegerEnv } = require('../config/env');
 
 const MAX_TEXT_INPUT_CHARS = 10000;
@@ -7,6 +7,18 @@ const MAX_RESUME_TOTAL_CHARS = 50000;
 const MAX_BULLET_COUNT = 120;
 const MAX_AI_REQUESTS_PER_MINUTE = readIntegerEnv('MAX_AI_REQUESTS_PER_MINUTE', 30);
 const MAX_GLOBAL_AI_REQUESTS_PER_DAY = readIntegerEnv('MAX_GLOBAL_AI_REQUESTS_PER_DAY', 25);
+// Kept below the shared cap so one account cannot use it up (PLATFORM-004).
+const MAX_PER_USER_DAILY_ALLOWED = Math.max(1, MAX_GLOBAL_AI_REQUESTS_PER_DAY - 1);
+const MAX_AI_REQUESTS_PER_USER_PER_DAY = readIntegerEnv(
+  'MAX_AI_REQUESTS_PER_USER_PER_DAY',
+  Math.min(5, MAX_PER_USER_DAILY_ALLOWED),
+);
+const DAY_MS = 24 * 60 * 60 * 1000;
+const GLOBAL_AI_LIMIT_MESSAGE = 'The shared daily AI usage limit has been reached. Please try again later.';
+
+if (MAX_AI_REQUESTS_PER_USER_PER_DAY > MAX_PER_USER_DAILY_ALLOWED) {
+  throw new Error('MAX_AI_REQUESTS_PER_USER_PER_DAY must be lower than MAX_GLOBAL_AI_REQUESTS_PER_DAY.');
+}
 
 function countBulletsInText(text = '') {
   if (typeof text !== 'string' || !text.trim()) return 0;
@@ -84,18 +96,42 @@ const perUserAiRequestRateLimiter = createRateLimiter({
   keyGenerator: (req) => `ai:${req.user?.id || req.ip}`,
 });
 
-const globalAiRequestRateLimiter = createRateLimiter({
-  windowMs: 24 * 60 * 60 * 1000,
-  max: MAX_GLOBAL_AI_REQUESTS_PER_DAY,
-  keyGenerator: () => 'ai:global:daily',
-  message: 'The shared daily AI usage limit has been reached. Please try again later.',
+const perUserDailyAiRequestRateLimiter = createRateLimiter({
+  windowMs: DAY_MS,
+  max: MAX_AI_REQUESTS_PER_USER_PER_DAY,
+  keyGenerator: (req) => `ai:daily:${req.user?.id || req.ip}`,
+  message: 'You have reached your daily AI request limit. Please try again later.',
 });
 
+// Route middleware: per-user limits only. Place it after auth, plan checks and
+// input guards so rejected requests do not count.
 function aiRequestRateLimiter(req, res, next) {
   return perUserAiRequestRateLimiter(req, res, (error) => {
     if (error) return next(error);
-    return globalAiRequestRateLimiter(req, res, next);
+    return perUserDailyAiRequestRateLimiter(req, res, next);
   });
+}
+
+// Created on first use, so loading this module opens no counter of its own.
+let consumeGlobalAiRequest;
+
+// The shared daily cap is counted by the AI client right before a real OpenAI
+// call, so invalid requests, plan rejections and runs without an API key never
+// use it up (PLATFORM-004, CAREER-010). Throws a 429 error at the cap, or a 503
+// error when the counter is unavailable in production.
+async function reserveGlobalAiRequest() {
+  consumeGlobalAiRequest ??= createRateCounter({
+    windowMs: DAY_MS,
+    max: MAX_GLOBAL_AI_REQUESTS_PER_DAY,
+  });
+  const { allowed, retryAfterSeconds } = await consumeGlobalAiRequest('ai:global:daily');
+  if (allowed) return;
+
+  const error = new Error(GLOBAL_AI_LIMIT_MESSAGE);
+  error.status = 429;
+  error.code = 'ai_daily_limit_reached';
+  error.retryAfterSeconds = retryAfterSeconds;
+  throw error;
 }
 
 const careerToolInputGuard = createInputSizeGuard({
@@ -108,12 +144,14 @@ const workspaceRewriteInputGuard = createInputSizeGuard({
 
 module.exports = {
   aiRequestRateLimiter,
+  reserveGlobalAiRequest,
   careerToolInputGuard,
   workspaceRewriteInputGuard,
   enforceMaxBulletCount,
   enforceResumePayloadLength,
   MAX_AI_REQUESTS_PER_MINUTE,
   MAX_GLOBAL_AI_REQUESTS_PER_DAY,
+  MAX_AI_REQUESTS_PER_USER_PER_DAY,
   MAX_TEXT_INPUT_CHARS,
   MAX_BULLET_COUNT,
   MAX_RESUME_TEXT_CHARS,
