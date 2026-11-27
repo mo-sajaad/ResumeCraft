@@ -14,6 +14,8 @@ export default function RedirectIfAuth() {
   // explained here instead of on a broken dashboard (IDENTITY-009).
   if (user && sessionStatus === "ready") return <Navigate to={ROUTES.DASHBOARD} replace />;
   if (user && sessionStatus === "error") return <SessionError />;
+  // Just signed in: the provider is getting the session (IDENTITY-014).
+  if (user && sessionStatus === "loading") return <BrandedLoader message="Signing you in..." />;
 
   return (
     <>

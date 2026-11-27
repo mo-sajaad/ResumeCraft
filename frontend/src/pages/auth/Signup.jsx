@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
@@ -10,11 +10,9 @@ import {
 
 import { useAuth } from "../../context/useAuth";
 import { auth, hasFirebaseConfig } from "../../firebase";
-import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 
 export default function Signup() {
-  const { completeSignUp } = useAuth();
-  const navigate = useNavigate();
+  const { completeSignUp, prepareGoogleSignUp } = useAuth();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,10 +37,12 @@ export default function Signup() {
       setLoading(true);
       setError("");
       await setPersistence(auth, browserLocalPersistence);
+      // AuthProvider exchanges the token with this name, and RedirectIfAuth
+      // opens the dashboard once the session is ready (IDENTITY-014).
+      prepareGoogleSignUp(fullName);
       await signInWithPopup(auth, provider);
-      await exchangeFirebaseTokenForJwt(fullName);
-      navigate("/dashboard");
     } catch {
+      prepareGoogleSignUp(null);
       setError("Google sign-in failed");
     } finally {
       setLoading(false);

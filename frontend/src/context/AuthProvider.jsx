@@ -46,6 +46,9 @@ export function AuthProvider({ children }) {
   const [verificationEmail, setVerificationEmail] = useState(null); // { uid, status, errorCode }
   const signUp = useRef(null); // { uid, fullName } of a sign-up in this page visit
   const profileRequests = useRef({ started: 0, applied: 0 });
+  // Name typed on the sign-up form before a Google sign-in. The provider's own
+  // exchange sends it, so Signup does not need a second one (IDENTITY-014).
+  const googleSignUpName = useRef(null);
 
   const refreshProfile = async (firebaseUser = auth?.currentUser) => {
     if (!firebaseUser) {
@@ -57,7 +60,13 @@ export function AuthProvider({ children }) {
     const requestId = ++requests.started;
 
     // Exchange Firebase token for your backend JWT
-    await getAuthToken();
+    const pendingName = googleSignUpName.current;
+    if (pendingName) {
+      googleSignUpName.current = null;
+      await exchangeFirebaseTokenForJwt(pendingName);
+    } else {
+      await getAuthToken();
+    }
 
     // Fetch the profile from your backend. A stalled answer ends as an error,
     // so the could-not-load-your-account message can show (IDENTITY-011).
@@ -147,6 +156,11 @@ export function AuthProvider({ children }) {
   };
 
   // Never rejects: the account exists, and the check-your-email page can resend.
+  // Call before the Google pop-up with the typed name, and with null if it fails.
+  const prepareGoogleSignUp = (fullName) => {
+    googleSignUpName.current = typeof fullName === "string" && fullName.trim() ? fullName.trim() : null;
+  };
+
   const completeSignUp = async (firebaseUser, fullName) => {
     signUp.current = { uid: firebaseUser.uid, fullName };
     if (isCurrentUser(firebaseUser)) setVerificationEmail({ uid: firebaseUser.uid, status: "sending" });
@@ -232,6 +246,7 @@ export function AuthProvider({ children }) {
       refreshProfile,
       retrySession,
       completeSignUp,
+      prepareGoogleSignUp,
       sendVerificationEmail,
       confirmEmailVerified,
     }}>

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
@@ -10,7 +10,6 @@ import {
 } from "firebase/auth";
 
 import { auth, hasFirebaseConfig } from "../../firebase";
-import { exchangeFirebaseTokenForJwt } from "../../utils/auth";
 import { validateEmail } from "../../utils/validators";
 
 // Neutral wording: it must not reveal whether an account exists.
@@ -23,7 +22,6 @@ const RESET_ERROR_MESSAGES = {
 };
 
 export default function Login() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,8 +29,6 @@ export default function Login() {
   const [notice, setNotice] = useState("");
   const [resetSending, setResetSending] = useState(false);
   const resetInFlight = useRef(false);
-
-  const destination = "/dashboard";
 
   const requireFirebase = () => {
     if (!hasFirebaseConfig || !auth) {
@@ -50,9 +46,9 @@ export default function Login() {
       setLoading(true);
       setError("");
       await setPersistence(auth, browserLocalPersistence);
+      // AuthProvider exchanges the token, and RedirectIfAuth opens the
+      // dashboard once the session is ready (IDENTITY-014).
       await signInWithPopup(auth, provider);
-      await exchangeFirebaseTokenForJwt();
-      navigate(destination, { replace: true });
     } catch {
       setError("Google sign-in failed");
     } finally {
@@ -97,11 +93,9 @@ export default function Login() {
     setNotice("");
     try {
       await setPersistence(auth, browserLocalPersistence);
-      const { user } = await signInWithEmailAndPassword(auth, email, password);
-      // RedirectIfAuth shows the check-your-email page instead.
-      if (!user.emailVerified) return;
-      await exchangeFirebaseTokenForJwt();
-      navigate(destination, { replace: true });
+      // AuthProvider exchanges the token. RedirectIfAuth then opens the
+      // dashboard, explains a failure, or shows the check-your-email page (IDENTITY-014).
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
       setError(`Failed to sign in: ${err.message}`);
     } finally {

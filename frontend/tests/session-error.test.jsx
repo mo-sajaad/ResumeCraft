@@ -172,8 +172,8 @@ describe('IDENTITY-009: where the panel is shown', () => {
     expect(seen.dashboardMounts).toBe(0);
   });
 
-  // The sign-in form navigates once its own exchange succeeds, so the panel
-  // is shown by the dashboard guard instead.
+  // The sign-in form no longer navigates by itself (IDENTITY-014), so the
+  // sign-in route's guard shows the panel.
   it('shows the panel, not the dashboard, when the first profile read fails', async () => {
     api.profile = async () => reply(500);
     renderApp('/auth/login');
@@ -182,7 +182,8 @@ describe('IDENTITY-009: where the panel is shown', () => {
     await settle();
 
     expect(callsTo('/users/uid-one')).toHaveLength(1);
-    expect(lastLocation()).toBe('/dashboard');
+    expect(lastLocation()).toBe('/auth/login');
+    expect(seen.locations).not.toContain('/dashboard');
     expect(seen.dashboardMounts).toBe(0);
   });
 
@@ -437,7 +438,7 @@ describe('IDENTITY-009 follow-up: server message: profile refusals', () => {
 
     const panel = await expectPanel(text, { retry: false });
     expect(panel).not.toHaveTextContent(USUAL);
-    expect(lastLocation()).toBe('/dashboard');
+    expect(lastLocation()).toBe('/auth/login');
   });
 
   it('shows the generic text with Retry for a profile 500, and none of its body', async () => {

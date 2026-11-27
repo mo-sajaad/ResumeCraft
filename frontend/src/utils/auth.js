@@ -13,6 +13,12 @@ export const REQUEST_TIMEOUT = "REQUEST_TIMEOUT";
 // UID of the user the session cookie was issued for, so that a direct switch
 // to another user exchanges again (IDENTITY-010).
 let sessionUid = null;
+// Counts the cookies this page has obtained, so a 401 to a request sent with
+// an older cookie does not exchange again (IDENTITY-014).
+let sessionGeneration = 0;
+// The exchange in progress, { uid, fullName, promise }, shared by every caller
+// for the same user and name (IDENTITY-014).
+let exchangeInFlight = null;
 
 // Runs work(signal) and rejects with REQUEST_TIMEOUT if it has not settled in
 // time. The signal aborts the fetches that use it.
@@ -46,6 +52,8 @@ export function describeRefusal(status, data) {
 
 export function clearAppJwt() {
   sessionUid = null;
+  // A later caller must not reuse an exchange that started before this point.
+  exchangeInFlight = null;
 }
 
 export function getStoredAppJwt() {
@@ -79,10 +87,19 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   const sanitizedPreferredName = typeof preferredFullName === "string" ? preferredFullName.trim() : "";
   const fullName = sanitizedPreferredName || firebaseUser.displayName || null;
 
-  return withTimeout((signal) => runExchange(firebaseUser, fullName, signal));
+  const current = exchangeInFlight;
+  if (current?.uid === firebaseUser.uid && current.fullName === fullName) return current.promise;
+
+  const record = { uid: firebaseUser.uid, fullName };
+  record.promise = withTimeout((signal) => runExchange(firebaseUser, fullName, signal, record))
+    .finally(() => {
+      if (exchangeInFlight === record) exchangeInFlight = null;
+    });
+  exchangeInFlight = record;
+  return record.promise;
 }
 
-async function runExchange(firebaseUser, fullName, signal) {
+async function runExchange(firebaseUser, fullName, signal, record) {
   const firebaseToken = await firebaseUser.getIdToken();
 
   let { response, data, isJson } = await postExchange(firebaseToken, fullName, signal);
@@ -103,8 +120,12 @@ async function runExchange(firebaseUser, fullName, signal) {
     throw error;
   }
 
-  // If another user has signed in meanwhile, their next request must exchange again.
-  sessionUid = auth.currentUser?.uid === firebaseUser.uid ? firebaseUser.uid : null;
+  sessionGeneration += 1;
+  // Its cookie may have replaced a newer one: after another user has signed
+  // in, or after clearAppJwt, the next request must exchange again.
+  sessionUid = exchangeInFlight === record && auth.currentUser?.uid === firebaseUser.uid
+    ? firebaseUser.uid
+    : null;
   return "cookie_session";
 }
 
@@ -131,6 +152,7 @@ export async function getAuthHeaders(extraHeaders = {}, options) {
 
 export async function authFetch(input, init = {}, authOptions = {}) {
   const headers = await getAuthHeaders(init.headers || {}, authOptions);
+  const sentWith = sessionGeneration;
 
   const requestInit = {
     ...init,
@@ -144,7 +166,9 @@ export async function authFetch(input, init = {}, authOptions = {}) {
     return response;
   }
 
-  await getAuthToken({ forceRefresh: true });
+  // Concurrent 401s share one renewal: a request sent before the latest
+  // cookie only needs to be sent again (IDENTITY-014).
+  await getAuthToken({ forceRefresh: sessionGeneration === sentWith });
 
   const refreshedHeaders = await getAuthHeaders(init.headers || {});
   response = await fetch(input, {
