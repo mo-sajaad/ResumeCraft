@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/useAuth";
-import { getAuthHeaders } from "../utils/auth";
+import { authFetch, getAuthHeaders } from "../utils/auth";
 import "./dashboard/DashboardShared.css";
 
 export default function Payment() {
@@ -79,7 +79,7 @@ export default function Payment() {
         "Content-Type": "application/json",
       });
 
-      const response = await fetch("/api/billing/checkout-session", {
+      const response = await authFetch("/api/billing/checkout-session", {
         method: "POST",
         headers,
         body: JSON.stringify({ plan }),
@@ -105,7 +105,7 @@ export default function Payment() {
     try {
       const headers = await getAuthHeaders();
 
-      const response = await fetch("/api/billing/portal-session", {
+      const response = await authFetch("/api/billing/portal-session", {
         method: "POST",
         headers,
       });

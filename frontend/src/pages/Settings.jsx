@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { ROUTES } from "../constants/routes";
 import { auth, sendPasswordResetEmail, updatePassword } from "../firebase";
-import { getAuthHeaders, signOutOtherSessions } from "../utils/auth";
+import { authFetch, getAuthHeaders, signOutOtherSessions } from "../utils/auth";
 
 import "./dashboard/DashboardShared.css";
 
@@ -72,7 +72,7 @@ export default function Settings() {
 
     const headers = await getAuthHeaders({ "Content-Type": "application/json" });
 
-    const response = await fetch(`/api/users/${user.uid}/preferences`, {
+    const response = await authFetch(`/api/users/${user.uid}/preferences`, {
       method: "PATCH",
       headers,
       body: JSON.stringify(changes),

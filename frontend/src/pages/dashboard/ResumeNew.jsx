@@ -6,7 +6,7 @@ import ExperienceCard from "../../components/Resume/ExperienceCard";
 import EducationCard from "../../components/Resume/EducationCard";
 import ProjectsCard from "../../components/Resume/ProjectsCard";
 
-import { getAuthHeaders } from "../../utils/auth";
+import { authFetch, getAuthHeaders } from "../../utils/auth";
 import { ROUTES } from "../../constants/routes";
 
 
@@ -90,7 +90,7 @@ export default function ResumeNew() {
     setLoadingPreview(true);
 
     try {
-      const response = await fetch(`/api/resumes/${targetResumeId}/preview?style=${targetStyle}`, {
+      const response = await authFetch(`/api/resumes/${targetResumeId}/preview?style=${targetStyle}`, {
         headers: await getAuthHeaders(),
       });
 
@@ -118,7 +118,7 @@ export default function ResumeNew() {
       setError("");
 
       try {
-        const response = await fetch(`/api/resumes/${requestedResumeId}`, {
+        const response = await authFetch(`/api/resumes/${requestedResumeId}`, {
           headers: await getAuthHeaders(),
         });
 
@@ -184,7 +184,7 @@ export default function ResumeNew() {
     };
 
     try {
-      const res = await fetch("/api/resumes/generate", {
+      const res = await authFetch("/api/resumes/generate", {
         method: "POST",
         headers: await getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
@@ -216,7 +216,7 @@ export default function ResumeNew() {
     setDownloadingPdf(true);
 
     try {
-      const response = await fetch(`/api/resumes/${resumeId}/download?style=${style}`, {
+      const response = await authFetch(`/api/resumes/${resumeId}/download?style=${style}`, {
         headers: await getAuthHeaders(),
       });
 

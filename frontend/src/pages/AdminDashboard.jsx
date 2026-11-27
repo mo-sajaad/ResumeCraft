@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/useAuth";
-import { getAuthHeaders } from "../utils/auth";
+import { authFetch, getAuthHeaders } from "../utils/auth";
 import "./dashboard/DashboardShared.css";
 import { LoadingState } from "../components/ui/LoadingState";
 
@@ -20,9 +20,9 @@ export default function AdminDashboard() {
     try {
       const headers = await getAuthHeaders({ "Content-Type": "application/json" });
       const [flagsRes, usageRes, auditRes] = await Promise.all([
-        fetch("/api/admin/feature-flags", { headers }),
-        fetch("/api/admin/analytics/usage?days=14", { headers }),
-        fetch("/api/admin/audit-logs?limit=50", { headers }),
+        authFetch("/api/admin/feature-flags", { headers }),
+        authFetch("/api/admin/analytics/usage?days=14", { headers }),
+        authFetch("/api/admin/audit-logs?limit=50", { headers }),
       ]);
 
       if (!flagsRes.ok || !usageRes.ok || !auditRes.ok) {
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   const toggleFlag = async (flag) => {
     try {
       const headers = await getAuthHeaders({ "Content-Type": "application/json" });
-      const response = await fetch(`/api/admin/feature-flags/${encodeURIComponent(flag.key)}`, {
+      const response = await authFetch(`/api/admin/feature-flags/${encodeURIComponent(flag.key)}`, {
         method: "PATCH",
         headers,
         body: JSON.stringify({ enabled: !flag.enabled, rolloutPercent: flag.rollout_percent }),

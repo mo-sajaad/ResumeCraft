@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import "./DashboardShared.css";
-import { getAuthHeaders } from "../../utils/auth";
+import { authFetch, getAuthHeaders } from "../../utils/auth";
 import { ROUTES } from "../../constants/routes";
 
 function parseCoverLetterBody(rawGeneratedText, fallbackBody = "") {
@@ -62,7 +62,7 @@ export default function CoverLetterNew() {
     if (requestedCoverLetterId) return;
     const fetchLatestResume = async () => {
       try {
-        const res = await fetch("/api/resumes", {
+        const res = await authFetch("/api/resumes", {
           headers: await getAuthHeaders(),
         });
         const data = await res.json();
@@ -93,7 +93,7 @@ export default function CoverLetterNew() {
       setError("");
 
       try {
-        const response = await fetch(
+        const response = await authFetch(
           `/api/cover-letters/${requestedCoverLetterId}`,
           {
             headers: await getAuthHeaders(),
@@ -139,7 +139,7 @@ export default function CoverLetterNew() {
       setLoadingPreview(true);
 
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `/api/cover-letters/${coverLetterId}/preview?style=${style}`,
           {
             headers: await getAuthHeaders(),
@@ -195,7 +195,7 @@ export default function CoverLetterNew() {
     };
 
     try {
-      const res = await fetch("/api/cover-letters/generate", {
+      const res = await authFetch("/api/cover-letters/generate", {
         method: "POST",
         headers: await getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
@@ -232,7 +232,7 @@ export default function CoverLetterNew() {
     setDownloadingPdf(true);
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `/api/cover-letters/${coverLetterId}/download?style=${style}`,
         {
           headers: await getAuthHeaders(),

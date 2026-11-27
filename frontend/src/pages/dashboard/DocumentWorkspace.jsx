@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ROUTES } from "../../constants/routes";
-import { getAuthHeaders } from "../../utils/auth";
+import { authFetch, getAuthHeaders } from "../../utils/auth";
 import "./DashboardShared.css";
 import "./DocumentWorkspace.css";
 
@@ -75,7 +75,7 @@ function htmlToPlainText(html) {
 }
 
 async function fetchLegacyDocument(type, id) {
-  const response = await fetch(getDocumentEndpoint(type, id), { headers: await getAuthHeaders() });
+  const response = await authFetch(getDocumentEndpoint(type, id), { headers: await getAuthHeaders() });
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) throw new Error(data?.error || "Failed to load document.");
@@ -92,7 +92,7 @@ async function saveLegacyDocument(type, id, title, text, style) {
       ? { title, summary: text, generated_text: { summary: text }, template_key: style }
       : { title, body_paragraphs: text, generated_text: { body: text } };
 
-  const response = await fetch(getDocumentEndpoint(type, id), {
+  const response = await authFetch(getDocumentEndpoint(type, id), {
     method: "PUT",
     headers: await getAuthHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
@@ -153,7 +153,7 @@ export default function DocumentWorkspace() {
       try {
         const [legacyData, previewResponse] = await Promise.all([
           fetchLegacyDocument(type, id),
-          fetch(getPreviewEndpoint(type, id, style), { headers: await getAuthHeaders() }),
+          authFetch(getPreviewEndpoint(type, id, style), { headers: await getAuthHeaders() }),
         ]);
 
         if (!isMounted) return;
@@ -169,7 +169,7 @@ export default function DocumentWorkspace() {
         }
       } catch {
         try {
-          const response = await fetch(`/api/workspace/document?type=${type}&id=${id}&style=${style}`, {
+          const response = await authFetch(`/api/workspace/document?type=${type}&id=${id}&style=${style}`, {
             headers: await getAuthHeaders(),
           });
           const data = await response.json().catch(() => ({}));
@@ -233,7 +233,7 @@ export default function DocumentWorkspace() {
     setError("");
 
     try {
-      const response = await fetch(getDownloadEndpoint(type, id, style), { headers: await getAuthHeaders() });
+      const response = await authFetch(getDownloadEndpoint(type, id, style), { headers: await getAuthHeaders() });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to download PDF.");
@@ -267,7 +267,7 @@ export default function DocumentWorkspace() {
     const text = htmlToPlainText(html);
 
     try {
-      const response = await fetch("/api/workspace/document", {
+      const response = await authFetch("/api/workspace/document", {
         method: "PUT",
         headers: await getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ type, id, style, text }),
@@ -302,7 +302,7 @@ export default function DocumentWorkspace() {
     const currentText = htmlToPlainText(currentHtml);
 
     try {
-      const response = await fetch("/api/workspace/ai-rewrite", {
+      const response = await authFetch("/api/workspace/ai-rewrite", {
         method: "POST",
         headers: await getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ type, id, text: currentText, prompt: chatPrompt }),
@@ -355,7 +355,7 @@ export default function DocumentWorkspace() {
     setFeedback("");
 
     try {
-      const response = await fetch(getDocumentEndpoint(type, id), {
+      const response = await authFetch(getDocumentEndpoint(type, id), {
         method: "DELETE",
         headers: await getAuthHeaders(),
       });
