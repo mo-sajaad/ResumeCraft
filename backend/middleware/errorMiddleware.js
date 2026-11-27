@@ -1,5 +1,4 @@
 const logger = require('../observability/logger');
-const { Sentry } = require('../observability/sentry');
 const { routeLabel } = require('../observability/routeLabel');
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -41,19 +40,6 @@ const errorHandler = (err, req, res, next) => {
     },
     'Request failed'
   );
-
-  if (process.env.SENTRY_DSN) {
-    Sentry.captureException(err, {
-      tags: {
-        statusCode: String(statusCode),
-      },
-      extra: {
-        method: req.method,
-        path: req.originalUrl,
-      },
-      user: req.user?.id ? { id: String(req.user.id) } : undefined,
-    });
-  }
 
   // The provider's message is never sent, in any environment.
   if (statusCode === UPSTREAM_STATUS) {

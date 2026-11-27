@@ -1,7 +1,11 @@
 require('./config/env');
 
-const logger = require('./observability/logger');
+// Sentry v8 instruments modules as they load, so it starts before Express.
 const { initSentry } = require('./observability/sentry');
+
+const sentryEnabled = initSentry();
+
+const logger = require('./observability/logger');
 const { createApp } = require('./app');
 
 function assertCriticalSecrets() {
@@ -13,7 +17,6 @@ function assertCriticalSecrets() {
 
 assertCriticalSecrets();
 
-const sentryEnabled = initSentry();
 const app = createApp({ sentryEnabled });
 
 const PORT = process.env.PORT || 5000;

@@ -94,11 +94,6 @@ function createApp({ sentryEnabled = false } = {}) {
     credentials: true,
   }));
 
-  if (sentryEnabled) {
-    app.use(Sentry.Handlers.requestHandler());
-    app.use(Sentry.Handlers.tracingHandler());
-  }
-
   // pino-http would otherwise replace the logger's serializers with its own.
   app.use(pinoHttp({ logger, wrapSerializers: false }));
   app.use(metricsMiddleware);
@@ -115,8 +110,12 @@ function createApp({ sentryEnabled = false } = {}) {
   app.use('/api', careerIntelligenceModule.router);
   app.use('/api', adminModule.router);
 
+  // Sentry v8: request data comes from Sentry.init (server.js), which must run
+  // before Express is required. Only errors answered with 5xx are reported.
   if (sentryEnabled) {
-    app.use(Sentry.Handlers.errorHandler());
+    Sentry.setupExpressErrorHandler(app, {
+      shouldHandleError: (error) => errorHandler.resolveStatus(error) >= 500,
+    });
   }
 
   app.use(errorHandler);
