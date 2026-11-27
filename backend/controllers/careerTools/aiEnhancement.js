@@ -135,7 +135,16 @@ async function buildAiEnhancedResponse({
     const parsed = safeParseJson(content);
     const schema = buildResponseSchema(requiredKeys, baselineResponse);
 
-    if (!parsed || !schema.safeParse(parsed).success) {
+    const validation = parsed ? schema.safeParse(parsed) : null;
+    if (!validation?.success) {
+      // Key names come from requiredKeys, never from the user's content.
+      const invalidKeys = validation
+        ? [...new Set(validation.error.issues.map((issue) => String(issue.path[0])))]
+        : undefined;
+      logger.warn(
+        { toolName, reason: parsed ? "schema_mismatch" : "unparseable", invalidKeys },
+        "OpenAI career tool returned an invalid response",
+      );
       return {
         ...baselineResponse,
         aiEnhancementStatus: "invalid_ai_json",
@@ -154,21 +163,16 @@ async function buildAiEnhancedResponse({
         ? error.statusCode
         : null;
 
+    // Provider codes and statuses describe the account (quota, key), so they
+    // stay in the logs and the client gets only the generic status.
     logger.warn(
-                { 
-                  toolName, 
-                  errorCode, 
-                  httpStatus,
-                  errorMessage: error?.message || error?.error?.message || "No message" 
-                },
-                "OpenAI career tool enhancement failed",
-              );
+      { toolName, errorCode, httpStatus },
+      "OpenAI career tool enhancement failed",
+    );
 
     return {
       ...baselineResponse,
       aiEnhancementStatus: "openai_error",
-      aiEnhancementErrorCode: errorCode,
-      aiEnhancementHttpStatus: httpStatus,
     };
   }
 }

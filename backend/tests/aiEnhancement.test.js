@@ -48,7 +48,7 @@ test("buildAiEnhancedResponse returns api_key_missing when no key is configured"
   assert.equal(response.aiEnhancementStatus, "api_key_missing");
 });
 
-test("buildAiEnhancedResponse preserves baseline and returns safe OpenAI error diagnostics", async () => {
+test("buildAiEnhancedResponse preserves baseline and hides OpenAI error details", async () => {
   const enhancementPath =
     require.resolve("../controllers/careerTools/aiEnhancement");
   const clientPath = require.resolve("../services/ai/client");
@@ -86,8 +86,8 @@ test("buildAiEnhancedResponse preserves baseline and returns safe OpenAI error d
 
     assert.deepEqual(response.requiredSkills, ["java"]);
     assert.equal(response.aiEnhancementStatus, "openai_error");
-    assert.equal(response.aiEnhancementErrorCode, "insufficient_quota");
-    assert.equal(response.aiEnhancementHttpStatus, 429);
+    assert.equal(response.aiEnhancementErrorCode, undefined);
+    assert.equal(response.aiEnhancementHttpStatus, undefined);
     assert.equal(response.aiEnhancementError, undefined);
   } finally {
     if (originalClientModule) require.cache[clientPath] = originalClientModule;
