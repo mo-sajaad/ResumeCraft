@@ -3,9 +3,36 @@ import { auth } from "../firebase";
 // Error code of an exchange refused because the email is not verified.
 export const EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED";
 
+// How long the app waits for one exchange, profile read or logout before it
+// gives up, so a stalled server cannot keep it loading forever (IDENTITY-011).
+export const SESSION_REQUEST_TIMEOUT_MS = 15_000;
+
+// Error code of a request that did not finish within SESSION_REQUEST_TIMEOUT_MS.
+export const REQUEST_TIMEOUT = "REQUEST_TIMEOUT";
+
 // UID of the user the session cookie was issued for, so that a direct switch
 // to another user exchanges again (IDENTITY-010).
 let sessionUid = null;
+
+// Runs work(signal) and rejects with REQUEST_TIMEOUT if it has not settled in
+// time. The signal aborts the fetches that use it.
+export async function withTimeout(work, timeoutMs = SESSION_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  let timer;
+  const timeout = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error("The server did not answer in time.");
+      error.code = REQUEST_TIMEOUT;
+      reject(error);
+      controller.abort();
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([work(controller.signal), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // What the could-not-load-your-account panel says about a refused request
 // (IDENTITY-009). Only the message of a 4xx JSON answer is shown: 5xx bodies
@@ -25,12 +52,13 @@ export function getStoredAppJwt() {
   return null;
 }
 
-async function postExchange(firebaseToken, fullName) {
+async function postExchange(firebaseToken, fullName, signal) {
   const response = await fetch("/api/auth/exchange", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({ firebaseToken, fullName }),
+    signal,
   });
 
   const data = await response.json().catch(() => null);
@@ -48,17 +76,22 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
     return null;
   }
 
-  const firebaseToken = await firebaseUser.getIdToken();
   const sanitizedPreferredName = typeof preferredFullName === "string" ? preferredFullName.trim() : "";
   const fullName = sanitizedPreferredName || firebaseUser.displayName || null;
 
-  let { response, data, isJson } = await postExchange(firebaseToken, fullName);
+  return withTimeout((signal) => runExchange(firebaseUser, fullName, signal));
+}
+
+async function runExchange(firebaseUser, fullName, signal) {
+  const firebaseToken = await firebaseUser.getIdToken();
+
+  let { response, data, isJson } = await postExchange(firebaseToken, fullName, signal);
 
   // A token issued before the email was verified, such as in another tab, is out of date.
   if (data?.code === EMAIL_NOT_VERIFIED && firebaseUser.emailVerified) {
     const freshToken = await firebaseUser.getIdToken(true);
     if (auth.currentUser?.uid === firebaseUser.uid) {
-      ({ response, data, isJson } = await postExchange(freshToken, fullName));
+      ({ response, data, isJson } = await postExchange(freshToken, fullName, signal));
     }
   }
 

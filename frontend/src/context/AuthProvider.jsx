@@ -11,6 +11,7 @@ import {
   exchangeFirebaseTokenForJwt,
   getAuthToken,
   logoutSession,
+  withTimeout,
 } from "../utils/auth";
 
 const isCurrentUser = (firebaseUser) => auth.currentUser?.uid === firebaseUser.uid;
@@ -58,16 +59,19 @@ export function AuthProvider({ children }) {
     // Exchange Firebase token for your backend JWT
     await getAuthToken();
 
-    // Fetch the profile from your backend
-    const res = await authFetch(`/api/users/${firebaseUser.uid}`);
+    // Fetch the profile from your backend. A stalled answer ends as an error,
+    // so the could-not-load-your-account message can show (IDENTITY-011).
+    const data = await withTimeout(async (signal) => {
+      const res = await authFetch(`/api/users/${firebaseUser.uid}`, { signal });
 
-    if (!res.ok) {
-      const error = new Error("Failed to fetch profile");
-      error.sessionError = describeRefusal(res.status, await res.json().catch(() => null));
-      throw error;
-    }
+      if (!res.ok) {
+        const error = new Error("Failed to fetch profile");
+        error.sessionError = describeRefusal(res.status, await res.json().catch(() => null));
+        throw error;
+      }
 
-    const data = await res.json();
+      return res.json();
+    });
     // A slow response must not replace a newer one, or another user's.
     if (requestId > requests.applied && isCurrentUser(firebaseUser)) {
       requests.applied = requestId;
