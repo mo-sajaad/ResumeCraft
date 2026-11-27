@@ -67,7 +67,7 @@ function expectOneFailureLine(action, secrets) {
   expect(line.auditAction).toBe(action);
   expect(line.level).toBe(50);
   expect(line.err).toEqual(expect.objectContaining({ type: 'Error' }));
-  const { level, time, pid, hostname, service, env, msg, auditAction, err, ...rest } = line;
+  const { level, severity, time, pid, hostname, service, env, msg, auditAction, err, ...rest } = line;
   expect(rest).toEqual({});
   const text = JSON.stringify(line);
   for (const secret of [...secrets, ID_TOKEN, BODY_MARKER, FAILURE_MARKER, EMAIL]) {

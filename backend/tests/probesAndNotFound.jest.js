@@ -15,6 +15,11 @@ jest.mock('../firebaseAdmin', () => ({
 const { capturedLines } = require('pino');
 const { createApp } = require('../app');
 const db = require('../config/db');
+const { clearFeatureFlagCache } = require('../services/featureFlagService');
+// The seeded flags, so usage collection is on for the control request (ADMIN-005).
+const FLAG_LOOKUP = /^SELECT key, enabled, rollout_percent FROM feature_flags$/;
+const SEEDED_FLAGS = ['admin_dashboard', 'usage_analytics', 'audit_logs']
+  .map((key) => ({ key, enabled: true, rollout_percent: 100 }));
 const { register } = require('../observability/metrics');
 const { readyz, READINESS_TIMEOUT_MS } = require('../observability/health');
 const { sessionCookie, startServer } = require('./support/adminHarness');
@@ -35,6 +40,8 @@ afterAll(async () => {
 beforeEach(() => {
   db.reset();
   db.addUser({ id: 7, firebaseUid: USER_UID });
+  clearFeatureFlagCache();
+  db.on(FLAG_LOOKUP, () => ({ rows: SEEDED_FLAGS }));
   capturedLines.length = 0;
   register.resetMetrics();
 });
