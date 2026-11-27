@@ -8,8 +8,14 @@ import { getAuthHeaders, signOutOtherSessions } from "../utils/auth";
 
 import "./dashboard/DashboardShared.css";
 
+// The preferences stored in a profile, as sent to the API.
+const savedPreferencesOf = (profile) => ({
+  weeklyInsights: Boolean(profile?.weekly_insights ?? profile?.weeklyInsights),
+  jobAlerts: Boolean(profile?.job_alerts ?? profile?.jobAlerts),
+});
+
 export default function Settings() {
-  const { user, profile, logout } = useAuth(); // now includes profile from DB
+  const { user, profile, logout, patchProfile } = useAuth(); // now includes profile from DB
   const navigate = useNavigate();
 
   const [weeklyInsightsEnabled, setWeeklyInsightsEnabled] = useState(false);
@@ -22,10 +28,9 @@ export default function Settings() {
   useEffect(() => {
     if (!profile) return;
 
-    setWeeklyInsightsEnabled(
-      Boolean(profile?.weekly_insights ?? profile?.weeklyInsights)
-    );
-    setJobAlertsEnabled(Boolean(profile?.job_alerts ?? profile?.jobAlerts));
+    const saved = savedPreferencesOf(profile);
+    setWeeklyInsightsEnabled(saved.weeklyInsights);
+    setJobAlertsEnabled(saved.jobAlerts);
   }, [profile]);
 
   const joinedDate = useMemo(() => {
@@ -50,7 +55,17 @@ export default function Settings() {
     navigate(ROUTES.LOGIN, { replace: true });
   };
 
-  const savePreferences = async () => {
+  // Only the preferences that differ from the loaded profile (IDENTITY-013).
+  const changedPreferences = () => {
+    if (!profile) return {};
+    const saved = savedPreferencesOf(profile);
+    const changes = {};
+    if (weeklyInsightsEnabled !== saved.weeklyInsights) changes.weeklyInsights = weeklyInsightsEnabled;
+    if (jobAlertsEnabled !== saved.jobAlerts) changes.jobAlerts = jobAlertsEnabled;
+    return changes;
+  };
+
+  const savePreferences = async (changes) => {
     if (!user?.uid) {
       throw new Error("No authenticated user found.");
     }
@@ -60,10 +75,7 @@ export default function Settings() {
     const response = await fetch(`/api/users/${user.uid}/preferences`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({
-        weeklyInsights: weeklyInsightsEnabled,
-        jobAlerts: jobAlertsEnabled,
-      }),
+      body: JSON.stringify(changes),
     });
 
     const data = await response.json().catch(() => null);
@@ -71,32 +83,41 @@ export default function Settings() {
     if (!response.ok) {
       throw new Error(data?.error || "Failed to save preferences.");
     }
+
+    // Reopening Settings must show what was saved, not the old profile.
+    const next = { ...savedPreferencesOf(profile), ...changes };
+    patchProfile?.(user.uid, {
+      weekly_insights: data?.weekly_insights ?? next.weeklyInsights,
+      job_alerts: data?.job_alerts ?? next.jobAlerts,
+    });
+  };
+
+  // Checked before anything is saved, so an invalid password saves nothing.
+  const passwordError = () => {
+    if (newPassword.length < 6) return "Password must be at least 6 characters long.";
+    if (newPassword !== confirmPassword) return "Passwords do not match.";
+    if (!auth?.currentUser) return "No authenticated user found.";
+    return null;
   };
 
   const handleSaveChanges = async () => {
     setFeedback({ type: "", message: "" });
+
+    const changesPassword = Boolean(newPassword || confirmPassword);
+    const invalidPassword = changesPassword ? passwordError() : null;
+    if (invalidPassword) {
+      setError(invalidPassword);
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      await savePreferences();
+      const changes = changedPreferences();
+      if (Object.keys(changes).length > 0) await savePreferences(changes);
 
-      if (!newPassword && !confirmPassword) {
+      if (!changesPassword) {
         setSuccess("Preferences saved.");
-        return;
-      }
-
-      if (newPassword.length < 6) {
-        setError("Password must be at least 6 characters long.");
-        return;
-      }
-
-      if (newPassword !== confirmPassword) {
-        setError("Passwords do not match.");
-        return;
-      }
-
-      if (!auth?.currentUser) {
-        setError("No authenticated user found.");
         return;
       }
 
@@ -188,6 +209,7 @@ export default function Settings() {
                   type="checkbox"
                   checked={weeklyInsightsEnabled}
                   onChange={(e) => setWeeklyInsightsEnabled(e.target.checked)}
+                  disabled={!profile || isSaving}
                 />
                 <span className="slider round"></span>
               </label>
@@ -199,6 +221,7 @@ export default function Settings() {
                   type="checkbox"
                   checked={jobAlertsEnabled}
                   onChange={(e) => setJobAlertsEnabled(e.target.checked)}
+                  disabled={!profile || isSaving}
                 />
                 <span className="slider round"></span>
               </label>

@@ -91,16 +91,27 @@ async function changePassword(password = NEW_PASSWORD, confirm = password) {
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Save changes' })); });
 }
 
-// What happened once Firebase accepted the new password.
-const afterUpdate = () => fakes.events.slice(fakes.events.indexOf('updatePassword'));
+// What happened from the revoke on. A password-only save sends no preferences
+// request (IDENTITY-013), so the first exchange is the one before the revoke.
+const fromRevoke = () => fakes.events.slice(fakes.events.indexOf(REVOKE));
 const revokeCalls = () => fetch.mock.calls.filter(([url]) => url === '/api/auth/sessions/revoke');
+const preferenceCalls = () => fetch.mock.calls.filter(([url]) => url.endsWith('/preferences'));
+
+// Firebase accepted the new password before any session was revoked.
+function expectPasswordChangedBeforeRevoke() {
+  expect(fakes.events).toContain('updatePassword');
+  expect(fakes.events).toContain(REVOKE);
+  expect(fakes.events.indexOf('updatePassword')).toBeLessThan(fakes.events.indexOf(REVOKE));
+  expect(preferenceCalls()).toEqual([]);
+}
 
 describe('IDENTITY-005: password change in Settings', () => {
   it('revokes all sessions, refreshes the ID token, then exchanges it again', async () => {
     await changePassword();
 
     expect(fakes.updatePassword).toHaveBeenCalledWith(fakes.auth.currentUser, NEW_PASSWORD);
-    expect(afterUpdate()).toEqual(['updatePassword', REVOKE, 'getIdToken(true)', FRESH_EXCHANGE]);
+    expectPasswordChangedBeforeRevoke();
+    expect(fromRevoke()).toEqual([REVOKE, 'getIdToken(true)', FRESH_EXCHANGE]);
     const [, init] = revokeCalls()[0];
     expect(init).toMatchObject({ method: 'POST', credentials: 'include' });
     expect(screen.getByText(SUCCESS)).toBeInTheDocument();
@@ -120,7 +131,8 @@ describe('IDENTITY-005: password change in Settings', () => {
     expect(screen.getByText(PARTIAL)).toBeInTheDocument();
     expect(screen.queryByText(SUCCESS)).not.toBeInTheDocument();
     // No fresh token or new session after a failed revoke.
-    expect(afterUpdate()).toEqual(['updatePassword', REVOKE]);
+    expectPasswordChangedBeforeRevoke();
+    expect(fromRevoke()).toEqual([REVOKE]);
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
   });
 
@@ -138,13 +150,14 @@ describe('IDENTITY-005: password change in Settings', () => {
     let exchanges = 0;
     api.exchange = () => {
       exchanges += 1;
-      // The first exchange is the one before preferences are saved.
+      // The first exchange is the one authFetch makes before the revoke.
       return exchanges === 1 ? reply(200) : reply(401, { message: 'synthetic refusal' });
     };
 
     await changePassword();
 
-    expect(afterUpdate()).toEqual(['updatePassword', REVOKE, 'getIdToken(true)', FRESH_EXCHANGE]);
+    expectPasswordChangedBeforeRevoke();
+    expect(fromRevoke()).toEqual([REVOKE, 'getIdToken(true)', FRESH_EXCHANGE]);
     expect(screen.getByText(PARTIAL)).toBeInTheDocument();
     expect(screen.queryByText(SUCCESS)).not.toBeInTheDocument();
   });

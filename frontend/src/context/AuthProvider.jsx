@@ -234,6 +234,13 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Applies saved changes to the loaded profile of `uid` (IDENTITY-013).
+  const patchProfile = (uid, changes) => {
+    setProfileState((previous) => (
+      previous.uid === uid && previous.data ? { uid, data: { ...previous.data, ...changes } } : previous
+    ));
+  };
+
   const profile = user && profileState.uid === user.uid ? profileState.data : null;
   // "idle" while signed out or waiting for email verification; then the
   // session of this UID, which is "loading" until its first result.
@@ -256,6 +263,7 @@ export function AuthProvider({ children }) {
       verificationEmail,
       logout,
       refreshProfile,
+      patchProfile,
       retrySession,
       completeSignUp,
       prepareGoogleSignUp,
