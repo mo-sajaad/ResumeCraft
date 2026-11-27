@@ -137,6 +137,7 @@ export default function Payment() {
       {feedback.message && (
         <div
           className={`content-card ${feedback.type === "error" ? "error-message" : ""}`}
+          role={feedback.type === "error" ? "alert" : "status"}
         >
           {feedback.message}
         </div>
