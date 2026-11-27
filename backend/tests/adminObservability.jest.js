@@ -21,7 +21,7 @@ const { createApp } = require('../app');
 const db = require('../config/db');
 const logger = require('../observability/logger');
 const { metricsMiddleware, register } = require('../observability/metrics');
-const { knownBug, sessionCookie, startServer } = require('./support/adminHarness');
+const { sessionCookie, startServer } = require('./support/adminHarness');
 
 const ADMIN_UID = 'synthetic-admin';
 const originalAdmins = process.env.ADMIN_FIREBASE_UIDS;
@@ -301,34 +301,29 @@ describe('bounded labels', () => {
 });
 
 describe('latency histogram', () => {
-  knownBug(
-    'ADMIN-003: a 1500 ms request should be recorded in the unit of the metric but is recorded in seconds',
-    async () => {
-      jest.useFakeTimers();
-      try {
-        const res = Object.assign(new EventEmitter(), { statusCode: 200 });
-        const next = jest.fn();
-        metricsMiddleware({ method: 'GET', path: '/timed', baseUrl: '', route: { path: '/timed' } }, res, next);
-        expect(next).toHaveBeenCalledTimes(1);
-        jest.advanceTimersByTime(1500);
-        res.emit('finish');
-      } finally {
-        jest.useRealTimers();
-      }
-
-      // Either fix in the audit is accepted: milliseconds, or a renamed metric.
-      const metric = register.getSingleMetric('http_request_duration_ms')
-        || register.getSingleMetric('http_request_duration_seconds');
-      const { name, values } = await metric.get();
-      const valueOf = (suffix) => values.find(({ metricName }) => metricName === `${name}_${suffix}`)?.value;
-      expect(valueOf('count')).toBe(1);
-      return { name, sum: valueOf('sum'), values };
-    },
-    ({ name, sum, values }) => {
-      const expected = name.endsWith('_seconds') ? 1.5 : 1500;
-      expect(sum).toBeCloseTo(expected, 3);
-      const firstBucket = values.find(({ labels, value }) => labels.le !== undefined && value === 1);
-      expect(firstBucket.labels.le).toBeGreaterThanOrEqual(expected);
+  it('ADMIN-003: records a 1500 ms request in the unit of the metric', async () => {
+    jest.useFakeTimers();
+    try {
+      const res = Object.assign(new EventEmitter(), { statusCode: 200 });
+      const next = jest.fn();
+      metricsMiddleware({ method: 'GET', path: '/timed', baseUrl: '', route: { path: '/timed' } }, res, next);
+      expect(next).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(1500);
+      res.emit('finish');
+    } finally {
+      jest.useRealTimers();
     }
-  );
+
+    // Either fix in the audit is accepted: milliseconds, or a renamed metric.
+    const metric = register.getSingleMetric('http_request_duration_ms')
+      || register.getSingleMetric('http_request_duration_seconds');
+    const { name, values } = await metric.get();
+    const valueOf = (suffix) => values.find(({ metricName }) => metricName === `${name}_${suffix}`)?.value;
+    expect(valueOf('count')).toBe(1);
+    const sum = valueOf('sum');
+    const expected = name.endsWith('_seconds') ? 1.5 : 1500;
+    expect(sum).toBeCloseTo(expected, 3);
+    const firstBucket = values.find(({ labels, value }) => labels.le !== undefined && value === 1);
+    expect(firstBucket.labels.le).toBeGreaterThanOrEqual(expected);
+  });
 });

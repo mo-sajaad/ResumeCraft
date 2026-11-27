@@ -21,7 +21,8 @@ const httpRequestsTotal = new client.Counter({
 
 function metricsMiddleware(req, res, next) {
   trackRoute(req);
-  const endTimer = httpRequestDurationMs.startTimer();
+  // startTimer() would observe seconds; this metric and its buckets are in ms.
+  const start = process.hrtime.bigint();
 
   res.on('finish', () => {
     const labels = {
@@ -31,7 +32,7 @@ function metricsMiddleware(req, res, next) {
     };
 
     httpRequestsTotal.inc(labels, 1);
-    endTimer(labels);
+    httpRequestDurationMs.observe(labels, Number(process.hrtime.bigint() - start) / 1e6);
   });
 
   next();
