@@ -898,7 +898,7 @@ describe('IDENTITY-007: error handling and logs', () => {
       await exchange();
 
       const [line] = firebaseLog();
-      const own = Object.keys(line).filter((key) => !['level', 'time', 'pid', 'hostname', 'service', 'env', 'msg'].includes(key));
+      const own = Object.keys(line).filter((key) => !['level', 'severity', 'time', 'pid', 'hostname', 'service', 'env', 'msg'].includes(key));
       expect(own.sort()).toEqual(['outcome', 'sdkCode', 'sdkMessage']);
     });
 

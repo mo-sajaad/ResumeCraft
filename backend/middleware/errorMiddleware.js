@@ -38,7 +38,8 @@ function clientMessage(err) {
 const errorHandler = (err, req, res, next) => {
   const statusCode = resolveStatus(err);
 
-  logger.error(
+  // Client errors are expected traffic; only server failures log at error.
+  logger[statusCode >= 500 ? 'error' : 'warn'](
     {
       err,
       statusCode,
