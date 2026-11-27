@@ -18,6 +18,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
     "@sentry/node": "^8.36.0",
     "cors": "^2.8.6",
