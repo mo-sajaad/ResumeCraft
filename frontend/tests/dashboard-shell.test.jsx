@@ -83,6 +83,8 @@ describe('SHELL-012: dashboard route order', () => {
   async function visit(path) {
     const memoryRouter = createMemoryRouter(appRouter.routes, { initialEntries: [path] });
     await act(async () => { render(<RouterProvider router={memoryRouter} />); });
+    // Route `lazy` loads the matched pages' code before the first render (SHELL-007).
+    await waitFor(() => expect(memoryRouter.state.initialized).toBe(true));
     return memoryRouter;
   }
 

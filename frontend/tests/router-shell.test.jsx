@@ -1,7 +1,7 @@
 // SHELL-003: route errors show a usable page with a way back, never a stack.
 // Uses the routes of src/router.jsx in a memory router; auth is a stand-in and
 // all data is synthetic.
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { vi } from 'vitest';
 
@@ -32,6 +32,8 @@ function signedIn() {
 async function visit(routes, path) {
   const memoryRouter = createMemoryRouter(routes, { initialEntries: [path] });
   await act(async () => { render(<RouterProvider router={memoryRouter} />); });
+  // Route `lazy` loads the matched pages' code before the first render.
+  await waitFor(() => expect(memoryRouter.state.initialized).toBe(true));
   return memoryRouter;
 }
 
@@ -118,6 +120,56 @@ describe('SHELL-019: unknown URLs', () => {
 
     const memoryRouter = await visit(appRouter.routes, '/auth');
 
-    expect(memoryRouter.state.location.pathname).toBe('/auth/login');
+    await waitFor(() => expect(memoryRouter.state.location.pathname).toBe('/auth/login'));
+  });
+});
+
+describe('SHELL-007: navigation titles, focus, scroll and pending state', () => {
+  it('names the page in the document title', async () => {
+    signedIn();
+
+    await visit(appRouter.routes, '/dashboard/career-lab/tools/salary-estimate');
+    await screen.findByRole('heading', { level: 1, name: /career command center/i });
+    expect(document.title).toBe('Salary Estimate | ResumeCraft');
+  });
+
+  it('titles the not-found page', async () => {
+    await visit(appRouter.routes, '/nope');
+
+    expect(document.title).toBe('Page not found | ResumeCraft');
+  });
+
+  it('moves focus to the new page heading after a navigation', async () => {
+    signedIn();
+    const memoryRouter = await visit(appRouter.routes, '/dashboard/nope');
+    await screen.findByRole('heading', { level: 1, name: 'Page not found' });
+
+    await act(async () => { await memoryRouter.navigate('/dashboard/settings'); });
+
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Settings' });
+    expect(document.title).toBe('Settings | ResumeCraft');
+    expect(document.activeElement).toBe(heading);
+  });
+
+  it('shows a pending indicator while the next page loads', async () => {
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const routes = [{
+      element: appRouter.routes[0].element,
+      children: [
+        { path: '/', element: <p>Start</p> },
+        { path: '/slow', lazy: async () => { await gate; return { Component: () => <main><h1>Slow page</h1></main> }; } },
+      ],
+    }];
+    const memoryRouter = await visit(routes, '/');
+
+    let done;
+    act(() => { done = memoryRouter.navigate('/slow'); });
+    expect(await screen.findByTestId('route-pending')).toBeInTheDocument();
+    expect(screen.getByText('Start')).toBeInTheDocument();
+
+    await act(async () => { release(); await done; });
+    expect(screen.queryByTestId('route-pending')).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Slow page' }));
   });
 });
