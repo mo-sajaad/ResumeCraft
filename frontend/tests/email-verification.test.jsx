@@ -425,14 +425,22 @@ describe('the check-your-email page', () => {
     await expectUntouchedPage('uid-new@example.test');
   });
 
+  // IDENTITY-012: only a failed Firebase sign-out leaves this page open.
   it.each([
-    ['the API cannot be reached', () => { api.logout = async () => { throw new TypeError('synthetic failure'); }; }],
     ['Firebase rejects', () => { firebase.signOut.mockImplementationOnce(async () => { throw new Error('synthetic'); }); }],
+    [
+      'Firebase rejects and the API cannot be reached',
+      () => {
+        api.logout = async () => { throw new TypeError('synthetic failure'); };
+        firebase.signOut.mockImplementationOnce(async () => { throw new Error('synthetic'); });
+      },
+    ],
   ])('explains a failed sign-out when %s and allows another try', async (_label, fail) => {
     await logIn();
     const logout = api.logout;
     fail();
     await click('Sign out');
+    expect(firebase.auth.currentUser.uid).toBe('uid-new');
     expect(screen.getByRole('alert')).toHaveTextContent(/could not be signed out/i);
     expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
     expectButtons(true);
@@ -441,6 +449,20 @@ describe('the check-your-email page', () => {
     await click('Sign out');
 
     expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+  });
+
+  it('signs out of Firebase and says the server did not confirm it when the API cannot be reached', async () => {
+    await logIn();
+    api.logout = async () => { throw new TypeError('synthetic failure'); };
+    await click('Sign out');
+
+    expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
+    expect(firebase.auth.currentUser).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Check your email' })).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'You are signed out on this device, but the server could not confirm it.'
+    );
   });
 
   it('explains a 409 even when Firebase sign-out fails', async () => {

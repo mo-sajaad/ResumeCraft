@@ -180,6 +180,9 @@ async function exchangeFirebaseToken(req, res, next) {
 }
 
 async function logout(req, res, next) {
+  // First, so the browser drops the cookie even if the revocation fails.
+  res.clearCookie(SESSION_COOKIE_NAME, cookieOptions());
+
   try {
     if (req.user?.firebaseUid) {
       await incrementTokenVersion(req.user.firebaseUid);
@@ -191,8 +194,6 @@ async function logout(req, res, next) {
         resourceId: SESSION_COOKIE_NAME,
       });
     }
-
-    res.clearCookie(SESSION_COOKIE_NAME, cookieOptions());
 
     return res.status(204).send();
   } catch (error) {

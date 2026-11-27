@@ -28,6 +28,7 @@ import { createUser, firebase, setCurrentUser } from './support/fakeFirebase.js'
 const PANEL = /could not load your account/i;
 const SIGN_OUT_FAILED = 'You could not be signed out. Check your connection and try again.';
 const USUAL = 'This is usually temporary. Check your connection, then try again.';
+const SERVER_NOT_CONFIRMED = 'You are signed out on this device, but the server could not confirm it.';
 
 beforeEach(setUpSignInTest);
 afterEach(tearDownSignInTest);
@@ -138,16 +139,30 @@ describe('IDENTITY-009: Retry and Sign out in the app', () => {
     expect(seen.dashboardMounts).toBe(1);
   });
 
-  it('keeps the user signed in and explains when Sign out fails', async () => {
+  it('keeps the user signed in and explains when the Firebase sign-out fails', async () => {
+    await signInWithFailingExchange(500);
+    firebase.signOut = vi.fn(async () => { throw new Error('synthetic Firebase sign-out failure'); });
+
+    await click('Sign out');
+
+    expect(screen.getByRole('alert')).toHaveTextContent(SIGN_OUT_FAILED);
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
+    expect(firebase.auth.currentUser.uid).toBe('uid-one');
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled();
+  });
+
+  // IDENTITY-012: a logout request that fails still signs out of Firebase.
+  it('signs out of Firebase and says the server did not confirm it when the logout request fails', async () => {
     await signInWithFailingExchange(500);
     api.logout = async () => { throw new TypeError('synthetic network failure'); };
 
     await click('Sign out');
 
-    expect(screen.getByRole('alert')).toHaveTextContent(SIGN_OUT_FAILED);
-    expect(firebase.signOut).not.toHaveBeenCalled();
-    expect(firebase.auth.currentUser.uid).toBe('uid-one');
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
+    expect(firebase.auth.currentUser).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent(SERVER_NOT_CONFIRMED);
+    expect(screen.queryByText(PANEL)).not.toBeInTheDocument();
   });
 
   it('returns to the sign-in form when Sign out succeeds', async () => {
@@ -534,7 +549,7 @@ describe('IDENTITY-009 follow-up: server message: failed Sign out', () => {
     await signInWithExchange(async () => reply(401, { message: REVOKED }));
     await expectPanel(REVOKED, { retry: false });
 
-    api.logout = async () => { throw new TypeError('synthetic network failure'); };
+    firebase.signOut = vi.fn(async () => { throw new Error('synthetic Firebase sign-out failure'); });
     await click('Sign out');
 
     const panel = screen.getByRole('alert');
@@ -542,13 +557,29 @@ describe('IDENTITY-009 follow-up: server message: failed Sign out', () => {
     expect(panel).not.toHaveTextContent(REVOKED);
     expect(panelButtons().retry).not.toBeInTheDocument();
     expect(panelButtons().signOut).toBeEnabled();
-    expect(firebase.signOut).not.toHaveBeenCalled();
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
     expect(firebase.auth.currentUser.uid).toBe('uid-one');
 
-    api.logout = async () => reply(204);
+    firebase.signOut = vi.fn(async () => setCurrentUser(null));
     await click('Sign out');
 
     expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
     expect(firebase.signOut).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('leaves the panel for the sign-in page when only the server logout fails', async () => {
+    await signInWithExchange(async () => reply(401, { message: REVOKED }));
+    await expectPanel(REVOKED, { retry: false });
+
+    api.logout = async () => { throw new TypeError('synthetic network failure'); };
+    await click('Sign out');
+
+    expect(await screen.findByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
+    expect(firebase.signOut).toHaveBeenCalledTimes(1);
+    expect(firebase.auth.currentUser).toBeNull();
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(SERVER_NOT_CONFIRMED);
+    expect(alert).not.toHaveTextContent(REVOKED);
   });
 });

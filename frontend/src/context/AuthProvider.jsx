@@ -5,6 +5,7 @@ import { AuthContext } from "./AuthContext.jsx";
 import { auth, signOut } from "../firebase.js";
 import {
   EMAIL_NOT_VERIFIED,
+  SERVER_LOGOUT_FAILED,
   authFetch,
   clearAppJwt,
   describeRefusal,
@@ -17,6 +18,12 @@ import {
 const isCurrentUser = (firebaseUser) => auth.currentUser?.uid === firebaseUser.uid;
 
 const NO_PROFILE = { uid: null, data: null };
+
+// Shown on the sign-in page when Firebase signed out but the server did not
+// confirm the logout, so its cookie may still be valid (IDENTITY-012).
+const SERVER_LOGOUT_FAILED_MESSAGE =
+  "You are signed out on this device, but the server could not confirm it. "
+  + "On a shared device, sign in and sign out again.";
 
 // Ignores a result that arrives after another user has signed in. `error` is
 // the { message, retryable } of a refusal, kept only with an "error" status.
@@ -93,11 +100,10 @@ export function AuthProvider({ children }) {
   // The email belongs to another account, so this user cannot get a session.
   const endRefusedSession = async (firebaseUser, message) => {
     setAuthError(message);
-    await logoutSession().catch(() => {});
-    // Another user may have signed in during the request.
-    if (isCurrentUser(firebaseUser)) {
-      await signOut(auth).catch((err) => console.warn("Sign-out error:", err.message));
-    }
+    await logoutSession(firebaseUser.uid, async () => {
+      // Another user may have signed in during the request.
+      if (isCurrentUser(firebaseUser)) await signOut(auth);
+    }).catch((err) => console.warn("Sign-out error:", err.message));
   };
 
   useEffect(() => {
@@ -214,12 +220,18 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Signs out of Firebase even when the server logout fails. Rejects if either
+  // failed; when only the server did, the sign-in page also explains (IDENTITY-012).
   const logout = async () => {
     if (!auth) return;
-    await logoutSession();
-    await signOut(auth);
-    clearAppJwt();
-    setProfileState(NO_PROFILE);
+    try {
+      await logoutSession(auth.currentUser?.uid ?? null, () => signOut(auth));
+    } catch (error) {
+      if (error.code === SERVER_LOGOUT_FAILED && !auth.currentUser) setAuthError(SERVER_LOGOUT_FAILED_MESSAGE);
+      throw error;
+    } finally {
+      if (!auth.currentUser) setProfileState(NO_PROFILE);
+    }
   };
 
   const profile = user && profileState.uid === user.uid ? profileState.data : null;

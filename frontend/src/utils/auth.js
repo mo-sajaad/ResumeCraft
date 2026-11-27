@@ -9,6 +9,10 @@ export const SESSION_REQUEST_TIMEOUT_MS = 15_000;
 
 // Error code of a request that did not finish within SESSION_REQUEST_TIMEOUT_MS.
 export const REQUEST_TIMEOUT = "REQUEST_TIMEOUT";
+// Error code of an exchange refused because its user is being signed out.
+export const LOGGING_OUT = "LOGGING_OUT";
+// Error code of a logout the server did not confirm (IDENTITY-012).
+export const SERVER_LOGOUT_FAILED = "SERVER_LOGOUT_FAILED";
 
 // UID of the user the session cookie was issued for, so that a direct switch
 // to another user exchanges again (IDENTITY-010).
@@ -19,6 +23,10 @@ let sessionGeneration = 0;
 // The exchange in progress, { uid, fullName, promise }, shared by every caller
 // for the same user and name (IDENTITY-014).
 let exchangeInFlight = null;
+// UID -> number of logouts in progress. Exchanges for these UIDs are refused
+// until Firebase sign-out has finished, so a concurrent request cannot obtain
+// a new cookie after the server logout (IDENTITY-012).
+const loggingOut = new Map();
 
 // Runs work(signal) and rejects with REQUEST_TIMEOUT if it has not settled in
 // time. The signal aborts the fetches that use it.
@@ -82,6 +90,12 @@ export async function exchangeFirebaseTokenForJwt(preferredFullName = null) {
   if (!firebaseUser) {
     sessionUid = null;
     return null;
+  }
+
+  if (loggingOut.has(firebaseUser.uid)) {
+    const error = new Error("Signing out");
+    error.code = LOGGING_OUT;
+    throw error;
   }
 
   const sanitizedPreferredName = typeof preferredFullName === "string" ? preferredFullName.trim() : "";
@@ -194,13 +208,41 @@ export async function signOutOtherSessions() {
   await exchangeFirebaseTokenForJwt();
 }
 
-export async function logoutSession() {
+async function postLogout() {
+  const response = await withTimeout((signal) => fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+    signal,
+  }));
+  if (!response.ok) {
+    const error = new Error("The server could not end the session");
+    error.status = response.status;
+    throw error;
+  }
+}
+
+// Ends the API session of `uid`, then runs signOutOfFirebase even if that
+// failed. No exchange for `uid` can start until both are done (IDENTITY-012).
+// Rejects with the Firebase error if sign-out failed, otherwise with a
+// SERVER_LOGOUT_FAILED error if the server did not confirm the logout.
+export async function logoutSession(uid, signOutOfFirebase = async () => {}) {
+  loggingOut.set(uid, (loggingOut.get(uid) || 0) + 1);
+  let serverError = null;
   try {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
+    // An exchange already on its way could set a cookie after the logout.
+    if (exchangeInFlight?.uid === uid) await exchangeInFlight.promise.catch(() => {});
+    try {
+      await postLogout();
+    } catch (error) {
+      serverError = error;
+      serverError.code = SERVER_LOGOUT_FAILED;
+    }
+    await signOutOfFirebase();
   } finally {
     clearAppJwt();
+    const count = loggingOut.get(uid) - 1;
+    if (count > 0) loggingOut.set(uid, count);
+    else loggingOut.delete(uid);
   }
+  if (serverError) throw serverError;
 }

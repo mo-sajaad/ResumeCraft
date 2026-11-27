@@ -34,13 +34,21 @@ export default function Settings() {
     return Number.isNaN(date.valueOf()) ? "Not available" : date.toLocaleDateString();
   }, [user]);
 
-  const handleLogout = async () => {
-    await logout?.();
-    navigate(ROUTES.LOGIN, { replace: true });
-  };
-
   const setSuccess = (message) => setFeedback({ type: "success", message });
   const setError = (message) => setFeedback({ type: "error", message });
+
+  const handleLogout = async () => {
+    try {
+      await logout?.();
+    } catch {
+      // Signed out of Firebase: the sign-in page explains a server failure (IDENTITY-012).
+      if (auth?.currentUser) {
+        setError("You could not be signed out. Check your connection, then try again.");
+        return;
+      }
+    }
+    navigate(ROUTES.LOGIN, { replace: true });
+  };
 
   const savePreferences = async () => {
     if (!user?.uid) {
