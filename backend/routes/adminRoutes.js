@@ -31,13 +31,13 @@ async function auditDeniedAdmin(req, _res, next) {
 
 router.use(authenticateJWT, auditDeniedAdmin, requireAdmin);
 
-// Off, missing or unreadable admin_dashboard refuses every admin route
-// (ADMIN-005). Set per route so metric labels keep the route pattern.
-// Turning it off here also blocks the request that would turn it back on.
+// Off, missing or unreadable admin_dashboard refuses the admin routes below
+// (ADMIN-005). Set per route so metric labels keep the route pattern. The
+// flag routes are exempt, so an admin can always turn the dashboard back on.
 const adminDashboard = requireFeatureFlag('admin_dashboard');
 
-router.get('/feature-flags', adminDashboard, getFeatureFlags);
-router.patch('/feature-flags/:key', adminDashboard, express.json(), updateFeatureFlag);
+router.get('/feature-flags', getFeatureFlags);
+router.patch('/feature-flags/:key', express.json(), updateFeatureFlag);
 router.get('/analytics/usage', adminDashboard, getAnalytics);
 router.get('/audit-logs', adminDashboard, getAdminAuditLogs);
 

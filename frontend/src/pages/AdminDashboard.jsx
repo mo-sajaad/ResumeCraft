@@ -79,7 +79,7 @@ export default function AdminDashboard() {
   const toggleFlag = async (flag) => {
     const next = !flag.enabled;
     const warning = flag.key === "admin_dashboard" && !next
-      ? "\n\nThis also blocks the admin API, including this page. Turning it back on then needs a database change."
+      ? "\n\nUsage analytics and audit logs on this page stop loading until it is turned back on. Feature flags stay available."
       : "";
     if (!window.confirm(`${next ? "Turn on" : "Turn off"} ${flag.key}?${warning}`)) return;
 

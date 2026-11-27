@@ -102,7 +102,7 @@ it('ADMIN-013: a cancelled confirmation sends nothing', async () => {
 
   fireEvent.click(await screen.findByRole('button', { name: 'Turn off admin_dashboard' }));
 
-  expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/blocks the admin API/));
+  expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/Feature flags stay available/));
   expect(authFetch.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
 });
 

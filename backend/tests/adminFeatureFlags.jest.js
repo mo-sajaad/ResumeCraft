@@ -144,22 +144,37 @@ describe('ADMIN-005: admin_dashboard and usage_analytics', () => {
   // The usage row is written after the response; wait for that handler.
   const settle = () => new Promise((resolve) => { setTimeout(resolve, 20); });
 
-  test('admin_dashboard off refuses the admin routes and writes nothing', async () => {
+  const getAdmin = (path) => server.request('GET', `/api/admin${path}`, { headers: { cookie: sessionCookie(ADMIN_UID) } });
+
+  test.each(['/analytics/usage?days=14', '/audit-logs'])(
+    'admin_dashboard off refuses %s',
+    async (path) => {
+      db.on(FLAG_LOOKUP, () => ({ rows: withFlag('admin_dashboard', { enabled: false }) }));
+
+      const response = await getAdmin(path);
+
+      expect(response.status).toBe(403);
+      expect(db.callsMatching(/FROM usage_events|SELECT[\s\S]*FROM audit_logs/)).toEqual([]);
+    }
+  );
+
+  test('admin_dashboard off still lets an admin list and update flags', async () => {
     db.on(FLAG_LOOKUP, () => ({ rows: withFlag('admin_dashboard', { enabled: false }) }));
 
-    const response = await patchFlag({ enabled: true, rolloutPercent: 25 });
+    expect((await getFlags()).status).toBe(200);
+    const response = await patchFlag({ enabled: true });
 
-    expect(response.status).toBe(403);
-    expect(committed).toEqual({ flags: [], audit: [] });
+    expect(response.status).toBe(200);
+    expect(committed.flags).toHaveLength(1);
   });
 
-  test('a failed admin_dashboard lookup refuses the admin routes', async () => {
+  test('a failed admin_dashboard lookup refuses the other admin routes', async () => {
     db.on(FLAG_LOOKUP, () => { throw new Error('synthetic lookup failure'); });
 
-    const response = await patchFlag({ enabled: true, rolloutPercent: 25 });
+    const response = await getAdmin('/audit-logs');
 
     expect(response.status).toBe(500);
-    expect(committed.flags).toEqual([]);
+    expect(db.callsMatching(/SELECT[\s\S]*FROM audit_logs/)).toEqual([]);
   });
 
   test('usage events are stored while usage_analytics is on', async () => {
