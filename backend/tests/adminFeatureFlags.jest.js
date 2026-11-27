@@ -87,24 +87,19 @@ test.each([-1, 101, '50'])('rolloutPercent %p is rejected and nothing is written
   expect(committed).toEqual({ flags: [], audit: [] });
 });
 
-knownBug(
-  'ADMIN-006: PATCH without rolloutPercent should keep the stored value but resets it to 100',
-  async () => {
-    const response = await patchFlag({ enabled: true });
-    expect(response.status).toBe(200);
-    expect(committed.flags).toHaveLength(1);
-    return db.callsMatching(/(INSERT INTO|UPDATE) feature_flags/)[0];
-  },
-  ({ sql, params }) => {
-    // Either the stored 10 is written back, or the SQL keeps the column when
-    // the value is absent. 100 as a parameter, or NULL copied over the stored
-    // value, loses the partial rollout.
-    expect(params).not.toContain(100);
-    if (!params.includes(10)) {
-      expect(sql).not.toMatch(/rollout_percent\s*=\s*EXCLUDED\.rollout_percent/i);
-    }
+test('ADMIN-006: PATCH without rolloutPercent keeps the stored value', async () => {
+  const response = await patchFlag({ enabled: true });
+  expect(response.status).toBe(200);
+  expect(committed.flags).toHaveLength(1);
+  const { sql, params } = db.callsMatching(/(INSERT INTO|UPDATE) feature_flags/)[0];
+  // Either the stored 10 is written back, or the SQL keeps the column when
+  // the value is absent. 100 as a parameter, or NULL copied over the stored
+  // value, loses the partial rollout.
+  expect(params).not.toContain(100);
+  if (!params.includes(10)) {
+    expect(sql).not.toMatch(/rollout_percent\s*=\s*EXCLUDED\.rollout_percent/i);
   }
-);
+});
 
 test('a failed flag write returns 500 and leaves no audit record', async () => {
   db.on(/(INSERT INTO|UPDATE) feature_flags/, () => { throw new Error('synthetic flag failure'); });

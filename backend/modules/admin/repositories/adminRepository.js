@@ -9,18 +9,23 @@ async function listFeatureFlags() {
   return result.rows;
 }
 
+// An omitted rolloutPercent keeps the stored value; 100 applies only to a new
+// flag (ADMIN-006).
 async function upsertFeatureFlag({ key, description, enabled, rolloutPercent }) {
+  const rollout = rolloutPercent === undefined || rolloutPercent === null
+    ? null
+    : Math.max(0, Math.min(100, Number(rolloutPercent)));
   const result = await pool.query(
     `INSERT INTO feature_flags (key, description, enabled, rollout_percent, updated_at)
-     VALUES ($1, $2, $3, $4, NOW())
+     VALUES ($1, $2, $3, COALESCE($4::int, 100), NOW())
      ON CONFLICT (key)
      DO UPDATE SET
        description = COALESCE(EXCLUDED.description, feature_flags.description),
        enabled = EXCLUDED.enabled,
-       rollout_percent = EXCLUDED.rollout_percent,
+       rollout_percent = COALESCE($4::int, feature_flags.rollout_percent),
        updated_at = NOW()
      RETURNING key, description, enabled, rollout_percent, created_at, updated_at`,
-    [key, description || null, Boolean(enabled), Math.max(0, Math.min(100, Number(rolloutPercent ?? 100)))]
+    [key, description || null, Boolean(enabled), rollout]
   );
   return result.rows[0] || null;
 }
