@@ -214,3 +214,42 @@ describe('ADMIN-011: flag input validation', () => {
     expect(params[4]).toBe(replace);
   });
 });
+
+describe('ADMIN-010: usage totals', () => {
+  const getUsage = () => server.request('GET', '/api/admin/analytics/usage?days=14', {
+    headers: { cookie: sessionCookie(ADMIN_UID) },
+  });
+
+  test('ranks totals per route in SQL and reports truncation', async () => {
+    db.on(/FROM usage_events/, () => ({
+      rows: [
+        { route: '/a', event_type: 'api_request', count: 9, group_count: 3, total_events: '15' },
+        { route: '/b', event_type: 'api_request', count: 4, group_count: 3, total_events: '15' },
+      ],
+    }));
+
+    const response = await getUsage();
+
+    expect(response.status).toBe(200);
+    expect(response.json()).toEqual({
+      days: 14,
+      events: [
+        { route: '/a', event_type: 'api_request', count: 9 },
+        { route: '/b', event_type: 'api_request', count: 4 },
+      ],
+      truncated: true,
+      totalEvents: 15,
+    });
+    const [{ sql, params }] = db.callsMatching(/FROM usage_events/);
+    expect(sql).toMatch(/GROUP BY route, event_type/);
+    expect(sql).toMatch(/ORDER BY count DESC/);
+    expect(sql).not.toMatch(/date_trunc/);
+    expect(params).toEqual(['14', 50]);
+  });
+
+  test('an empty window is not truncated', async () => {
+    const response = await getUsage();
+
+    expect(response.json()).toMatchObject({ events: [], truncated: false, totalEvents: 0 });
+  });
+});

@@ -1,82 +1,144 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/useAuth";
-import { authFetch, getAuthHeaders } from "../utils/auth";
+import { authFetch } from "../utils/auth";
 import "./dashboard/DashboardShared.css";
-import { LoadingState } from "../components/ui/LoadingState";
+import Button from "../components/ui/Button";
+import { ErrorState, LoadingState } from "../components/ui/LoadingState";
 
-export default function AdminDashboard() {
-  const { profile } = useAuth();
-  const [flags, setFlags] = useState([]);
-  const [usage, setUsage] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const USAGE_DAYS = 14;
+const IDLE = { status: "loading", data: null, error: "" };
 
-  const isAdmin = Boolean(profile?.is_admin);
+// The server's reason when it gives one (for example a disabled admin_dashboard flag).
+async function failureMessage(response, fallback) {
+  const body = await response.json().catch(() => null);
+  return body?.error || body?.message || `${fallback} (HTTP ${response.status}).`;
+}
 
-  const loadData = async () => {
-    setLoading(true);
-    setError("");
+// One panel's request, so a failure in one does not hide the others (ADMIN-013).
+function usePanel(url, pick, enabled) {
+  const [state, setState] = useState(IDLE);
+
+  const load = useCallback(async () => {
+    setState((previous) => ({ ...previous, status: "loading", error: "" }));
     try {
-      const headers = await getAuthHeaders({ "Content-Type": "application/json" });
-      const [flagsRes, usageRes, auditRes] = await Promise.all([
-        authFetch("/api/admin/feature-flags", { headers }),
-        authFetch("/api/admin/analytics/usage?days=14", { headers }),
-        authFetch("/api/admin/audit-logs?limit=50", { headers }),
-      ]);
-
-      if (!flagsRes.ok || !usageRes.ok || !auditRes.ok) {
-        throw new Error("Failed to load admin dashboard data.");
-      }
-
-      const flagsJson = await flagsRes.json();
-      const usageJson = await usageRes.json();
-      const auditJson = await auditRes.json();
-
-      setFlags(flagsJson.flags || []);
-      setUsage(usageJson.events || []);
-      setAuditLogs(auditJson.logs || []);
+      const response = await authFetch(url);
+      if (!response.ok) throw new Error(await failureMessage(response, "Request failed"));
+      setState({ status: "ready", data: pick(await response.json()), error: "" });
     } catch (err) {
-      setError(err.message || "Unable to load admin data.");
-    } finally {
-      setLoading(false);
+      setState({ status: "error", data: null, error: err.message || "Request failed." });
     }
-  };
+  }, [url, pick]);
 
   useEffect(() => {
-    if (isAdmin) {
-      loadData();
-    }
-  }, [isAdmin]);
+    if (enabled) load();
+  }, [enabled, load]);
 
-  const usageSummary = useMemo(() => {
-    return usage.reduce((acc, event) => {
-      const key = `${event.route}::${event.event_type}`;
-      acc[key] = (acc[key] || 0) + Number(event.count || 0);
-      return acc;
-    }, {});
-  }, [usage]);
+  return [state, load, setState];
+}
+
+const pickFlags = (json) => json.flags || [];
+const pickUsage = (json) => ({
+  events: json.events || [],
+  truncated: Boolean(json.truncated),
+  totalEvents: Number(json.totalEvents || 0),
+});
+const pickLogs = (json) => json.logs || [];
+
+function Panel({ title, state, onRetry, isEmpty, emptyText, children }) {
+  let body;
+  if (state.status === "loading" && !state.data) body = <LoadingState rows={4} />;
+  else if (state.status === "error") {
+    body = (
+      <ErrorState
+        title={`Could not load ${title.toLowerCase()}`}
+        description={state.error}
+        action={<Button variant="secondary" onClick={onRetry}>Retry</Button>}
+      />
+    );
+  } else if (isEmpty(state.data)) body = <p className="page-subtitle">{emptyText}</p>;
+  else body = children(state.data);
+
+  return (
+    <section className="content-card" aria-busy={state.status === "loading"}>
+      <h2>{title}</h2>
+      {body}
+    </section>
+  );
+}
+
+export default function AdminDashboard() {
+  const { profile, sessionStatus, retrySession } = useAuth();
+  const isAdmin = Boolean(profile?.is_admin);
+
+  const [flagsState, loadFlags, setFlagsState] = usePanel("/api/admin/feature-flags", pickFlags, isAdmin);
+  const [usageState, loadUsage] = usePanel(`/api/admin/analytics/usage?days=${USAGE_DAYS}`, pickUsage, isAdmin);
+  const [auditState, loadAudit] = usePanel("/api/admin/audit-logs?limit=50", pickLogs, isAdmin);
+  const [pendingKey, setPendingKey] = useState(null);
+  const [feedback, setFeedback] = useState(null);
 
   const toggleFlag = async (flag) => {
+    const next = !flag.enabled;
+    const warning = flag.key === "admin_dashboard" && !next
+      ? "\n\nThis also blocks the admin API, including this page. Turning it back on then needs a database change."
+      : "";
+    if (!window.confirm(`${next ? "Turn on" : "Turn off"} ${flag.key}?${warning}`)) return;
+
+    setPendingKey(flag.key);
+    setFeedback(null);
     try {
-      const headers = await getAuthHeaders({ "Content-Type": "application/json" });
+      // Only `enabled`, so the stored rollout is kept (ADMIN-006).
       const response = await authFetch(`/api/admin/feature-flags/${encodeURIComponent(flag.key)}`, {
         method: "PATCH",
-        headers,
-        body: JSON.stringify({ enabled: !flag.enabled, rolloutPercent: flag.rollout_percent }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
       });
+      if (!response.ok) throw new Error(await failureMessage(response, `Could not update ${flag.key}`));
 
-      if (!response.ok) throw new Error("Failed to update feature flag");
-      await loadData();
+      const { flag: updated } = (await response.json().catch(() => null)) || {};
+      if (updated?.key) {
+        setFlagsState((previous) => ({
+          ...previous,
+          data: (previous.data || []).map((item) => (item.key === updated.key ? { ...item, ...updated } : item)),
+        }));
+      } else {
+        await loadFlags();
+      }
+      setFeedback({ type: "success", text: `${flag.key} is now ${next ? "on" : "off"}.` });
+      loadAudit();
     } catch (err) {
-      setError(err.message || "Failed to update feature flag.");
+      setFeedback({ type: "error", text: err.message || `Could not update ${flag.key}.` });
+    } finally {
+      setPendingKey(null);
     }
   };
+
+  if (sessionStatus === "loading" && !profile) {
+    return (
+      <section className="content-card">
+        <h1 className="page-title">Admin Dashboard</h1>
+        <LoadingState rows={2} />
+      </section>
+    );
+  }
+
+  // A failed profile load is not the same as "not an admin" (ADMIN-013).
+  if (sessionStatus === "error" && !profile) {
+    return (
+      <section className="content-card">
+        <h1 className="page-title">Admin Dashboard</h1>
+        <ErrorState
+          title="Could not check your access"
+          description="Your profile could not be loaded."
+          action={retrySession ? <Button variant="secondary" onClick={retrySession}>Retry</Button> : null}
+        />
+      </section>
+    );
+  }
 
   if (!isAdmin) {
     return (
       <section className="content-card">
-        <h2>Admin Dashboard</h2>
+        <h1 className="page-title">Admin Dashboard</h1>
         <p className="page-subtitle">You do not have permission to access admin systems.</p>
       </section>
     );
@@ -91,53 +153,94 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {error ? <div className="content-card error-message">{error}</div> : null}
-
-      <section className="content-card">
-        <h3>Feature Flags</h3>
-        {loading ? <LoadingState rows={4} /> : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr><th>Key</th><th>Description</th><th>Enabled</th><th>Rollout %</th><th>Action</th></tr>
-              </thead>
-              <tbody>
-                {flags.map((flag) => (
-                  <tr key={flag.key}>
-                    <td>{flag.key}</td>
-                    <td>{flag.description || "—"}</td>
-                    <td>{String(flag.enabled)}</td>
-                    <td>{flag.rollout_percent}</td>
-                    <td><button className="btn btn-outline" onClick={() => toggleFlag(flag)}>Toggle</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <Panel
+        title="Feature Flags"
+        state={flagsState}
+        onRetry={loadFlags}
+        isEmpty={(flags) => flags.length === 0}
+        emptyText="No feature flags are defined."
+      >
+        {(flags) => (
+          <>
+            {feedback ? (
+              <p
+                className={`settings-feedback settings-feedback--${feedback.type}`}
+                role={feedback.type === "error" ? "alert" : "status"}
+              >
+                {feedback.text}
+              </p>
+            ) : null}
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr><th>Key</th><th>Description</th><th>Enabled</th><th>Rollout %</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  {flags.map((flag) => (
+                    <tr key={flag.key}>
+                      <td>{flag.key}</td>
+                      <td>{flag.description || "—"}</td>
+                      <td>{flag.enabled ? "On" : "Off"}</td>
+                      <td>{flag.rollout_percent}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() => toggleFlag(flag)}
+                          disabled={pendingKey !== null}
+                          aria-label={`${flag.enabled ? "Turn off" : "Turn on"} ${flag.key}`}
+                        >
+                          {pendingKey === flag.key ? "Saving…" : flag.enabled ? "Turn off" : "Turn on"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </section>
+      </Panel>
 
-      <section className="content-card">
-        <h3>Usage Analytics (14d)</h3>
-        {loading ? <LoadingState rows={4} /> : (
-          <ul>
-            {Object.entries(usageSummary).slice(0, 20).map(([key, count]) => (
-              <li key={key}><strong>{key}</strong>: {count}</li>
-            ))}
-          </ul>
+      <Panel
+        title={`Usage Analytics (${USAGE_DAYS}d)`}
+        state={usageState}
+        onRetry={loadUsage}
+        isEmpty={(usage) => usage.events.length === 0}
+        emptyText={`No usage recorded in the last ${USAGE_DAYS} days.`}
+      >
+        {(usage) => (
+          <>
+            <p className="page-subtitle">
+              {`${usage.totalEvents} events in total.`}
+              {usage.truncated ? ` Showing the ${usage.events.length} busiest routes.` : ""}
+            </p>
+            <ol>
+              {usage.events.map((event) => (
+                <li key={`${event.route}::${event.event_type}`}>
+                  <strong>{`${event.route || "(no route)"} · ${event.event_type}`}</strong>: {event.count}
+                </li>
+              ))}
+            </ol>
+          </>
         )}
-      </section>
+      </Panel>
 
-      <section className="content-card">
-        <h3>Recent Audit Logs</h3>
-        {loading ? <LoadingState rows={4} /> : (
+      <Panel
+        title="Recent Audit Logs"
+        state={auditState}
+        onRetry={loadAudit}
+        isEmpty={(logs) => logs.length === 0}
+        emptyText="No audit entries yet."
+      >
+        {(logs) => (
           <div className="table-responsive">
             <table className="data-table">
               <thead>
                 <tr><th>Time</th><th>Actor</th><th>Action</th><th>Resource</th></tr>
               </thead>
               <tbody>
-                {auditLogs.map((log) => (
+                {logs.map((log) => (
                   <tr key={log.id}>
                     <td>{new Date(log.created_at).toLocaleString()}</td>
                     <td>{log.actor_firebase_uid || "system"}</td>
@@ -149,7 +252,7 @@ export default function AdminDashboard() {
             </table>
           </div>
         )}
-      </section>
+      </Panel>
     </div>
   );
 }

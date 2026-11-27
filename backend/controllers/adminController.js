@@ -83,9 +83,9 @@ async function updateFeatureFlag(req, res, next) {
 async function getAnalytics(req, res, next) {
   try {
     const { days } = validate(adminAnalyticsQuerySchema, req.query || {});
-    const events = await getUsageSummary({ days });
+    const { events, truncated, totalEvents } = await getUsageSummary({ days });
     await auditRead(req, 'admin.analytics.read', { days });
-    return res.json({ days, events });
+    return res.json({ days, events, truncated, totalEvents });
   } catch (error) {
     return next(error);
   }

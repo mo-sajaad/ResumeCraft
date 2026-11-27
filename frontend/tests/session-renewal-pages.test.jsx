@@ -212,6 +212,7 @@ describe('IDENTITY-015: AdminDashboard', () => {
 
   beforeEach(() => {
     enabled = false;
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     on('GET', FLAGS, async () => reply(200, {
       flags: [{ key: 'synthetic_flag', description: 'Synthetic flag', enabled, rollout_percent: 50 }],
     }));
@@ -219,7 +220,7 @@ describe('IDENTITY-015: AdminDashboard', () => {
     on('GET', AUDIT, async () => reply(200, { logs: [] }));
     on('PATCH', FLAG, async (init) => {
       enabled = JSON.parse(init.body).enabled;
-      return reply(200, {});
+      return reply(200, { flag: { key: 'synthetic_flag', description: 'Synthetic flag', enabled, rollout_percent: 50 } });
     });
   });
 
@@ -235,19 +236,20 @@ describe('IDENTITY-015: AdminDashboard', () => {
     expectOneRenewalAndResend('GET', FLAGS);
     expect(sent('GET', USAGE)).toHaveLength(2);
     expect(sent('GET', AUDIT)).toHaveLength(2);
-    expect(flagRow()).toHaveTextContent('false');
-    expect(screen.queryByText('Failed to load admin dashboard data.')).not.toBeInTheDocument();
+    expect(flagRow()).toHaveTextContent('Off');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('renews once and saves the flag after a 401 on the PATCH', async () => {
     await open(ROUTES.ADMIN, ROUTES.ADMIN, <AdminDashboard />);
     expire('PATCH', FLAG);
 
-    await click('Toggle');
+    await click('Turn on synthetic_flag');
 
     expectOneRenewalAndResend('PATCH', FLAG);
-    expect(JSON.parse(sent('PATCH', FLAG)[1][1].body)).toEqual({ enabled: true, rolloutPercent: 50 });
-    expect(flagRow()).toHaveTextContent('true');
+    // Only `enabled`, so the stored rollout is kept (ADMIN-006).
+    expect(JSON.parse(sent('PATCH', FLAG)[1][1].body)).toEqual({ enabled: true });
+    expect(flagRow()).toHaveTextContent('On');
   });
 
   it('shows the load error after a second 401', async () => {
@@ -256,17 +258,17 @@ describe('IDENTITY-015: AdminDashboard', () => {
     await open(ROUTES.ADMIN, ROUTES.ADMIN, <AdminDashboard />);
 
     expectOneRenewalAndResend('GET', FLAGS);
-    expect(screen.getByText('Failed to load admin dashboard data.')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load feature flags');
   });
 
   it('shows the update error after a second 401 on the PATCH', async () => {
     await open(ROUTES.ADMIN, ROUTES.ADMIN, <AdminDashboard />);
     expire('PATCH', FLAG, 2);
 
-    await click('Toggle');
+    await click('Turn on synthetic_flag');
 
     expectOneRenewalAndResend('PATCH', FLAG);
-    expect(screen.getByText('Failed to update feature flag')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(EXPIRED);
     expect(enabled).toBe(false);
   });
 });
