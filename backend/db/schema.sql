@@ -1,3 +1,7 @@
+-- Baseline schema. Do not edit: migrations/1795802143249_baseline.js runs
+-- this file as it is. Make schema changes with `npm run migrate:create`.
+-- See db/README.md.
+
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

@@ -9,7 +9,10 @@
     "test:node": "node --require ./tests/support/isolate.js --test tests/*.test.js",
     "test:jest": "jest --config jest.config.cjs",
     "lint:boundaries": "eslint . --ext .js",
-    "test:ci": "npm run lint:boundaries && npm test"
+    "test:ci": "npm run lint:boundaries && npm test",
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down",
+    "migrate:create": "node-pg-migrate create --migration-file-language sql"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +26,7 @@
     "firebase-admin": "^13.6.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "node-pg-migrate": "^9.0.0",
     "openai": "^7.28.0",
     "pg": "^8.18.0",
     "pino": "^9.14.0",
