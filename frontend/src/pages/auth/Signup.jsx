@@ -32,6 +32,11 @@ export default function Signup() {
 
   const handleGoogleSignIn = async () => {
     if (!requireFirebase()) return;
+    // Google sign-up needs the same agreement as email sign-up (IDENTITY-021).
+    if (!acceptedTerms) {
+      setError("Please accept the Terms and Privacy Policy to continue.");
+      return;
+    }
 
     const provider = new GoogleAuthProvider();
     try {

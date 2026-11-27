@@ -79,6 +79,7 @@ describe('IDENTITY-014: one exchange per sign-in', () => {
   it('makes exactly one exchange for a Google sign-up, carrying the typed name', async () => {
     renderApp('/auth/signup');
     fireEvent.change(await screen.findByLabelText('Full name'), { target: { value: '  Synthetic Name  ' } });
+    fireEvent.click(screen.getByLabelText(/i agree to the/i)); // Required for Google too (IDENTITY-021).
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Continue with Google' })); });
     await profileText('uid-one: Synthetic Name');
     await settle();
@@ -92,6 +93,7 @@ describe('IDENTITY-014: one exchange per sign-in', () => {
   it('does not keep a typed name for a later sign-in after a failed Google sign-up', async () => {
     renderApp('/auth/signup');
     fireEvent.change(await screen.findByLabelText('Full name'), { target: { value: 'Synthetic Name' } });
+    fireEvent.click(screen.getByLabelText(/i agree to the/i)); // Required for Google too (IDENTITY-021).
     vi.mocked(signInWithPopup).mockRejectedValueOnce(new Error('synthetic pop-up closed'));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Continue with Google' })); });
     expect(await screen.findByText('Google sign-in failed')).toBeInTheDocument();

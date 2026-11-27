@@ -2,7 +2,7 @@
 // real provider, guards and pages; Firebase and the API are fakes. Real Firebase
 // emails, event order and token claims are not covered. All data is synthetic.
 import process from 'node:process';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 vi.mock('../src/firebase', async () => (await import('./support/fakeFirebase.js')).appModule());
@@ -701,6 +701,9 @@ describe('Google', () => {
     firebase.nextUser = createUser('uid-google');
     renderApp(path);
     await screen.findByRole('button', { name: /continue with google/i });
+    // Google sign-up needs the terms box (IDENTITY-021); sign-in has none.
+    const terms = screen.queryByLabelText(/i agree to the/i);
+    if (terms) fireEvent.click(terms);
 
     await click(/continue with google/i);
 

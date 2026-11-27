@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
+  browserSessionPersistence,
   sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
@@ -24,11 +25,15 @@ const RESET_ERROR_MESSAGES = {
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [resetSending, setResetSending] = useState(false);
   const resetInFlight = useRef(false);
+
+  // Unchecked keeps the sign-in only for this browser session (IDENTITY-021).
+  const persistence = () => (rememberMe ? browserLocalPersistence : browserSessionPersistence);
 
   const requireFirebase = () => {
     if (!hasFirebaseConfig || !auth) {
@@ -45,7 +50,7 @@ export default function Login() {
     try {
       setLoading(true);
       setError("");
-      await setPersistence(auth, browserLocalPersistence);
+      await setPersistence(auth, persistence());
       // AuthProvider exchanges the token, and RedirectIfAuth opens the
       // dashboard once the session is ready (IDENTITY-014).
       await signInWithPopup(auth, provider);
@@ -92,7 +97,7 @@ export default function Login() {
     setError("");
     setNotice("");
     try {
-      await setPersistence(auth, browserLocalPersistence);
+      await setPersistence(auth, persistence());
       // AuthProvider exchanges the token. RedirectIfAuth then opens the
       // dashboard, explains a failure, or shows the check-your-email page (IDENTITY-014).
       await signInWithEmailAndPassword(auth, email, password);
@@ -145,7 +150,12 @@ export default function Login() {
 
       <div className="auth-row">
         <label className="auth-check" htmlFor="remember-me">
-          <input id="remember-me" type="checkbox" />
+          <input
+            id="remember-me"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
           <span>Remember me</span>
         </label>
         <button
