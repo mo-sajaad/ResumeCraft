@@ -1,10 +1,12 @@
 require('../../config/testRun');
 const OpenAI = require('openai');
+const { readIntegerEnv } = require('../../config/env');
 
 const DEFAULT_MODEL = process.env.OPENAI_CAREER_LAB_MODEL || 'gpt-4o-mini';
-const REQUEST_TIMEOUT_MS = Number(process.env.OPENAI_REQUEST_TIMEOUT_MS || 12000);
-const MAX_RETRIES = Number(process.env.OPENAI_MAX_RETRIES || 2);
-const RETRY_BASE_DELAY_MS = Number(process.env.OPENAI_RETRY_BASE_DELAY_MS || 300);
+const REQUEST_TIMEOUT_MS = readIntegerEnv('OPENAI_REQUEST_TIMEOUT_MS', 12000);
+// 0 is valid for these two: no retries, or retries without a pause.
+const MAX_RETRIES = readIntegerEnv('OPENAI_MAX_RETRIES', 2, { min: 0 });
+const RETRY_BASE_DELAY_MS = readIntegerEnv('OPENAI_RETRY_BASE_DELAY_MS', 300, { min: 0 });
 
 let cachedClient;
 

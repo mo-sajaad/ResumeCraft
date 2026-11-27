@@ -1,15 +1,12 @@
 const { createRateLimiter } = require('./rateLimiter');
+const { readIntegerEnv } = require('../config/env');
 
 const MAX_TEXT_INPUT_CHARS = 10000;
 const MAX_RESUME_TEXT_CHARS = 20000;
 const MAX_RESUME_TOTAL_CHARS = 50000;
 const MAX_BULLET_COUNT = 120;
-const MAX_AI_REQUESTS_PER_MINUTE = Number(process.env.MAX_AI_REQUESTS_PER_MINUTE || 30);
-const MAX_GLOBAL_AI_REQUESTS_PER_DAY = Number(process.env.MAX_GLOBAL_AI_REQUESTS_PER_DAY || 25);
-
-if (!Number.isInteger(MAX_GLOBAL_AI_REQUESTS_PER_DAY) || MAX_GLOBAL_AI_REQUESTS_PER_DAY < 1) {
-  throw new Error('MAX_GLOBAL_AI_REQUESTS_PER_DAY must be a positive integer.');
-}
+const MAX_AI_REQUESTS_PER_MINUTE = readIntegerEnv('MAX_AI_REQUESTS_PER_MINUTE', 30);
+const MAX_GLOBAL_AI_REQUESTS_PER_DAY = readIntegerEnv('MAX_GLOBAL_AI_REQUESTS_PER_DAY', 25);
 
 function countBulletsInText(text = '') {
   if (typeof text !== 'string' || !text.trim()) return 0;
