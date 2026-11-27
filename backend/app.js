@@ -7,6 +7,7 @@ const logger = require('./observability/logger');
 const errorHandler = require('./middleware/errorMiddleware');
 const { Sentry } = require('./observability/sentry');
 const { metricsMiddleware, metricsHandler } = require('./observability/metrics');
+const { healthz, readyz } = require('./observability/health');
 const usageAnalytics = require('./middleware/usageAnalytics');
 
 const identityModule = require('./modules/identity');
@@ -93,6 +94,10 @@ function createApp({ sentryEnabled = false } = {}) {
     },
     credentials: true,
   }));
+
+  // Probes come before logging, metrics and usage events.
+  app.get('/healthz', healthz);
+  app.get('/readyz', readyz);
 
   // pino-http would otherwise replace the logger's serializers with its own.
   app.use(pinoHttp({ logger, wrapSerializers: false }));

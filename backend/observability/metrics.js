@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const client = require('prom-client');
 const { trackRoute, routeLabel } = require('./routeLabel');
 
@@ -38,7 +39,31 @@ function metricsMiddleware(req, res, next) {
   next();
 }
 
+function digest(value) {
+  return crypto.createHash('sha256').update(value).digest();
+}
+
+// METRICS_TOKEN set: a matching bearer token is required. Unset: open outside
+// production, and hidden (404) in production.
+function metricsAccess(req) {
+  const expected = (process.env.METRICS_TOKEN || '').trim();
+  if (!expected) return process.env.NODE_ENV === 'production' ? 'hidden' : 'allowed';
+
+  const match = /^Bearer\s+(\S+)\s*$/i.exec(req.headers.authorization || '');
+  // Equal-length digests make the comparison constant-time.
+  const allowed = match && crypto.timingSafeEqual(digest(match[1]), digest(expected));
+  return allowed ? 'allowed' : 'denied';
+}
+
 async function metricsHandler(req, res) {
+  const access = metricsAccess(req);
+  if (access === 'hidden') return res.status(404).json({ message: 'Not found.' });
+  if (access === 'denied') {
+    res.set('WWW-Authenticate', 'Bearer');
+    return res.status(401).json({ message: 'Unauthorized.' });
+  }
+
+  res.set('Cache-Control', 'no-store');
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
 }
