@@ -279,9 +279,11 @@ describe('bounded labels', () => {
   });
 
   it('keeps the mount prefix when router middleware fails before a route matches', async () => {
-    const response = await server.request('GET', '/api/users/synthetic-uid', {
-      headers: { cookie: '__session=%' }, // Rejects in authenticateJWT (IDENTITY-018).
-    });
+    // The session lookup in authenticateJWT fails, so the router middleware
+    // passes an error on before any route matches. (A malformed cookie is now
+    // a 401, IDENTITY-018.)
+    db.on(/FROM users WHERE firebase_uid/, () => { throw new Error('synthetic session lookup failure'); });
+    const response = await server.request('GET', '/api/users/synthetic-uid', asAdmin());
 
     expect(response.status).toBe(500);
     expect(await routeLabels()).toEqual(['/api/users/*']);

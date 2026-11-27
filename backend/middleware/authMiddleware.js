@@ -12,16 +12,20 @@ function jwtSecretOrThrow() {
   return secret;
 }
 
-function parseCookies(req) {
+// Decodes only the session cookie; a malformed value counts as missing, and
+// other cookies on the domain are never decoded (IDENTITY-018).
+function readSessionCookie(req) {
   const raw = req.headers.cookie || '';
-  if (!raw) return {};
-
-  return raw.split(';').reduce((acc, part) => {
+  for (const part of raw.split(';')) {
     const [name, ...valueParts] = part.trim().split('=');
-    if (!name) return acc;
-    acc[name] = decodeURIComponent(valueParts.join('='));
-    return acc;
-  }, {});
+    if (name !== SESSION_COOKIE_NAME) continue;
+    try {
+      return decodeURIComponent(valueParts.join('=')) || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 function getTokenFromRequest(req) {
@@ -30,8 +34,7 @@ function getTokenFromRequest(req) {
     return authHeader.slice(7);
   }
 
-  const cookies = parseCookies(req);
-  return cookies[SESSION_COOKIE_NAME] || null;
+  return readSessionCookie(req);
 }
 
 // Resolves a session token to { user }, or to { invalid: message } for a bad,
