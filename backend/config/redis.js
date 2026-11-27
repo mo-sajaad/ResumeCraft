@@ -1,6 +1,11 @@
 require('./testRun');
 const logger = require('../observability/logger');
 
+// Commands fail fast instead of queueing while Redis is unreachable, so callers
+// can fail closed (production) or fall back (development) (PLATFORM-003).
+const REDIS_CONNECT_TIMEOUT_MS = 2000;
+const REDIS_COMMAND_TIMEOUT_MS = 1000;
+
 let redisClient;
 let redisUnavailable = false;
 
@@ -29,7 +34,11 @@ function getRedisClient() {
     return null;
   }
 
-  redisClient = createClient({ url: redisUrl });
+  redisClient = createClient({
+    url: redisUrl,
+    disableOfflineQueue: true,
+    socket: { connectTimeout: REDIS_CONNECT_TIMEOUT_MS },
+  });
   redisClient.on('error', (error) => {
     logger.error({ err: error }, 'Redis client error');
   });
@@ -43,4 +52,5 @@ function getRedisClient() {
 
 module.exports = {
   getRedisClient,
+  REDIS_COMMAND_TIMEOUT_MS,
 };

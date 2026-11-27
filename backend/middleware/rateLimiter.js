@@ -1,10 +1,19 @@
-const { getRedisClient } = require('../config/redis');
+const { getRedisClient, REDIS_COMMAND_TIMEOUT_MS } = require('../config/redis');
 const logger = require('../observability/logger');
 
 const WINDOW_SWEEP_INTERVAL_MS = 60 * 1000;
 
 function getClientIp(req) {
   return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+// node-redis has no per-command timeout; a stalled connection must not hang the request.
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Redis command timed out after ${ms} ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 function createInMemoryLimiter({ windowMs, max, keyGenerator, message }) {
@@ -63,21 +72,19 @@ function createRateLimiter({
     const key = keyGenerator ? keyGenerator(req) : getClientIp(req);
     const redisKey = `ratelimit:${key}`;
 
+    let count;
+    let ttlMs;
+
     try {
-      const count = await redis.incr(redisKey);
+      count = await withTimeout(redis.incr(redisKey), REDIS_COMMAND_TIMEOUT_MS);
 
       if (count === 1) {
-        await redis.pExpire(redisKey, windowMs);
+        await withTimeout(redis.pExpire(redisKey, windowMs), REDIS_COMMAND_TIMEOUT_MS);
       }
 
       if (count > max) {
-        const ttlMs = await redis.pTTL(redisKey);
-        const retryAfterSeconds = Math.max(1, Math.ceil(Math.max(0, ttlMs) / 1000));
-        res.set('Retry-After', String(retryAfterSeconds));
-        return res.status(429).json({ message });
+        ttlMs = await withTimeout(redis.pTTL(redisKey), REDIS_COMMAND_TIMEOUT_MS);
       }
-
-      return next();
     } catch (error) {
       logger.error({ err: error }, 'Rate limiter Redis operation failed');
       if (process.env.NODE_ENV === 'production') {
@@ -86,6 +93,14 @@ function createRateLimiter({
 
       return fallbackLimiter(req, res, next);
     }
+
+    if (count > max) {
+      const retryAfterSeconds = Math.max(1, Math.ceil(Math.max(0, ttlMs) / 1000));
+      res.set('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json({ message });
+    }
+
+    return next();
   };
 }
 
