@@ -94,3 +94,30 @@ describe('SHELL-003: route error boundaries', () => {
     expect(screen.getByRole('link', { name: 'Back to dashboard' })).toBeInTheDocument();
   });
 });
+
+describe('SHELL-019: unknown URLs', () => {
+  it.each([['/nope'], ['/auth/nope']])('shows a not-found page with a link home for %s', async (path) => {
+    await visit(appRouter.routes, path);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to home page' })).toHaveAttribute('href', '/');
+  });
+
+  it.each([['/dashboard/nope'], ['/dashboard/career-lab/bogus']])('keeps the shell for %s', async (path) => {
+    signedIn();
+
+    await visit(appRouter.routes, path);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
+    expect(document.querySelector('.dashboard-shell')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'Back to dashboard' })).toHaveAttribute('href', '/dashboard');
+  });
+
+  it('sends /auth to the sign-in page', async () => {
+    authState.current = { ...authState.current, user: null, loading: false, needsEmailVerification: false };
+
+    const memoryRouter = await visit(appRouter.routes, '/auth');
+
+    expect(memoryRouter.state.location.pathname).toBe('/auth/login');
+  });
+});

@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
 import AuthLayout from "./layouts/AuthLayout.jsx";
@@ -8,6 +8,7 @@ import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import RedirectIfAuth from "./routes/RedirectIfAuth.jsx";
 
 import ErrorPage from "./pages/ErrorPage.jsx";
+import NotFound from "./pages/NotFound.jsx";
 import BrandedLoader from "./components/ui/BrandedLoader.jsx";
 
 // Lazy-loaded pages
@@ -47,6 +48,8 @@ export const router = createBrowserRouter([
             // Errors show inside the auth layout, which keeps its links.
             errorElement: <ErrorPage />,
             children: [
+              // /auth on its own has no page (SHELL-019).
+              { index: true, element: <Navigate to="login" replace /> },
               {
                 element: <RedirectIfAuth />, // wrapper for login/signup
                 children: [
@@ -82,13 +85,18 @@ export const router = createBrowserRouter([
                   { path: "career-lab", element: withSuspense(<CareerLabLayout />), children: [
                     { index: true, element: withSuspense(<CareerLabOverview />) },
                     { path: "tools/:toolId", element: withSuspense(<CareerLabToolPage />) }
-                  ] }
+                  ] },
+                  // Unknown dashboard URLs stay in the shell (SHELL-019).
+                  { path: "*", element: <NotFound /> },
                 ],
               },
             ],
           },
         ],
       },
+
+      // Any other URL (SHELL-019).
+      { path: "*", element: <NotFound fullPage /> },
     ],
   },
 ]);
