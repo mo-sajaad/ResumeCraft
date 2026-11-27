@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Home.css";
 
@@ -123,40 +124,112 @@ const plans = [
 ];
 
 export default function Home() {
+  const [navOpen, setNavOpen] = useState(false);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const headerRef = useRef(null);
+  const navToggleRef = useRef(null);
+  const featuresButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (!navOpen && !featuresOpen) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key !== "Escape") return;
+      if (featuresOpen) {
+        setFeaturesOpen(false);
+        featuresButtonRef.current?.focus();
+      } else {
+        setNavOpen(false);
+        navToggleRef.current?.focus();
+      }
+    }
+
+    function handlePointerDown(event) {
+      if (!headerRef.current?.contains(event.target)) {
+        setFeaturesOpen(false);
+        setNavOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [navOpen, featuresOpen]);
+
+  function closeMenus() {
+    setFeaturesOpen(false);
+    setNavOpen(false);
+  }
+
+  function handleFeaturesBlur(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setFeaturesOpen(false);
+    }
+  }
+
   return (
     <div className="home-page">
       <div className="hero-glow hero-glow-one" />
       <div className="hero-glow hero-glow-two" />
 
-      <header className="top-nav">
+      <header className="top-nav" ref={headerRef}>
         <a href="#home" className="brand">
           ResumeCraft AI
         </a>
-        <nav className="main-nav" aria-label="Main navigation">
-          <a href="#home">Home</a>
-          <div className="nav-dropdown">
-            <button type="button">Features</button>
-            <div className="nav-dropdown-menu">
-              {featureItems.map((item) => (
-                <a key={item.id} href={`#${item.id}`}>
-                  {item.title}
-                </a>
-              ))}
+        <button
+          type="button"
+          className="nav-menu-toggle"
+          ref={navToggleRef}
+          aria-expanded={navOpen}
+          aria-controls="home-nav-panel"
+          onClick={() => setNavOpen((open) => !open)}
+        >
+          Menu
+        </button>
+        <div
+          id="home-nav-panel"
+          className={`top-nav-panel ${navOpen ? "is-open" : ""}`}
+        >
+          <nav className="main-nav" aria-label="Main navigation">
+            <a href="#home" onClick={closeMenus}>Home</a>
+            <div className="nav-dropdown" onBlur={handleFeaturesBlur}>
+              <button
+                type="button"
+                ref={featuresButtonRef}
+                aria-expanded={featuresOpen}
+                aria-controls="home-features-menu"
+                onClick={() => setFeaturesOpen((open) => !open)}
+              >
+                Features
+              </button>
+              <div
+                id="home-features-menu"
+                className={`nav-dropdown-menu ${featuresOpen ? "is-open" : ""}`}
+              >
+                {featureItems.map((item) => (
+                  <a key={item.id} href={`#${item.id}`} onClick={closeMenus}>
+                    {item.title}
+                  </a>
+                ))}
+              </div>
             </div>
+            <a href="#pricing" onClick={closeMenus}>Pricing</a>
+            <a href="#how-it-works" onClick={closeMenus}>How It Works</a>
+            <a href="#about" onClick={closeMenus}>About</a>
+            <a href="#contact" onClick={closeMenus}>Contact</a>
+            <a href="#faq" onClick={closeMenus}>FAQ</a>
+          </nav>
+          <div className="top-nav-ctas">
+            <Link to="/auth/login" className="btn btn-outline">
+              Log In
+            </Link>
+            <Link to="/auth/signup" className="btn btn-dark">
+              Sign Up Free
+            </Link>
           </div>
-          <a href="#pricing">Pricing</a>
-          <a href="#how-it-works">How It Works</a>
-          <a href="#about">About</a>
-          <a href="#contact">Contact</a>
-          <a href="#faq">FAQ</a>
-        </nav>
-        <div className="top-nav-ctas">
-          <Link to="/auth/login" className="btn btn-outline">
-            Log In
-          </Link>
-          <Link to="/auth/signup" className="btn btn-dark">
-            Sign Up Free
-          </Link>
         </div>
       </header>
 

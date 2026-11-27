@@ -10,11 +10,13 @@
 
 html:has(.home-page) {
   scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 .home-page {
   position: relative;
   overflow-x: hidden;
+  overflow-x: clip;
   background: radial-gradient(circle at 15% 0%, #112256 0%, #050c20 45%, var(--bg) 100%);
   color: var(--text);
   min-height: 100vh;
@@ -98,7 +100,7 @@ html:has(.home-page) {
 .home-page .nav-dropdown-menu {
   position: absolute;
   left: 0;
-  top: 130%;
+  top: 100%;
   min-width: 290px;
   display: none;
   flex-direction: column;
@@ -109,9 +111,30 @@ html:has(.home-page) {
   box-shadow: 0 20px 35px rgba(2, 6, 23, 0.4);
 }
 
-.home-page .nav-dropdown:hover .nav-dropdown-menu,
-.home-page .nav-dropdown:focus-within .nav-dropdown-menu {
+.home-page .nav-dropdown-menu.is-open {
   display: flex;
+}
+
+@media (hover: hover) and (min-width: 1041px) {
+  .home-page .nav-dropdown:hover .nav-dropdown-menu {
+    display: flex;
+  }
+}
+
+.home-page .top-nav-panel {
+  display: contents;
+}
+
+.home-page .nav-menu-toggle {
+  display: none;
+  color: #e2e8f0;
+  font: inherit;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  border-radius: 10px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
 }
 
 .home-page .nav-dropdown-menu a {
@@ -420,12 +443,45 @@ html:has(.home-page) {
 @media (max-width: 1040px) {
   .home-page .top-nav {
     flex-wrap: wrap;
-    justify-content: center;
+    padding: 0.75rem 1rem;
+  }
+
+  .home-page .nav-menu-toggle {
+    display: inline-block;
+  }
+
+  .home-page .top-nav-panel {
+    display: none;
+  }
+
+  .home-page .top-nav-panel.is-open {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-height: calc(100vh - 4.5rem);
+    overflow-y: auto;
+    padding-bottom: 0.5rem;
   }
 
   .home-page .main-nav {
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-page .top-nav-panel .main-nav a,
+  .home-page .top-nav-panel .nav-dropdown > button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 0.5rem;
+  }
+
+  .home-page .nav-dropdown-menu {
+    position: static;
+    min-width: 0;
+    box-shadow: none;
+    margin-top: 0.25rem;
   }
 
   .home-page .hero-section {
@@ -433,8 +489,7 @@ html:has(.home-page) {
   }
 
   .home-page .top-nav-ctas {
-    width: 100%;
-    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
