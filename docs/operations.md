@@ -5,6 +5,7 @@
 | Area | Variables |
 | --- | --- |
 | Server | `PORT`, `NODE_ENV`, `APP_BASE_URL`, `TRUST_PROXY`, `LOG_LEVEL` |
+| Origin | `APP_BASE_URL` is the frontend's single origin with a scheme (for example `https://app.example.com`, or `http://localhost:5173` locally); a trailing slash or path is ignored. It is used for CORS and the Stripe redirect URLs. A malformed value or a list stops startup in production and only warns elsewhere |
 | Proxy | `TRUST_PROXY` is required when `NODE_ENV=production`; startup fails if it is unset or malformed. Use a hop count (likely `2` for Firebase Hosting plus Cloud Run; confirm with `req.ip` after deploying), `true` (one hop), `false`, or comma-separated IPs/CIDRs or `loopback`/`linklocal`/`uniquelocal`. Defaults to `false` elsewhere |
 | Sessions | `JWT_SECRET_KEY` (required to start) |
 | Firebase | `FIREBASE_PROJECT_ID` (keyless), or `FIREBASE_SERVICE_ACCOUNT_JSON` / `FIREBASE_PRIVATE_KEY_PATH` with `FIREBASE_PROJECT_ID` unset. `FIREBASE_PROJECT_ID` wins: the key variables are then ignored with a warning, and production refuses to start while both are set, or if Firebase Admin cannot start. Sign-in checks token revocation, so the credentials (keyless: the Cloud Run service account) need permission to read Firebase Auth users |

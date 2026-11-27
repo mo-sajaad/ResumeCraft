@@ -44,6 +44,31 @@ function resolveTrustProxySetting() {
   return raw;
 }
 
+// APP_BASE_URL is the frontend's one origin; a trailing slash or path is cut
+// back with new URL().origin (PLATFORM-020). It is not a list: Stripe redirect
+// URLs are built from it. A malformed value stops production from starting and
+// only warns elsewhere, where browser requests with an Origin are then refused.
+function resolveAllowedOrigins() {
+  const value = (process.env.APP_BASE_URL || '').trim();
+  if (!value) return [];
+
+  let origin = 'null';
+  if (!value.includes(',')) {
+    try {
+      origin = new URL(value).origin;
+    } catch {
+      // Reported below.
+    }
+  }
+  if (origin !== 'null') return [origin];
+
+  const message = `APP_BASE_URL is malformed (${JSON.stringify(value)}). `
+    + 'Use one origin with a scheme, such as https://app.example.com or http://localhost:5173.';
+  if (process.env.NODE_ENV === 'production') throw new Error(message);
+  logger.warn(message);
+  return [];
+}
+
 function createApp({ sentryEnabled = false } = {}) {
   const app = express();
   const trustProxy = resolveTrustProxySetting();
@@ -53,10 +78,7 @@ function createApp({ sentryEnabled = false } = {}) {
     throw trustProxyError(`TRUST_PROXY is malformed (${error.message}).`);
   }
 
-  const allowedOrigins = [process.env.APP_BASE_URL]
-    .filter((origin) => typeof origin === 'string')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = resolveAllowedOrigins();
 
   app.use(helmet());
   app.use(cors({
